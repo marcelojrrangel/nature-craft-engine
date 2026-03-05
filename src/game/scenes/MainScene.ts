@@ -25,6 +25,8 @@ export class MainScene extends Phaser.Scene {
   private keysDown: Set<string> = new Set();
   private keydownHandler!: (e: KeyboardEvent) => void;
   private keyupHandler!: (e: KeyboardEvent) => void;
+  private respawnQueue: { x: number; y: number; type: 'tree' | 'rock' | 'bush'; hp: number; id: string; respawnAt: number }[] = [];
+  private respawnCounter = 0;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -246,7 +248,6 @@ export class MainScene extends Phaser.Scene {
 
     if (dropItem) {
       gameStore.addItem(dropItem, qty);
-      // Visual feedback
       const pickupText = this.add.text(res.x, res.y - 10, `+${qty} ${dropItem.icon}`, {
         fontSize: '14px', color: '#ffff00'
       }).setDepth(100);
@@ -256,10 +257,31 @@ export class MainScene extends Phaser.Scene {
       });
     }
 
+    // Queue respawn (30-60 seconds)
+    const delay = Phaser.Math.Between(30000, 60000);
+    this.respawnCounter++;
+    this.respawnQueue.push({
+      x: res.x, y: res.y, type: res.resourceType, hp: res.maxHp,
+      id: `${res.resourceType}_r${this.respawnCounter}`,
+      respawnAt: this.time.now + delay,
+    });
+
     // Remove resource
     const idx = this.resources.indexOf(res);
     if (idx >= 0) this.resources.splice(idx, 1);
+    delete gameStore.resourceStates[res.resourceId];
     res.destroy();
+  }
+
+  private processRespawns() {
+    const now = this.time.now;
+    for (let i = this.respawnQueue.length - 1; i >= 0; i--) {
+      const entry = this.respawnQueue[i];
+      if (now >= entry.respawnAt) {
+        this.respawnQueue.splice(i, 1);
+        this.createResource(entry.x, entry.y, entry.type, entry.hp, entry.id);
+      }
+    }
   }
 
   private doInteract() {
@@ -270,6 +292,7 @@ export class MainScene extends Phaser.Scene {
 
   update(_time: number, delta: number) {
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
+    this.processRespawns();
     if (this.isAttacking) return;
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;

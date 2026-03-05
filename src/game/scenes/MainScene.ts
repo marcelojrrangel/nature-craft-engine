@@ -15,8 +15,6 @@ interface ResourceObj extends Phaser.GameObjects.Sprite {
 
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
-  private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
-  private wasd!: { W: Phaser.Input.Keyboard.Key; A: Phaser.Input.Keyboard.Key; S: Phaser.Input.Keyboard.Key; D: Phaser.Input.Keyboard.Key };
   private resources: ResourceObj[] = [];
   private speed = 160;
   private isAttacking = false;
@@ -24,6 +22,9 @@ export class MainScene extends Phaser.Scene {
   private interactText!: Phaser.GameObjects.Text;
   private nearWorkbench = false;
   private joyVec = { x: 0, y: 0 };
+  private keysDown: Set<string> = new Set();
+  private keydownHandler!: (e: KeyboardEvent) => void;
+  private keyupHandler!: (e: KeyboardEvent) => void;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -32,8 +33,8 @@ export class MainScene extends Phaser.Scene {
   create() {
     // Generate tilemap
     this.generateMap();
-    this.generateResources();
     this.createPlayer();
+    this.generateResources();
     this.setupInput();
     this.setupCamera();
 
@@ -167,28 +168,31 @@ export class MainScene extends Phaser.Scene {
   }
 
   private setupInput() {
-    if (this.input.keyboard) {
-      this.cursors = this.input.keyboard.createCursorKeys();
-      this.wasd = {
-        W: this.input.keyboard.addKey('W'),
-        A: this.input.keyboard.addKey('A'),
-        S: this.input.keyboard.addKey('S'),
-        D: this.input.keyboard.addKey('D'),
-      };
-
-      // Keyboard shortcuts
-      this.input.keyboard.on('keydown-E', () => this.doInteract());
-      this.input.keyboard.on('keydown-I', () => gameStore.toggleInventory());
-      this.input.keyboard.on('keydown-C', () => gameStore.toggleCrafting());
-      this.input.keyboard.on('keydown-SPACE', () => this.doAttack());
-      this.input.keyboard.on('keydown-ESC', () => gameStore.closeAll());
-    }
+    this.keydownHandler = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      this.keysDown.add(key);
+      if (key === 'e') this.doInteract();
+      if (key === 'i') gameStore.toggleInventory();
+      if (key === 'c') gameStore.toggleCrafting();
+      if (key === ' ') { e.preventDefault(); this.doAttack(); }
+      if (key === 'escape') gameStore.closeAll();
+    };
+    this.keyupHandler = (e: KeyboardEvent) => {
+      this.keysDown.delete(e.key.toLowerCase());
+    };
+    window.addEventListener('keydown', this.keydownHandler);
+    window.addEventListener('keyup', this.keyupHandler);
   }
 
   private setupCamera() {
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     this.cameras.main.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE);
     this.cameras.main.setZoom(2);
+  }
+
+  shutdown() {
+    window.removeEventListener('keydown', this.keydownHandler);
+    window.removeEventListener('keyup', this.keyupHandler);
   }
 
   private doAttack() {
@@ -272,10 +276,10 @@ export class MainScene extends Phaser.Scene {
     let vx = 0, vy = 0;
 
     // Keyboard
-    if (this.cursors?.left?.isDown || this.wasd?.A?.isDown) vx = -1;
-    if (this.cursors?.right?.isDown || this.wasd?.D?.isDown) vx = 1;
-    if (this.cursors?.up?.isDown || this.wasd?.W?.isDown) vy = -1;
-    if (this.cursors?.down?.isDown || this.wasd?.S?.isDown) vy = 1;
+    if (this.keysDown.has('arrowleft') || this.keysDown.has('a')) vx = -1;
+    if (this.keysDown.has('arrowright') || this.keysDown.has('d')) vx = 1;
+    if (this.keysDown.has('arrowup') || this.keysDown.has('w')) vy = -1;
+    if (this.keysDown.has('arrowdown') || this.keysDown.has('s')) vy = 1;
 
     // Joystick
     if (this.joyVec.x !== 0 || this.joyVec.y !== 0) {

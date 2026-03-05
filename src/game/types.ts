@@ -63,6 +63,29 @@ export const SKILLS_CONFIG: Record<string, { name: string; icon: string; bonusPe
   hoe: { name: 'Enxada', icon: '🌱', bonusPerLevel: 0.1, description: 'Aumenta eficiência de plantio' },
 };
 
+export const HARDNESS: Record<string, number> = {
+  bush: 3,
+  dead_tree: 6,
+  tree: 12,
+  rock: 18,
+  workbench: 24,
+  chicken: 5,
+  crab: 10,
+};
+
+export const TOOL_DAMAGE: Record<string, number> = {
+  hands: 0.5,
+  axe: 1.5,
+  pickaxe: 1.5,
+  sword: 1.2,
+  knife: 1.0,
+  shovel: 1.5,
+  hoe: 1.5,
+};
+
+export const BASE_DAMAGE = 1;
+export const DROP_BONUS_CHANCE = 0.5;
+
 export interface GameSaveData {
   playerX: number;
   playerY: number;
@@ -83,6 +106,7 @@ export interface ChickenState {
   y: number;
   alive: boolean;
   respawnAt: number | null;
+  hp: number;
 }
 
 export interface CrabState {
@@ -91,6 +115,7 @@ export interface CrabState {
   y: number;
   alive: boolean;
   respawnAt: number | null;
+  hp: number;
 }
 
 // Item definitions

@@ -1,5 +1,5 @@
 // Reactive game store for shared state between Phaser & React
-import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState, type CrabState, type Skill } from './types';
+import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL, TOOL_DAMAGE, BASE_DAMAGE, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState, type CrabState, type Skill } from './types';
 
 type Listener = () => void;
 
@@ -174,34 +174,60 @@ class GameStore {
 
   // Stats based on equipment and skills
   getStats() {
+    const tool = this.getEquippedTool();
+    const toolType = tool?.type || 'hands';
+    
+    let baseDmg = BASE_DAMAGE;
+    let skillBonus = 0;
+    
+    if (tool) {
+      baseDmg = TOOL_DAMAGE[toolType] || 1;
+      const skill = this.skills[toolType];
+      if (skill) {
+        const config = SKILLS_CONFIG[toolType];
+        if (config) {
+          skillBonus = skill.level * config.bonusPerLevel;
+        }
+      }
+    }
+    
+    const attackDamage = baseDmg * (1 + skillBonus);
+    
     let miningSpeed = 1;
     let choppingSpeed = 1;
     let moveSpeed = 1;
-    let attackDamage = 1;
-    const tool = this.getEquippedTool();
     
     if (tool?.type === 'pickaxe') {
-      miningSpeed = 1.5;
-      const skill = this.skills[tool.type];
+      miningSpeed = TOOL_DAMAGE.pickaxe;
+      const skill = this.skills.pickaxe;
       if (skill) miningSpeed += skill.level * SKILLS_CONFIG.pickaxe.bonusPerLevel;
     }
     if (tool?.type === 'axe') {
-      choppingSpeed = 1.5;
-      const skill = this.skills[tool.type];
+      choppingSpeed = TOOL_DAMAGE.axe;
+      const skill = this.skills.axe;
       if (skill) choppingSpeed += skill.level * SKILLS_CONFIG.axe.bonusPerLevel;
     }
     if (tool?.type === 'sword') {
-      attackDamage = 1;
-      const skill = this.skills[tool.type];
-      if (skill) attackDamage += skill.level * SKILLS_CONFIG.sword.bonusPerLevel;
+      const skill = this.skills.sword;
+      if (skill) choppingSpeed += skill.level * SKILLS_CONFIG.sword.bonusPerLevel;
     }
     if (tool?.type === 'knife') {
-      attackDamage = 1;
-      const skill = this.skills[tool.type];
-      if (skill) attackDamage += skill.level * SKILLS_CONFIG.knife.bonusPerLevel;
+      const skill = this.skills.knife;
+      if (skill) choppingSpeed += skill.level * SKILLS_CONFIG.knife.bonusPerLevel;
     }
     if (this.equipment.hands.item) moveSpeed = 1.1;
-    return { miningSpeed, choppingSpeed, moveSpeed, attackDamage, hp: this.hp, maxHp: this.maxHp };
+    
+    return { 
+      miningSpeed, 
+      choppingSpeed, 
+      moveSpeed, 
+      attackDamage,
+      toolType,
+      baseDmg,
+      skillBonus,
+      hp: this.hp, 
+      maxHp: this.maxHp 
+    };
   }
 
   // Skills

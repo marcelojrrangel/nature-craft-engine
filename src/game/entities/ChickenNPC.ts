@@ -14,6 +14,8 @@ export class ChickenNPC {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
   readonly homeX: number;
   readonly homeY: number;
+  private hp: number;
+  private maxHp: number;
 
   private scene: Phaser.Scene;
   private state: ChickenVisualState = 'idle';
@@ -22,11 +24,13 @@ export class ChickenNPC {
   private readonly wanderRadius: number;
   private readonly moveSpeed = 40;
 
-  constructor(scene: Phaser.Scene, config: ChickenNPCConfig) {
+  constructor(scene: Phaser.Scene, config: ChickenNPCConfig, hp: number = 5) {
     this.scene = scene;
     this.id = config.id;
     this.homeX = config.x;
     this.homeY = config.y;
+    this.hp = hp;
+    this.maxHp = hp;
     this.wanderRadius = config.wanderRadius ?? 96;
 
     this.sprite = scene.physics.add.sprite(config.x, config.y, 'chicken_idle');
@@ -89,6 +93,15 @@ export class ChickenNPC {
     if (!this.isAlive()) return;
     this.setState('dead');
     this.sprite.disableBody(true, true);
+  }
+
+  takeDamage(amount: number): number {
+    this.hp = Math.max(0, this.hp - amount);
+    return this.hp;
+  }
+
+  getHp(): number {
+    return this.hp;
   }
 
   destroy() {

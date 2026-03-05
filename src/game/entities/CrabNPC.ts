@@ -14,6 +14,8 @@ export class CrabNPC {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
   readonly homeX: number;
   readonly homeY: number;
+  private hp: number;
+  private maxHp: number;
 
   private state: CrabVisualState = 'idle';
   private stateTimer = 0;
@@ -21,10 +23,12 @@ export class CrabNPC {
   private readonly wanderRadius: number;
   private readonly moveSpeed = 52;
 
-  constructor(scene: Phaser.Scene, config: CrabNPCConfig) {
+  constructor(scene: Phaser.Scene, config: CrabNPCConfig, hp: number = 10) {
     this.id = config.id;
     this.homeX = config.x;
     this.homeY = config.y;
+    this.hp = hp;
+    this.maxHp = hp;
     this.wanderRadius = config.wanderRadius ?? 70;
 
     this.sprite = scene.physics.add.sprite(config.x, config.y, 'crab_idle');
@@ -86,6 +90,15 @@ export class CrabNPC {
     if (!this.isAlive()) return;
     this.setState('dead');
     this.sprite.disableBody(true, true);
+  }
+
+  takeDamage(amount: number): number {
+    this.hp = Math.max(0, this.hp - amount);
+    return this.hp;
+  }
+
+  getHp(): number {
+    return this.hp;
   }
 
   destroy() {

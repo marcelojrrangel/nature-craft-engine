@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { gameStore } from '../store';
-import { ITEMS, type ChickenState, type CrabState } from '../types';
+import { ITEMS, HARDNESS, TOOL_DAMAGE, BASE_DAMAGE, DROP_BONUS_CHANCE, type ChickenState, type CrabState } from '../types';
 import { gameEvents } from '../events';
 import { ChickenNPC } from '../entities/ChickenNPC';
 import { CrabNPC } from '../entities/CrabNPC';
@@ -166,7 +166,7 @@ export class MainScene extends Phaser.Scene {
       if (!chickenState) {
         const pos = this.getRandomPlaceablePosition();
         if (!pos) continue;
-        chickenState = { id, x: pos.x, y: pos.y, alive: true, respawnAt: null };
+        chickenState = { id, x: pos.x, y: pos.y, alive: true, respawnAt: null, hp: HARDNESS.chicken };
         gameStore.chickenStates[id] = chickenState;
         changed = true;
       }
@@ -178,6 +178,7 @@ export class MainScene extends Phaser.Scene {
       if (!chickenState.alive || chickenState.respawnAt !== null) {
         chickenState.alive = true;
         chickenState.respawnAt = null;
+        chickenState.hp = HARDNESS.chicken; // Reset HP on respawn
         changed = true;
       }
       this.spawnChicken(chickenState);
@@ -197,7 +198,7 @@ export class MainScene extends Phaser.Scene {
       if (!crabState) {
         const pos = this.getRandomShorePosition();
         if (!pos) continue;
-        crabState = { id, x: pos.x, y: pos.y, alive: true, respawnAt: null };
+        crabState = { id, x: pos.x, y: pos.y, alive: true, respawnAt: null, hp: HARDNESS.crab };
         gameStore.crabStates[id] = crabState;
         changed = true;
       }
@@ -209,6 +210,7 @@ export class MainScene extends Phaser.Scene {
       if (!crabState.alive || crabState.respawnAt !== null) {
         crabState.alive = true;
         crabState.respawnAt = null;
+        crabState.hp = HARDNESS.crab; // Reset HP on respawn
         changed = true;
       }
 
@@ -407,10 +409,23 @@ export class MainScene extends Phaser.Scene {
     );
 
     if (nearbyChicken) {
+      const chickenState = gameStore.chickenStates[nearbyChicken.id];
       if (!this.hasSharpToolEquipped()) {
         this.showFloatingText(this.player.x - 40, this.player.y - 40, 'Você precisa de algo afiado para isso.', '#ffcc66');
       } else {
-        this.collectChicken(nearbyChicken);
+        const newHp = nearbyChicken.takeDamage(stats.attackDamage);
+        chickenState.hp = newHp; // Sync state
+        if (newHp <= 0) {
+          this.collectChicken(nearbyChicken);
+        } else {
+          const hpText = this.add.text(nearbyChicken.sprite.x, nearbyChicken.sprite.y - 20, `-${stats.attackDamage.toFixed(0)} HP`, {
+            fontSize: '10px', color: '#ff4444', fontStyle: 'bold'
+          }).setDepth(100);
+          this.tweens.add({
+            targets: hpText, y: nearbyChicken.sprite.y - 40, alpha: 0, duration: 600,
+            onComplete: () => hpText.destroy()
+          });
+        }
       }
     }
 
@@ -419,19 +434,40 @@ export class MainScene extends Phaser.Scene {
     );
 
     if (nearbyCrab) {
+      const crabState = gameStore.crabStates[nearbyCrab.id];
       if (!this.hasSharpToolEquipped()) {
         this.showFloatingText(this.player.x - 40, this.player.y - 56, 'Você precisa de algo afiado para isso.', '#ffcc66');
       } else {
-        this.collectCrab(nearbyCrab);
+        const newHp = nearbyCrab.takeDamage(stats.attackDamage);
+        crabState.hp = newHp; // Sync state
+        if (newHp <= 0) {
+          this.collectCrab(nearbyCrab);
+        } else {
+          const hpText = this.add.text(nearbyCrab.sprite.x, nearbyCrab.sprite.y - 20, `-${stats.attackDamage.toFixed(0)} HP`, {
+            fontSize: '10px', color: '#ff4444', fontStyle: 'bold'
+          }).setDepth(100);
+          this.tweens.add({
+            targets: hpText, y: nearbyCrab.sprite.y - 40, alpha: 0, duration: 600,
+            onComplete: () => hpText.destroy()
+          });
+        }
       }
     }
 
     for (const res of this.resources) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, res.x, res.y);
       if (dist < 40) {
-        let dmg = 1;
-        if (res.resourceType === 'tree') dmg *= stats.choppingSpeed;
-        if (res.resourceType === 'rock') dmg *= stats.miningSpeed;
+        const hardness = HARDNESS[res.resourceType] || 1;
+        let dmg = stats.attackDamage;
+        
+        if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') {
+          dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.choppingSpeed;
+        } else if (res.resourceType === 'rock') {
+          dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.miningSpeed;
+        } else {
+          dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType];
+        }
+        
         res.resourceHp -= dmg;
         gameStore.resourceStates[res.resourceId] = res.resourceHp;
 
@@ -464,6 +500,7 @@ export class MainScene extends Phaser.Scene {
       y: chicken.homeY,
       alive: true,
       respawnAt: null,
+      hp: HARDNESS.chicken,
     };
 
     state.alive = false;
@@ -500,6 +537,7 @@ export class MainScene extends Phaser.Scene {
       y: crab.homeY,
       alive: true,
       respawnAt: null,
+      hp: HARDNESS.crab,
     };
 
     state.alive = false;

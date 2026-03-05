@@ -16,6 +16,9 @@ export default function PhaserGame() {
       width: window.innerWidth,
       height: window.innerHeight,
       backgroundColor: '#1a2a1a',
+      input: {
+        keyboard: true,
+      },
       physics: {
         default: 'arcade',
         arcade: { gravity: { x: 0, y: 0 }, debug: false },
@@ -30,7 +33,31 @@ export default function PhaserGame() {
 
     gameRef.current = new Phaser.Game(config);
 
+    // Ensure canvas gets focus for keyboard input
+    const focusCanvas = () => {
+      const canvas = containerRef.current?.querySelector('canvas');
+      if (canvas) {
+        canvas.setAttribute('tabindex', '0');
+        canvas.style.outline = 'none';
+        canvas.focus();
+      }
+    };
+
+    // Try immediately and after a short delay (scene loading)
+    setTimeout(focusCanvas, 100);
+    setTimeout(focusCanvas, 500);
+
+    // Re-focus canvas when clicking anywhere on the game area
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Don't steal focus from UI buttons
+      if (target.tagName === 'BUTTON' || target.closest('button') || target.closest('.game-modal')) return;
+      focusCanvas();
+    };
+    document.addEventListener('click', handleClick);
+
     return () => {
+      document.removeEventListener('click', handleClick);
       gameRef.current?.destroy(true);
       gameRef.current = null;
     };

@@ -199,6 +199,66 @@ export class BootScene extends Phaser.Scene {
     g.fillTriangle(27, 20, 31, 18, 31, 22);
     g.generateTexture('chicken_dead', 32, 32);
 
+    // Crab idle
+    g.clear();
+    g.fillStyle(0xcd4f5f);
+    g.fillEllipse(16, 18, 20, 12);
+    g.fillStyle(0xb83f4f);
+    g.fillRect(8, 16, 4, 3);
+    g.fillRect(20, 16, 4, 3);
+    g.fillStyle(0x1a1a1a);
+    g.fillCircle(13, 14, 1.2);
+    g.fillCircle(19, 14, 1.2);
+    g.fillStyle(0xd96b79);
+    g.fillRect(6, 20, 3, 2);
+    g.fillRect(10, 22, 3, 2);
+    g.fillRect(19, 22, 3, 2);
+    g.fillRect(23, 20, 3, 2);
+    g.generateTexture('crab_idle', 32, 32);
+
+    // Crab scuttle frame 1
+    g.clear();
+    g.fillStyle(0xcd4f5f);
+    g.fillEllipse(16, 18, 20, 12);
+    g.fillStyle(0xb83f4f);
+    g.fillRect(7, 15, 4, 3);
+    g.fillRect(21, 17, 4, 3);
+    g.fillStyle(0x1a1a1a);
+    g.fillCircle(13, 14, 1.2);
+    g.fillCircle(19, 14, 1.2);
+    g.fillStyle(0xd96b79);
+    g.fillRect(5, 20, 3, 2);
+    g.fillRect(9, 22, 3, 2);
+    g.fillRect(20, 22, 3, 2);
+    g.fillRect(24, 20, 3, 2);
+    g.generateTexture('crab_scuttle_0', 32, 32);
+
+    // Crab scuttle frame 2
+    g.clear();
+    g.fillStyle(0xcd4f5f);
+    g.fillEllipse(16, 18, 20, 12);
+    g.fillStyle(0xb83f4f);
+    g.fillRect(7, 17, 4, 3);
+    g.fillRect(21, 15, 4, 3);
+    g.fillStyle(0x1a1a1a);
+    g.fillCircle(13, 14, 1.2);
+    g.fillCircle(19, 14, 1.2);
+    g.fillStyle(0xd96b79);
+    g.fillRect(6, 21, 3, 2);
+    g.fillRect(10, 23, 3, 2);
+    g.fillRect(19, 23, 3, 2);
+    g.fillRect(23, 21, 3, 2);
+    g.generateTexture('crab_scuttle_1', 32, 32);
+
+    // Crab dead/collected
+    g.clear();
+    g.fillStyle(0x9a9a9a);
+    g.fillEllipse(16, 20, 18, 10);
+    g.fillStyle(0x7f7f7f);
+    g.fillRect(8, 20, 3, 2);
+    g.fillRect(21, 20, 3, 2);
+    g.generateTexture('crab_dead', 32, 32);
+
     g.destroy();
   }
 }

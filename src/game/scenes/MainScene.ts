@@ -1,13 +1,15 @@
 import Phaser from 'phaser';
 import { gameStore } from '../store';
-import { ITEMS, type ChickenState } from '../types';
+import { ITEMS, type ChickenState, type CrabState } from '../types';
 import { gameEvents } from '../events';
 import { ChickenNPC } from '../entities/ChickenNPC';
+import { CrabNPC } from '../entities/CrabNPC';
 
 const MAP_W = 50;
 const MAP_H = 50;
 const TILE = 32;
 const CHICKEN_COUNT = 10;
+const CRAB_COUNT = 12;
 
 interface ResourceObj extends Phaser.GameObjects.Sprite {
   resourceType: 'tree' | 'rock' | 'bush';
@@ -20,6 +22,8 @@ export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
   private resources: ResourceObj[] = [];
   private chickens: ChickenNPC[] = [];
+  private crabs: CrabNPC[] = [];
+  private shoreSpawnPoints: { x: number; y: number }[] = [];
   private speed = 160;
   private isAttacking = false;
   private attackCooldown = 0;
@@ -42,9 +46,11 @@ export class MainScene extends Phaser.Scene {
   create() {
     // Generate tilemap
     this.generateMap();
+    this.buildShoreSpawnPoints();
     this.createPlayer();
     this.generateResources();
     this.generateChickens();
+    this.generateCrabs();
     this.setupInput();
     this.setupCamera();
 
@@ -65,6 +71,22 @@ export class MainScene extends Phaser.Scene {
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
     this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdown, this);
+  }
+
+  private buildShoreSpawnPoints() {
+    this.shoreSpawnPoints = [];
+    for (let y = 2; y < MAP_H - 2; y++) {
+      for (let x = 2; x < MAP_W - 2; x++) {
+        const worldX = x * TILE + TILE / 2;
+        const worldY = y * TILE + TILE / 2;
+        const nx = worldX / (MAP_W * TILE);
+        const ny = worldY / (MAP_H * TILE);
+        const d = Math.sqrt((nx - 0.5) ** 2 + (ny - 0.5) ** 2);
+        if (d > 0.405 && d < 0.445) {
+          this.shoreSpawnPoints.push({ x: worldX, y: worldY });
+        }
+      }
+    }
   }
 
   private generateMap() {
@@ -156,6 +178,38 @@ export class MainScene extends Phaser.Scene {
     if (changed) gameStore.save();
   }
 
+  private generateCrabs() {
+    const saveNow = Date.now();
+    let changed = false;
+
+    for (let i = 0; i < CRAB_COUNT; i++) {
+      const id = `crab_${i}`;
+      let crabState = gameStore.crabStates[id];
+
+      if (!crabState) {
+        const pos = this.getRandomShorePosition();
+        if (!pos) continue;
+        crabState = { id, x: pos.x, y: pos.y, alive: true, respawnAt: null };
+        gameStore.crabStates[id] = crabState;
+        changed = true;
+      }
+
+      if (crabState.respawnAt && saveNow < crabState.respawnAt) {
+        continue;
+      }
+
+      if (!crabState.alive || crabState.respawnAt !== null) {
+        crabState.alive = true;
+        crabState.respawnAt = null;
+        changed = true;
+      }
+
+      this.spawnCrab(crabState);
+    }
+
+    if (changed) gameStore.save();
+  }
+
   private spawnChicken(state: ChickenState) {
     if (this.chickens.some(c => c.id === state.id)) return;
 
@@ -170,6 +224,20 @@ export class MainScene extends Phaser.Scene {
     this.physics.add.collider(this.player, chicken.sprite);
   }
 
+  private spawnCrab(state: CrabState) {
+    if (this.crabs.some(c => c.id === state.id)) return;
+
+    const crab = new CrabNPC(this, {
+      id: state.id,
+      x: state.x,
+      y: state.y,
+      wanderRadius: 48,
+    });
+
+    this.crabs.push(crab);
+    this.physics.add.collider(this.player, crab.sprite);
+  }
+
   private getRandomPlaceablePosition() {
     for (let tries = 0; tries < 20; tries++) {
       const x = Phaser.Math.Between(3 * TILE, (MAP_W - 3) * TILE);
@@ -180,6 +248,16 @@ export class MainScene extends Phaser.Scene {
       if (d < 0.36) return { x, y };
     }
     return null;
+  }
+
+  private getRandomShorePosition() {
+    if (this.shoreSpawnPoints.length === 0) return null;
+    for (let tries = 0; tries < 20; tries++) {
+      const pos = this.shoreSpawnPoints[Phaser.Math.Between(0, this.shoreSpawnPoints.length - 1)];
+      const tooCloseToPlayer = Phaser.Math.Distance.Between(pos.x, pos.y, gameStore.playerX, gameStore.playerY) < 80;
+      if (!tooCloseToPlayer) return { x: pos.x, y: pos.y };
+    }
+    return this.shoreSpawnPoints[Phaser.Math.Between(0, this.shoreSpawnPoints.length - 1)] || null;
   }
 
   private createResource(x: number, y: number, type: 'tree' | 'rock' | 'bush', hp: number, id: string) {
@@ -248,6 +326,7 @@ export class MainScene extends Phaser.Scene {
       if (key === 'e') this.doInteract();
       if (key === 'i') gameStore.toggleInventory();
       if (key === 'c') gameStore.toggleCrafting();
+      if (key === 'k') gameStore.toggleSkills();
       if (key === ' ') { e.preventDefault(); this.doAttack(); }
       if (key === 'escape') gameStore.closeAll();
     };
@@ -274,7 +353,9 @@ export class MainScene extends Phaser.Scene {
     this.unsubscribeAttack = undefined;
     this.unsubscribeInteract = undefined;
     this.chickens.forEach(chicken => chicken.destroy());
+    this.crabs.forEach(crab => crab.destroy());
     this.chickens = [];
+    this.crabs = [];
   }
 
   private showFloatingText(x: number, y: number, text: string, color: string) {
@@ -306,7 +387,11 @@ export class MainScene extends Phaser.Scene {
     this.attackCooldown = 300;
     this.player.play('attack');
 
-    // Check nearby resources
+    const tool = gameStore.getEquippedTool();
+    if (tool) {
+      gameStore.useTool(tool.type);
+    }
+
     const stats = gameStore.getStats();
 
     const nearbyChicken = this.chickens.find(chicken =>
@@ -318,6 +403,18 @@ export class MainScene extends Phaser.Scene {
         this.showFloatingText(this.player.x - 40, this.player.y - 40, 'Você precisa de algo afiado para isso.', '#ffcc66');
       } else {
         this.collectChicken(nearbyChicken);
+      }
+    }
+
+    const nearbyCrab = this.crabs.find(crab =>
+      crab.isInRange(this.player.x, this.player.y, 42)
+    );
+
+    if (nearbyCrab) {
+      if (!this.hasSharpToolEquipped()) {
+        this.showFloatingText(this.player.x - 40, this.player.y - 56, 'Você precisa de algo afiado para isso.', '#ffcc66');
+      } else {
+        this.collectCrab(nearbyCrab);
       }
     }
 
@@ -388,6 +485,42 @@ export class MainScene extends Phaser.Scene {
     gameStore.save();
   }
 
+  private collectCrab(crab: CrabNPC) {
+    const state = gameStore.crabStates[crab.id] || {
+      id: crab.id,
+      x: crab.homeX,
+      y: crab.homeY,
+      alive: true,
+      respawnAt: null,
+    };
+
+    state.alive = false;
+    state.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000);
+    gameStore.crabStates[crab.id] = state;
+
+    const droppedShell = Math.random() < 0.7;
+    const droppedMeat = Math.random() < 0.5;
+
+    if (droppedShell) {
+      gameStore.addItem(ITEMS.crab_shell, 1);
+      this.showFloatingText(crab.sprite.x - 10, crab.sprite.y - 18, '+1 🐚', '#ffe099');
+    }
+
+    if (droppedMeat) {
+      gameStore.addItem(ITEMS.crab_meat, 1);
+      this.showFloatingText(crab.sprite.x + 8, crab.sprite.y - 30, '+1 🦀', '#ffb38a');
+    }
+
+    if (!droppedShell && !droppedMeat) {
+      this.showFloatingText(crab.sprite.x - 12, crab.sprite.y - 18, 'Nada caiu', '#bbbbbb');
+    }
+
+    crab.collect();
+    this.time.delayedCall(80, () => crab.destroy());
+    this.crabs = this.crabs.filter(c => c.id !== crab.id);
+    gameStore.save();
+  }
+
   private harvestResource(res: ResourceObj) {
     // Drop items
     let dropItem;
@@ -446,6 +579,15 @@ export class MainScene extends Phaser.Scene {
       changed = true;
     }
 
+    for (const crabState of Object.values(gameStore.crabStates)) {
+      if (crabState.alive) continue;
+      if (!crabState.respawnAt || saveNow < crabState.respawnAt) continue;
+      crabState.alive = true;
+      crabState.respawnAt = null;
+      this.spawnCrab(crabState);
+      changed = true;
+    }
+
     if (changed) gameStore.save();
   }
 
@@ -459,6 +601,7 @@ export class MainScene extends Phaser.Scene {
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
     this.processRespawns();
     this.chickens.forEach(chicken => chicken.update(delta));
+    this.crabs.forEach(crab => crab.update(delta));
     if (this.isAttacking) return;
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;
@@ -510,5 +653,6 @@ export class MainScene extends Phaser.Scene {
     // Sort depth by y position
     this.player.setDepth(this.player.y);
     this.resources.forEach(r => r.setDepth(r.y));
+    this.crabs.forEach(crab => crab.sprite.setDepth(crab.sprite.y));
   }
 }

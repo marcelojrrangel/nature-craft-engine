@@ -1,6 +1,7 @@
 import { useGameStore } from '../../hooks/useGameStore';
 import { gameStore } from '../../game/store';
 import Joystick from './Joystick';
+import QuickBar from './QuickBar';
 import { gameEvents } from '../../game/events';
 
 export default function GameHUD() {
@@ -31,10 +32,16 @@ export default function GameHUD() {
 
         {/* Resource counters */}
         <div className="flex gap-3">
-          {['wood', 'stone', 'fiber'].map(id => (
+          {[
+            { id: 'wood', icon: '🪵' },
+            { id: 'stone', icon: '🪨' },
+            { id: 'fiber', icon: '🌿' },
+            { id: 'crab_shell', icon: '🐚' },
+            { id: 'crab_meat', icon: '🦀' },
+          ].map(({ id, icon }) => (
             <div key={id} className="flex items-center gap-1 px-2 py-1 rounded"
               style={{ background: 'hsl(var(--card) / 0.8)' }}>
-              <span className="text-lg">{id === 'wood' ? '🪵' : id === 'stone' ? '🪨' : '🌿'}</span>
+              <span className="text-lg">{icon}</span>
               <span className="game-body-text" style={{ color: 'hsl(var(--foreground))' }}>
                 {gameStore.countItem(id)}
               </span>
@@ -44,23 +51,7 @@ export default function GameHUD() {
       </div>
 
       {/* Quick bar at bottom center */}
-      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex gap-1 pointer-events-auto">
-        {quickBar.map((slot, i) => (
-          <div key={i} className="game-slot w-12 h-12">
-            {slot.item && (
-              <>
-                <span className="text-xl">{slot.item.icon}</span>
-                {slot.quantity > 1 && (
-                  <span className="absolute bottom-0 right-0.5 text-[10px] game-pixel-text"
-                    style={{ color: 'hsl(var(--foreground))' }}>
-                    {slot.quantity}
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-        ))}
-      </div>
+      <QuickBar />
 
       {/* Bottom left: Joystick */}
       <div className="absolute bottom-6 left-6 pointer-events-auto">
@@ -74,7 +65,7 @@ export default function GameHUD() {
           style={{ background: 'hsl(var(--destructive) / 0.8)' }}
           onPointerDown={() => gameEvents.emit('attack', undefined)}
         >
-          ⚔️
+          {state.equipment.mainHand.item?.icon || '👊'}
         </button>
         <button
           className="w-14 h-14 rounded-full flex items-center justify-center text-2xl active:scale-90 transition-transform"
@@ -86,7 +77,7 @@ export default function GameHUD() {
       </div>
 
       {/* Top-right: Menu buttons */}
-      <div className="absolute top-3 right-3 flex gap-2 pointer-events-auto">
+      <div className="absolute top-25 right-3 flex gap-2 pointer-events-auto">
         <button className="game-btn game-btn-secondary text-sm" onClick={() => gameStore.toggleInventory()}>
           🎒 [I]
         </button>
@@ -95,6 +86,9 @@ export default function GameHUD() {
         </button>
         <button className="game-btn game-btn-secondary text-sm" onClick={() => gameStore.toggleCrafting()}>
           🔨 [C]
+        </button>
+        <button className="game-btn game-btn-secondary text-sm" onClick={() => gameStore.toggleSkills()}>
+          📖 [K]
         </button>
       </div>
 

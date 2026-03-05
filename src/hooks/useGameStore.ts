@@ -15,6 +15,7 @@ function buildMainSnapshot() {
     showInventory: gameStore.showInventory,
     showCrafting: gameStore.showCrafting,
     showEquipment: gameStore.showEquipment,
+    showSkills: gameStore.showSkills,
   };
 }
 
@@ -23,6 +24,7 @@ function buildUISnapshot() {
     showInventory: gameStore.showInventory,
     showCrafting: gameStore.showCrafting,
     showEquipment: gameStore.showEquipment,
+    showSkills: gameStore.showSkills,
   };
 }
 

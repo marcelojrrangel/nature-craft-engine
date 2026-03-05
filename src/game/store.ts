@@ -1,5 +1,5 @@
 // Reactive game store for shared state between Phaser & React
-import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState } from './types';
+import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState, type CrabState, type Skill } from './types';
 
 type Listener = () => void;
 
@@ -15,8 +15,13 @@ class GameStore {
   showInventory = false;
   showCrafting = false;
   showEquipment = false;
+  quickBar: (number | null)[] = [null, null, null, null, null];
+  selectedQuickBarIndex = 0;
   resourceStates: Record<string, number> = {};
   chickenStates: Record<string, ChickenState> = {};
+  crabStates: Record<string, CrabState> = {};
+  skills: Record<string, Skill> = {};
+  showSkills = false;
   private saveInterval: number | null = null;
 
   constructor() {
@@ -106,7 +111,52 @@ class GameStore {
   }
 
   getEquippedTool(): Item | null {
+    const quickBarItem = this.getQuickBarTool();
+    if (quickBarItem) return quickBarItem;
     return this.equipment.mainHand.item;
+  }
+
+  getSelectedQuickBarItem(): Item | null {
+    const invIndex = this.quickBar[this.selectedQuickBarIndex];
+    if (invIndex === null) return null;
+    return this.inventory[invIndex]?.item || null;
+  }
+
+  getQuickBarTool(): Item | null {
+    const item = this.getSelectedQuickBarItem();
+    if (item && (item.type === 'axe' || item.type === 'pickaxe' || item.type === 'shovel' || item.type === 'hoe' || item.type === 'sword' || item.type === 'knife')) {
+      return item;
+    }
+    return null;
+  }
+
+  assignToQuickBar(quickBarIndex: number, inventoryIndex: number) {
+    if (quickBarIndex < 0 || quickBarIndex >= 5) return;
+    if (inventoryIndex < 0 || inventoryIndex >= this.inventory.length) return;
+    if (!this.inventory[inventoryIndex].item) return;
+    this.quickBar[quickBarIndex] = inventoryIndex;
+    this.notify();
+  }
+
+  removeFromQuickBar(quickBarIndex: number) {
+    if (quickBarIndex < 0 || quickBarIndex >= 5) return;
+    this.quickBar[quickBarIndex] = null;
+    this.notify();
+  }
+
+  selectQuickBar(index: number) {
+    if (index < 0 || index >= 5) return;
+    this.selectedQuickBarIndex = index;
+    this.notify();
+  }
+
+  private validateQuickBarReferences() {
+    for (let i = 0; i < 5; i++) {
+      const invIndex = this.quickBar[i];
+      if (invIndex !== null && (!this.inventory[invIndex] || !this.inventory[invIndex].item)) {
+        this.quickBar[i] = null;
+      }
+    }
   }
 
   // Crafting
@@ -122,23 +172,83 @@ class GameStore {
     return true;
   }
 
-  // Stats based on equipment
+  // Stats based on equipment and skills
   getStats() {
     let miningSpeed = 1;
     let choppingSpeed = 1;
     let moveSpeed = 1;
+    let attackDamage = 1;
     const tool = this.getEquippedTool();
-    if (tool?.type === 'pickaxe') miningSpeed = 1.5;
-    if (tool?.type === 'axe') choppingSpeed = 1.5;
-    if (this.equipment.hands.item) moveSpeed = 1.1; // gloves buff
-    return { miningSpeed, choppingSpeed, moveSpeed, hp: this.hp, maxHp: this.maxHp };
+    
+    if (tool?.type === 'pickaxe') {
+      miningSpeed = 1.5;
+      const skill = this.skills[tool.type];
+      if (skill) miningSpeed += skill.level * SKILLS_CONFIG.pickaxe.bonusPerLevel;
+    }
+    if (tool?.type === 'axe') {
+      choppingSpeed = 1.5;
+      const skill = this.skills[tool.type];
+      if (skill) choppingSpeed += skill.level * SKILLS_CONFIG.axe.bonusPerLevel;
+    }
+    if (tool?.type === 'sword') {
+      attackDamage = 1;
+      const skill = this.skills[tool.type];
+      if (skill) attackDamage += skill.level * SKILLS_CONFIG.sword.bonusPerLevel;
+    }
+    if (tool?.type === 'knife') {
+      attackDamage = 1;
+      const skill = this.skills[tool.type];
+      if (skill) attackDamage += skill.level * SKILLS_CONFIG.knife.bonusPerLevel;
+    }
+    if (this.equipment.hands.item) moveSpeed = 1.1;
+    return { miningSpeed, choppingSpeed, moveSpeed, attackDamage, hp: this.hp, maxHp: this.maxHp };
+  }
+
+  // Skills
+  useTool(toolType: string) {
+    if (!SKILLS_CONFIG[toolType]) return;
+    
+    let skill = this.skills[toolType];
+    if (!skill) {
+      skill = { toolType, xp: 0, level: 0 };
+      this.skills[toolType] = skill;
+    }
+    
+    if (skill.level >= MAX_SKILL_LEVEL) return;
+    
+    skill.xp += 10;
+    while (skill.xp >= SKILL_XP_PER_LEVEL && skill.level < MAX_SKILL_LEVEL) {
+      skill.xp -= SKILL_XP_PER_LEVEL;
+      skill.level++;
+    }
+    this.notify();
+  }
+
+  getSkill(toolType: string): Skill | null {
+    return this.skills[toolType] || null;
+  }
+
+  getSkillBonus(toolType: string): number {
+    const skill = this.skills[toolType];
+    if (!skill) return 0;
+    const config = SKILLS_CONFIG[toolType];
+    if (!config) return 0;
+    return skill.level * config.bonusPerLevel;
+  }
+
+  unlearnSkill(toolType: string) {
+    if (this.skills[toolType]) {
+      this.skills[toolType] = { toolType, xp: 0, level: 0 };
+      this.notify();
+    }
   }
 
   // UI toggles
   toggleInventory() { this.showInventory = !this.showInventory; this.notify(); }
   toggleCrafting() { this.showCrafting = !this.showCrafting; if (!this.showCrafting) this.save(); this.notify(); }
   toggleEquipment() { this.showEquipment = !this.showEquipment; this.notify(); }
-  closeAll() { this.showInventory = false; this.showCrafting = false; this.showEquipment = false; this.notify(); }
+  toggleSkills() { this.showSkills = !this.showSkills; this.notify(); }
+  closeAll() { this.showInventory = false; this.showCrafting = false; this.showEquipment = false; this.showSkills = false; this.notify(); }
 
   // Save/Load
   save() {
@@ -150,6 +260,10 @@ class GameStore {
       timestamp: Date.now(),
       resourceStates: this.resourceStates,
       chickenStates: this.chickenStates,
+      crabStates: this.crabStates,
+      quickBar: this.quickBar,
+      selectedQuickBarIndex: this.selectedQuickBarIndex,
+      skills: this.skills,
     };
     localStorage.setItem('naturequest_save', JSON.stringify(data));
   }
@@ -165,6 +279,11 @@ class GameStore {
       this.equipment = data.equipment;
       this.resourceStates = data.resourceStates || {};
       this.chickenStates = data.chickenStates || {};
+      this.crabStates = data.crabStates || {};
+      this.quickBar = data.quickBar || [null, null, null, null, null];
+      this.selectedQuickBarIndex = data.selectedQuickBarIndex || 0;
+      this.skills = data.skills || {};
+      this.validateQuickBarReferences();
     } catch { /* ignore corrupt saves */ }
   }
 
@@ -177,6 +296,10 @@ class GameStore {
     this.hp = 100;
     this.resourceStates = {};
     this.chickenStates = {};
+    this.crabStates = {};
+    this.quickBar = [null, null, null, null, null];
+    this.selectedQuickBarIndex = 0;
+    this.skills = {};
     this.notify();
   }
 

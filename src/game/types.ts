@@ -1,6 +1,6 @@
 // Game type definitions
 
-export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat';
+export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat';
 export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife';
 export type EquipSlot = 'head' | 'hands' | 'legs' | 'accessory' | 'mainHand';
 
@@ -42,7 +42,26 @@ export interface PlayerStats {
   miningSpeed: number;
   choppingSpeed: number;
   moveSpeed: number;
+  attackDamage: number;
 }
+
+export interface Skill {
+  toolType: string;
+  xp: number;
+  level: number;
+}
+
+export const SKILL_XP_PER_LEVEL = 100;
+export const MAX_SKILL_LEVEL = 10;
+
+export const SKILLS_CONFIG: Record<string, { name: string; icon: string; bonusPerLevel: number; description: string }> = {
+  axe: { name: 'Corte', icon: '🪓', bonusPerLevel: 0.1, description: 'Aumenta velocidade de corte de árvores' },
+  pickaxe: { name: 'Mineração', icon: '⛏️', bonusPerLevel: 0.1, description: 'Aumenta velocidade de mineração' },
+  sword: { name: 'Espada', icon: '⚔️', bonusPerLevel: 0.1, description: 'Aumenta dano de ataque' },
+  knife: { name: 'Faca', icon: '🔪', bonusPerLevel: 0.08, description: 'Aumenta dano e coleta' },
+  shovel: { name: 'Pá', icon: '🪏', bonusPerLevel: 0.1, description: 'Aumenta eficiência de escavação' },
+  hoe: { name: 'Enxada', icon: '🌱', bonusPerLevel: 0.1, description: 'Aumenta eficiência de plantio' },
+};
 
 export interface GameSaveData {
   playerX: number;
@@ -52,9 +71,21 @@ export interface GameSaveData {
   timestamp: number;
   resourceStates: Record<string, number>; // resource id -> remaining hp
   chickenStates: Record<string, ChickenState>;
+  crabStates: Record<string, CrabState>;
+  quickBar?: (number | null)[];
+  selectedQuickBarIndex?: number;
+  skills?: Record<string, Skill>;
 }
 
 export interface ChickenState {
+  id: string;
+  x: number;
+  y: number;
+  alive: boolean;
+  respawnAt: number | null;
+}
+
+export interface CrabState {
   id: string;
   x: number;
   y: number;
@@ -71,6 +102,8 @@ export const ITEMS: Record<string, Item> = {
   food: { id: 'food', name: 'Fruta', type: 'food', icon: '🍎', stackable: true, maxStack: 16, description: 'Restaura HP ao consumir' },
   feather: { id: 'feather', name: 'Pena', type: 'feather', icon: '🪶', stackable: true, maxStack: 64, description: 'Pena coletada de aves' },
   chicken_meat: { id: 'chicken_meat', name: 'Carne de Galinha', type: 'chicken_meat', icon: '🍗', stackable: true, maxStack: 32, description: 'Carne fresca de galinha' },
+  crab_shell: { id: 'crab_shell', name: 'Casca de Siri', type: 'crab_shell', icon: '🐚', stackable: true, maxStack: 64, description: 'Fragmento de carapaça coletado na orla' },
+  crab_meat: { id: 'crab_meat', name: 'Carne de Siri', type: 'crab_meat', icon: '🦀', stackable: true, maxStack: 32, description: 'Carne fresca de siri/caranguejo' },
   axe: { id: 'axe', name: 'Machado', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+50% velocidade de corte' },
   pickaxe: { id: 'pickaxe', name: 'Picareta', type: 'pickaxe', icon: '⛏️', stackable: false, maxStack: 1, description: '+50% velocidade de mineração' },
   shovel: { id: 'shovel', name: 'Pá', type: 'shovel', icon: '🪏', stackable: false, maxStack: 1, description: 'Permite cavar e plantar' },

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { gameStore } from '../store';
 import { ITEMS } from '../types';
+import { gameEvents } from '../events';
 
 const MAP_W = 50;
 const MAP_H = 50;
@@ -25,6 +26,9 @@ export class MainScene extends Phaser.Scene {
   private keysDown: Set<string> = new Set();
   private keydownHandler!: (e: KeyboardEvent) => void;
   private keyupHandler!: (e: KeyboardEvent) => void;
+  private unsubscribeJoystick?: () => void;
+  private unsubscribeAttack?: () => void;
+  private unsubscribeInteract?: () => void;
   private respawnQueue: { x: number; y: number; type: 'tree' | 'rock' | 'bush'; hp: number; id: string; respawnAt: number }[] = [];
   private respawnCounter = 0;
 
@@ -45,10 +49,18 @@ export class MainScene extends Phaser.Scene {
       fontSize: '12px', color: '#ffffff', backgroundColor: '#00000088', padding: { x: 4, y: 2 }
     }).setDepth(100).setVisible(false);
 
-    // Listen for joystick input from React HUD
-    (window as any).__gameJoystick = (x: number, y: number) => { this.joyVec = { x, y }; };
-    (window as any).__gameAttack = () => { this.doAttack(); };
-    (window as any).__gameInteract = () => { this.doInteract(); };
+    this.unsubscribeJoystick = gameEvents.on('joystickMove', ({ x, y }) => {
+      this.joyVec = { x, y };
+    });
+    this.unsubscribeAttack = gameEvents.on('attack', () => {
+      this.doAttack();
+    });
+    this.unsubscribeInteract = gameEvents.on('interact', () => {
+      this.doInteract();
+    });
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.shutdown, this);
   }
 
   private generateMap() {
@@ -195,6 +207,12 @@ export class MainScene extends Phaser.Scene {
   shutdown() {
     window.removeEventListener('keydown', this.keydownHandler);
     window.removeEventListener('keyup', this.keyupHandler);
+    this.unsubscribeJoystick?.();
+    this.unsubscribeAttack?.();
+    this.unsubscribeInteract?.();
+    this.unsubscribeJoystick = undefined;
+    this.unsubscribeAttack = undefined;
+    this.unsubscribeInteract = undefined;
   }
 
   private doAttack() {

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { gameEvents } from '../../game/events';
 
 export default function Joystick() {
   const baseRef = useRef<HTMLDivElement>(null);
@@ -20,13 +21,13 @@ export default function Joystick() {
     // Send to game
     const nx = dx / maxDist;
     const ny = dy / maxDist;
-    (window as any).__gameJoystick?.(nx, ny);
+    gameEvents.emit('joystickMove', { x: nx, y: ny });
   }, []);
 
   const handleEnd = useCallback(() => {
     setPos({ x: 0, y: 0 });
     setActive(false);
-    (window as any).__gameJoystick?.(0, 0);
+    gameEvents.emit('joystickMove', { x: 0, y: 0 });
   }, []);
 
   return (

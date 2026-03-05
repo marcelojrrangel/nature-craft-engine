@@ -1,6 +1,7 @@
 import { useGameStore } from '../../hooks/useGameStore';
 import { gameStore } from '../../game/store';
 import Joystick from './Joystick';
+import { gameEvents } from '../../game/events';
 
 export default function GameHUD() {
   const state = useGameStore();
@@ -71,14 +72,14 @@ export default function GameHUD() {
         <button
           className="w-14 h-14 rounded-full flex items-center justify-center text-2xl active:scale-90 transition-transform"
           style={{ background: 'hsl(var(--destructive) / 0.8)' }}
-          onPointerDown={() => (window as any).__gameAttack?.()}
+          onPointerDown={() => gameEvents.emit('attack', undefined)}
         >
           ⚔️
         </button>
         <button
           className="w-14 h-14 rounded-full flex items-center justify-center text-2xl active:scale-90 transition-transform"
           style={{ background: 'hsl(var(--accent) / 0.8)' }}
-          onPointerDown={() => (window as any).__gameInteract?.()}
+          onPointerDown={() => gameEvents.emit('interact', undefined)}
         >
           🤚
         </button>

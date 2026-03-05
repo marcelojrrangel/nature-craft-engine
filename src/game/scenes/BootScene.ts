@@ -141,6 +141,64 @@ export class BootScene extends Phaser.Scene {
     g.fillCircle(8, 8, 6);
     g.generateTexture('item_drop', 16, 16);
 
+    // Chicken idle
+    g.clear();
+    g.fillStyle(0xffffff);
+    g.fillCircle(15, 18, 9);
+    g.fillCircle(22, 14, 6);
+    g.fillStyle(0xffcc33);
+    g.fillTriangle(27, 14, 31, 12, 31, 16);
+    g.fillStyle(0xe84a5f);
+    g.fillCircle(23, 8, 3);
+    g.fillStyle(0x333333);
+    g.fillCircle(24, 13, 1.5);
+    g.fillStyle(0xf0b36d);
+    g.fillRect(12, 24, 2, 6);
+    g.fillRect(17, 24, 2, 6);
+    g.generateTexture('chicken_idle', 32, 32);
+
+    // Chicken eating frame 1
+    g.clear();
+    g.fillStyle(0xffffff);
+    g.fillCircle(15, 20, 9);
+    g.fillCircle(22, 18, 6);
+    g.fillStyle(0xffcc33);
+    g.fillTriangle(27, 19, 31, 17, 31, 21);
+    g.fillStyle(0xe84a5f);
+    g.fillCircle(23, 12, 3);
+    g.fillStyle(0x333333);
+    g.fillCircle(24, 17, 1.5);
+    g.fillStyle(0xf0b36d);
+    g.fillRect(12, 25, 2, 5);
+    g.fillRect(17, 25, 2, 5);
+    g.generateTexture('chicken_eat_0', 32, 32);
+
+    // Chicken eating frame 2
+    g.clear();
+    g.fillStyle(0xffffff);
+    g.fillCircle(15, 19, 9);
+    g.fillCircle(22, 17, 6);
+    g.fillStyle(0xffcc33);
+    g.fillTriangle(27, 18, 31, 16, 31, 20);
+    g.fillStyle(0xe84a5f);
+    g.fillCircle(23, 11, 3);
+    g.fillStyle(0x333333);
+    g.fillCircle(24, 16, 1.5);
+    g.fillStyle(0xf0b36d);
+    g.fillRect(12, 25, 2, 5);
+    g.fillRect(17, 25, 2, 5);
+    g.generateTexture('chicken_eat_1', 32, 32);
+
+    // Chicken dead/collected
+    g.clear();
+    g.fillStyle(0xd9d9d9);
+    g.fillEllipse(16, 22, 18, 12);
+    g.fillStyle(0xb0b0b0);
+    g.fillEllipse(23, 20, 8, 6);
+    g.fillStyle(0xffcc33);
+    g.fillTriangle(27, 20, 31, 18, 31, 22);
+    g.generateTexture('chicken_dead', 32, 32);
+
     g.destroy();
   }
 }

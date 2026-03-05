@@ -1,5 +1,5 @@
 // Reactive game store for shared state between Phaser & React
-import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe } from './types';
+import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState } from './types';
 
 type Listener = () => void;
 
@@ -16,6 +16,7 @@ class GameStore {
   showCrafting = false;
   showEquipment = false;
   resourceStates: Record<string, number> = {};
+  chickenStates: Record<string, ChickenState> = {};
   private saveInterval: number | null = null;
 
   constructor() {
@@ -148,6 +149,7 @@ class GameStore {
       equipment: this.equipment,
       timestamp: Date.now(),
       resourceStates: this.resourceStates,
+      chickenStates: this.chickenStates,
     };
     localStorage.setItem('naturequest_save', JSON.stringify(data));
   }
@@ -162,6 +164,7 @@ class GameStore {
       this.inventory = data.inventory;
       this.equipment = data.equipment;
       this.resourceStates = data.resourceStates || {};
+      this.chickenStates = data.chickenStates || {};
     } catch { /* ignore corrupt saves */ }
   }
 
@@ -173,6 +176,7 @@ class GameStore {
     this.playerY = 800;
     this.hp = 100;
     this.resourceStates = {};
+    this.chickenStates = {};
     this.notify();
   }
 

@@ -1,11 +1,13 @@
 import Phaser from 'phaser';
 import { gameStore } from '../store';
-import { ITEMS } from '../types';
+import { ITEMS, type ChickenState } from '../types';
 import { gameEvents } from '../events';
+import { ChickenNPC } from '../entities/ChickenNPC';
 
 const MAP_W = 50;
 const MAP_H = 50;
 const TILE = 32;
+const CHICKEN_COUNT = 10;
 
 interface ResourceObj extends Phaser.GameObjects.Sprite {
   resourceType: 'tree' | 'rock' | 'bush';
@@ -17,6 +19,7 @@ interface ResourceObj extends Phaser.GameObjects.Sprite {
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
   private resources: ResourceObj[] = [];
+  private chickens: ChickenNPC[] = [];
   private speed = 160;
   private isAttacking = false;
   private attackCooldown = 0;
@@ -41,6 +44,7 @@ export class MainScene extends Phaser.Scene {
     this.generateMap();
     this.createPlayer();
     this.generateResources();
+    this.generateChickens();
     this.setupInput();
     this.setupCamera();
 
@@ -89,34 +93,27 @@ export class MainScene extends Phaser.Scene {
   }
 
   private generateResources() {
-    const placeable = (x: number, y: number) => {
-      const nx = x / (MAP_W * TILE);
-      const ny = y / (MAP_H * TILE);
-      const d = Math.sqrt((nx - 0.5) ** 2 + (ny - 0.5) ** 2);
-      return d < 0.36;
-    };
-
     // Trees
     for (let i = 0; i < 40; i++) {
-      const x = Phaser.Math.Between(3 * TILE, (MAP_W - 3) * TILE);
-      const y = Phaser.Math.Between(3 * TILE, (MAP_H - 3) * TILE);
-      if (!placeable(x, y)) continue;
+      const pos = this.getRandomPlaceablePosition();
+      if (!pos) continue;
+      const { x, y } = pos;
       this.createResource(x, y, 'tree', 5, `tree_${i}`);
     }
 
     // Rocks
     for (let i = 0; i < 30; i++) {
-      const x = Phaser.Math.Between(3 * TILE, (MAP_W - 3) * TILE);
-      const y = Phaser.Math.Between(3 * TILE, (MAP_H - 3) * TILE);
-      if (!placeable(x, y)) continue;
+      const pos = this.getRandomPlaceablePosition();
+      if (!pos) continue;
+      const { x, y } = pos;
       this.createResource(x, y, 'rock', 8, `rock_${i}`);
     }
 
     // Bushes
     for (let i = 0; i < 20; i++) {
-      const x = Phaser.Math.Between(3 * TILE, (MAP_W - 3) * TILE);
-      const y = Phaser.Math.Between(3 * TILE, (MAP_H - 3) * TILE);
-      if (!placeable(x, y)) continue;
+      const pos = this.getRandomPlaceablePosition();
+      if (!pos) continue;
+      const { x, y } = pos;
       this.createResource(x, y, 'bush', 3, `bush_${i}`);
     }
 
@@ -126,6 +123,63 @@ export class MainScene extends Phaser.Scene {
     wb.setDepth(5);
     (wb as any).isWorkbench = true;
     this.physics.add.collider(this.player, wb);
+  }
+
+  private generateChickens() {
+    const now = Date.now();
+    let changed = false;
+
+    for (let i = 0; i < CHICKEN_COUNT; i++) {
+      const id = `chicken_${i}`;
+      let chickenState = gameStore.chickenStates[id];
+
+      if (!chickenState) {
+        const pos = this.getRandomPlaceablePosition();
+        if (!pos) continue;
+        chickenState = { id, x: pos.x, y: pos.y, alive: true, respawnAt: null };
+        gameStore.chickenStates[id] = chickenState;
+        changed = true;
+      }
+
+      if (chickenState.respawnAt && now < chickenState.respawnAt) {
+        continue;
+      }
+
+      if (!chickenState.alive || chickenState.respawnAt !== null) {
+        chickenState.alive = true;
+        chickenState.respawnAt = null;
+        changed = true;
+      }
+      this.spawnChicken(chickenState);
+    }
+
+    if (changed) gameStore.save();
+  }
+
+  private spawnChicken(state: ChickenState) {
+    if (this.chickens.some(c => c.id === state.id)) return;
+
+    const chicken = new ChickenNPC(this, {
+      id: state.id,
+      x: state.x,
+      y: state.y,
+      wanderRadius: 96,
+    });
+
+    this.chickens.push(chicken);
+    this.physics.add.collider(this.player, chicken.sprite);
+  }
+
+  private getRandomPlaceablePosition() {
+    for (let tries = 0; tries < 20; tries++) {
+      const x = Phaser.Math.Between(3 * TILE, (MAP_W - 3) * TILE);
+      const y = Phaser.Math.Between(3 * TILE, (MAP_H - 3) * TILE);
+      const nx = x / (MAP_W * TILE);
+      const ny = y / (MAP_H * TILE);
+      const d = Math.sqrt((nx - 0.5) ** 2 + (ny - 0.5) ** 2);
+      if (d < 0.36) return { x, y };
+    }
+    return null;
   }
 
   private createResource(x: number, y: number, type: 'tree' | 'rock' | 'bush', hp: number, id: string) {
@@ -154,31 +208,37 @@ export class MainScene extends Phaser.Scene {
     (this.player as any).body.setOffset(6, 8);
 
     // Create animations
-    this.anims.create({
-      key: 'idle',
-      frames: [{ key: 'player_idle' }],
-      frameRate: 1,
-      repeat: -1,
-    });
+    if (!this.anims.exists('idle')) {
+      this.anims.create({
+        key: 'idle',
+        frames: [{ key: 'player_idle' }],
+        frameRate: 1,
+        repeat: -1,
+      });
+    }
 
-    this.anims.create({
-      key: 'run',
-      frames: [
-        { key: 'player_run_0' },
-        { key: 'player_run_1' },
-        { key: 'player_run_2' },
-        { key: 'player_run_3' },
-      ],
-      frameRate: 8,
-      repeat: -1,
-    });
+    if (!this.anims.exists('run')) {
+      this.anims.create({
+        key: 'run',
+        frames: [
+          { key: 'player_run_0' },
+          { key: 'player_run_1' },
+          { key: 'player_run_2' },
+          { key: 'player_run_3' },
+        ],
+        frameRate: 8,
+        repeat: -1,
+      });
+    }
 
-    this.anims.create({
-      key: 'attack',
-      frames: [{ key: 'player_attack' }],
-      frameRate: 4,
-      repeat: 0,
-    });
+    if (!this.anims.exists('attack')) {
+      this.anims.create({
+        key: 'attack',
+        frames: [{ key: 'player_attack' }],
+        frameRate: 4,
+        repeat: 0,
+      });
+    }
   }
 
   private setupInput() {
@@ -213,6 +273,31 @@ export class MainScene extends Phaser.Scene {
     this.unsubscribeJoystick = undefined;
     this.unsubscribeAttack = undefined;
     this.unsubscribeInteract = undefined;
+    this.chickens.forEach(chicken => chicken.destroy());
+    this.chickens = [];
+  }
+
+  private showFloatingText(x: number, y: number, text: string, color: string) {
+    const floating = this.add.text(x, y, text, {
+      fontSize: '12px',
+      color,
+      fontStyle: 'bold',
+      backgroundColor: '#00000066',
+      padding: { x: 4, y: 2 },
+    }).setDepth(100);
+
+    this.tweens.add({
+      targets: floating,
+      y: y - 24,
+      alpha: 0,
+      duration: 850,
+      onComplete: () => floating.destroy(),
+    });
+  }
+
+  private hasSharpToolEquipped() {
+    const tool = gameStore.getEquippedTool();
+    return tool?.type === 'sword' || tool?.type === 'axe' || tool?.type === 'knife';
   }
 
   private doAttack() {
@@ -223,6 +308,19 @@ export class MainScene extends Phaser.Scene {
 
     // Check nearby resources
     const stats = gameStore.getStats();
+
+    const nearbyChicken = this.chickens.find(chicken =>
+      chicken.isInRange(this.player.x, this.player.y, 42)
+    );
+
+    if (nearbyChicken) {
+      if (!this.hasSharpToolEquipped()) {
+        this.showFloatingText(this.player.x - 40, this.player.y - 40, 'Você precisa de algo afiado para isso.', '#ffcc66');
+      } else {
+        this.collectChicken(nearbyChicken);
+      }
+    }
+
     for (const res of this.resources) {
       const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, res.x, res.y);
       if (dist < 40) {
@@ -252,6 +350,42 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.time.delayedCall(250, () => { this.isAttacking = false; });
+  }
+
+  private collectChicken(chicken: ChickenNPC) {
+    const state = gameStore.chickenStates[chicken.id] || {
+      id: chicken.id,
+      x: chicken.homeX,
+      y: chicken.homeY,
+      alive: true,
+      respawnAt: null,
+    };
+
+    state.alive = false;
+    state.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000);
+    gameStore.chickenStates[chicken.id] = state;
+
+    const droppedFeather = Math.random() < 0.7;
+    const droppedMeat = Math.random() < 0.5;
+
+    if (droppedFeather) {
+      gameStore.addItem(ITEMS.feather, 1);
+      this.showFloatingText(chicken.sprite.x - 10, chicken.sprite.y - 18, '+1 🪶', '#ffe680');
+    }
+
+    if (droppedMeat) {
+      gameStore.addItem(ITEMS.chicken_meat, 1);
+      this.showFloatingText(chicken.sprite.x + 6, chicken.sprite.y - 30, '+1 🍗', '#ffc266');
+    }
+
+    if (!droppedFeather && !droppedMeat) {
+      this.showFloatingText(chicken.sprite.x - 12, chicken.sprite.y - 18, 'Nada caiu', '#bbbbbb');
+    }
+
+    chicken.collect();
+    this.time.delayedCall(80, () => chicken.destroy());
+    this.chickens = this.chickens.filter(c => c.id !== chicken.id);
+    gameStore.save();
   }
 
   private harvestResource(res: ResourceObj) {
@@ -292,14 +426,27 @@ export class MainScene extends Phaser.Scene {
   }
 
   private processRespawns() {
-    const now = this.time.now;
+    const sceneNow = this.time.now;
     for (let i = this.respawnQueue.length - 1; i >= 0; i--) {
       const entry = this.respawnQueue[i];
-      if (now >= entry.respawnAt) {
+      if (sceneNow >= entry.respawnAt) {
         this.respawnQueue.splice(i, 1);
         this.createResource(entry.x, entry.y, entry.type, entry.hp, entry.id);
       }
     }
+
+    let changed = false;
+    const saveNow = Date.now();
+    for (const chickenState of Object.values(gameStore.chickenStates)) {
+      if (chickenState.alive) continue;
+      if (!chickenState.respawnAt || saveNow < chickenState.respawnAt) continue;
+      chickenState.alive = true;
+      chickenState.respawnAt = null;
+      this.spawnChicken(chickenState);
+      changed = true;
+    }
+
+    if (changed) gameStore.save();
   }
 
   private doInteract() {
@@ -311,6 +458,7 @@ export class MainScene extends Phaser.Scene {
   update(_time: number, delta: number) {
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
     this.processRespawns();
+    this.chickens.forEach(chicken => chicken.update(delta));
     if (this.isAttacking) return;
 
     const body = this.player.body as Phaser.Physics.Arcade.Body;

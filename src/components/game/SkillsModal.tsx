@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { gameStore } from '../../game/store';
 import { SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL } from '../../game/types';
 
@@ -6,6 +6,14 @@ interface Props { onClose: () => void }
 
 export default function SkillsModal({ onClose }: Props) {
   const [confirmUnlearn, setConfirmUnlearn] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    const unsubscribe = gameStore.subscribe(() => {
+      setRefreshKey(k => k + 1);
+    });
+    return () => { unsubscribe(); };
+  }, []);
 
   const handleUnlearn = (toolType: string) => {
     if (confirmUnlearn === toolType) {
@@ -27,13 +35,14 @@ export default function SkillsModal({ onClose }: Props) {
           <button className="game-btn game-btn-secondary text-sm" onClick={onClose}>✕</button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3" key={refreshKey}>
           {toolTypes.map((toolType) => {
             const config = SKILLS_CONFIG[toolType];
             const skill = gameStore.getSkill(toolType);
             const level = skill?.level || 0;
             const xp = skill?.xp || 0;
-            const progress = (xp / SKILL_XP_PER_LEVEL) * 100;
+            const hasUsed = skill !== undefined;
+            const progress = hasUsed ? (xp / SKILL_XP_PER_LEVEL) * 100 : 0;
             const bonusPercent = Math.round(level * config.bonusPerLevel * 100);
 
             return (
@@ -60,15 +69,25 @@ export default function SkillsModal({ onClose }: Props) {
                   </button>
                 </div>
 
-                <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: 'hsl(var(--muted))' }}>
+                <div className="w-full h-3 rounded-full overflow-hidden relative" style={{ background: 'hsl(var(--muted))' }}>
+                  {!hasUsed && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-[8px]" style={{ color: 'hsl(var(--muted-foreground))' }}>Não iniciada</span>
+                    </div>
+                  )}
                   <div
-                    className="h-full transition-all duration-300"
+                    className="h-full transition-all duration-300 absolute top-0 left-0"
                     style={{
-                      width: `${progress}%`,
+                      width: hasUsed ? `${progress}%` : '0%',
                       background: level >= MAX_SKILL_LEVEL ? 'hsl(var(--primary))' : 'hsl(var(--accent))'
                     }}
                   />
                 </div>
+                {hasUsed && (
+                  <div className="text-[10px] text-center mt-0.5" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                    {xp}/{SKILL_XP_PER_LEVEL} XP
+                  </div>
+                )}
 
                 <div className="flex justify-between mt-1 text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>
                   <span>{config.description}</span>

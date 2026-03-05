@@ -222,6 +222,7 @@ class GameStore {
       skill.level++;
     }
     this.notify();
+    this.save();
   }
 
   getSkill(toolType: string): Skill | null {
@@ -240,6 +241,7 @@ class GameStore {
     if (this.skills[toolType]) {
       this.skills[toolType] = { toolType, xp: 0, level: 0 };
       this.notify();
+      this.save();
     }
   }
 

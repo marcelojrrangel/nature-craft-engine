@@ -12,7 +12,7 @@ const CHICKEN_COUNT = 10;
 const CRAB_COUNT = 12;
 
 interface ResourceObj extends Phaser.GameObjects.Sprite {
-  resourceType: 'tree' | 'rock' | 'bush';
+  resourceType: 'tree' | 'rock' | 'bush' | 'dead_tree';
   resourceHp: number;
   maxHp: number;
   resourceId: string;
@@ -36,7 +36,7 @@ export class MainScene extends Phaser.Scene {
   private unsubscribeJoystick?: () => void;
   private unsubscribeAttack?: () => void;
   private unsubscribeInteract?: () => void;
-  private respawnQueue: { x: number; y: number; type: 'tree' | 'rock' | 'bush'; hp: number; id: string; respawnAt: number }[] = [];
+  private respawnQueue: { x: number; y: number; type: 'tree' | 'rock' | 'bush' | 'dead_tree'; hp: number; id: string; respawnAt: number }[] = [];
   private respawnCounter = 0;
 
   constructor() {
@@ -137,6 +137,14 @@ export class MainScene extends Phaser.Scene {
       if (!pos) continue;
       const { x, y } = pos;
       this.createResource(x, y, 'bush', 3, `bush_${i}`);
+    }
+
+    // Dead trees (dry branches)
+    for (let i = 0; i < 18; i++) {
+      const pos = this.getRandomPlaceablePosition();
+      if (!pos) continue;
+      const { x, y } = pos;
+      this.createResource(x, y, 'dead_tree', 3, `dead_tree_${i}`);
     }
 
     // Workbench near center
@@ -260,7 +268,7 @@ export class MainScene extends Phaser.Scene {
     return this.shoreSpawnPoints[Phaser.Math.Between(0, this.shoreSpawnPoints.length - 1)] || null;
   }
 
-  private createResource(x: number, y: number, type: 'tree' | 'rock' | 'bush', hp: number, id: string) {
+  private createResource(x: number, y: number, type: 'tree' | 'rock' | 'bush' | 'dead_tree', hp: number, id: string) {
     const savedHp = gameStore.resourceStates[id];
     if (savedHp !== undefined && savedHp <= 0) return; // Already harvested
 
@@ -527,6 +535,7 @@ export class MainScene extends Phaser.Scene {
     let qty = 1;
     switch (res.resourceType) {
       case 'tree': dropItem = ITEMS.wood; qty = Phaser.Math.Between(2, 4); break;
+      case 'dead_tree': dropItem = ITEMS.twig; qty = Phaser.Math.Between(2, 5); break;
       case 'rock': dropItem = ITEMS.stone; qty = Phaser.Math.Between(1, 3); break;
       case 'bush': dropItem = Math.random() > 0.5 ? ITEMS.fiber : ITEMS.seed; qty = Phaser.Math.Between(1, 2); break;
     }

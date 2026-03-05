@@ -56,6 +56,18 @@ export class BootScene extends Phaser.Scene {
     g.fillCircle(20, 10, 7);
     g.generateTexture('tree', 32, 32);
 
+    // Dead tree (dry branch source)
+    g.clear();
+    g.fillStyle(0x5c4033);
+    g.fillRect(12, 20, 8, 12);
+    g.fillStyle(0x4a3428);
+    g.fillRect(10, 18, 3, 4);
+    g.fillRect(19, 16, 3, 5);
+    g.fillRect(14, 12, 2, 4);
+    g.fillStyle(0x6b4c3a);
+    g.fillRect(11, 14, 2, 3);
+    g.generateTexture('dead_tree', 32, 32);
+
     // Rock
     g.clear();
     g.fillStyle(0x888888);

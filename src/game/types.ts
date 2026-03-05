@@ -96,6 +96,7 @@ export interface CrabState {
 // Item definitions
 export const ITEMS: Record<string, Item> = {
   wood: { id: 'wood', name: 'Madeira', type: 'wood', icon: '🪵', stackable: true, maxStack: 64, description: 'Madeira bruta coletada de árvores' },
+  twig: { id: 'twig', name: 'Graveto', type: 'wood', icon: '🪶', stackable: true, maxStack: 64, description: 'Gravetos secos coletados de árvores mortas' },
   stone: { id: 'stone', name: 'Pedra', type: 'stone', icon: '🪨', stackable: true, maxStack: 64, description: 'Pedra bruta coletada de rochas' },
   fiber: { id: 'fiber', name: 'Fibra', type: 'fiber', icon: '🌿', stackable: true, maxStack: 64, description: 'Fibras naturais coletadas de arbustos' },
   seed: { id: 'seed', name: 'Semente', type: 'seed', icon: '🌱', stackable: true, maxStack: 32, description: 'Sementes para plantio' },

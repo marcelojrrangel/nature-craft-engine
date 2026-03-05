@@ -1,12 +1,28 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useSyncExternalStore } from 'react';
+import PhaserGame from '../game/PhaserGame';
+import GameHUD from '../components/game/GameHUD';
+import InventoryModal from '../components/game/InventoryModal';
+import EquipmentModal from '../components/game/EquipmentModal';
+import CraftingModal from '../components/game/CraftingModal';
+import { gameStore } from '../game/store';
 
 const Index = () => {
+  const ui = useSyncExternalStore(
+    (cb) => gameStore.subscribe(cb),
+    () => ({
+      showInventory: gameStore.showInventory,
+      showCrafting: gameStore.showCrafting,
+      showEquipment: gameStore.showEquipment,
+    })
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="w-screen h-screen overflow-hidden relative" style={{ background: 'hsl(var(--background))' }}>
+      <PhaserGame />
+      <GameHUD />
+      {ui.showInventory && <InventoryModal onClose={() => gameStore.toggleInventory()} />}
+      {ui.showEquipment && <EquipmentModal onClose={() => gameStore.toggleEquipment()} />}
+      {ui.showCrafting && <CraftingModal onClose={() => gameStore.toggleCrafting()} />}
     </div>
   );
 };

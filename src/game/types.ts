@@ -72,6 +72,8 @@ export const HARDNESS: Record<string, number> = {
   workbench: 24,
   chicken: 5,
   crab: 10,
+  bear: 30,
+  small_rock: 2,
 };
 
 export const TOOL_DAMAGE: Record<string, number> = {
@@ -91,11 +93,13 @@ export const DROP_BONUS_CHANCE = 0.5;
 export const TOOL_REQUIREMENTS: Record<string, (ToolType | 'hands')[]> = {
   tree: ['axe'],
   dead_tree: ['axe', 'hands'],
-  rock: ['pickaxe'],
+  rock: ['pickaxe', 'hands'],
+  small_rock: ['hands', 'pickaxe'],
   bush: ['hands', 'axe', 'pickaxe', 'sword', 'knife', 'shovel', 'hoe'],
   workbench: ['axe', 'pickaxe'],
   chicken: ['sword', 'knife', 'bow'],
   crab: ['sword', 'knife', 'pickaxe', 'bow'],
+  bear: ['sword', 'knife', 'bow', 'axe'],
 };
 
 export interface GameSaveData {
@@ -107,6 +111,7 @@ export interface GameSaveData {
   resourceStates: Record<string, number>; // resource id -> remaining hp
   chickenStates: Record<string, ChickenState>;
   crabStates: Record<string, CrabState>;
+  bearStates?: Record<string, BearState>;
   quickBar?: (number | null)[];
   selectedQuickBarIndex?: number;
   skills?: Record<string, Skill>;
@@ -131,10 +136,19 @@ export interface CrabState {
   hp: number;
 }
 
+export interface BearState {
+  id: string;
+  x: number;
+  y: number;
+  alive: boolean;
+  respawnAt: number | null;
+  hp: number;
+}
+
 // Item definitions
 export const ITEMS: Record<string, Item> = {
   wood: { id: 'wood', name: 'Madeira', type: 'wood', icon: '🪵', stackable: true, maxStack: 64, description: 'Madeira bruta coletada de árvores' },
-  twig: { id: 'twig', name: 'Graveto', type: 'wood', icon: '🪶', stackable: true, maxStack: 64, description: 'Gravetos secos coletados de árvores mortas' },
+  twig: { id: 'twig', name: 'Graveto', type: 'wood', icon: '🥢', stackable: true, maxStack: 64, description: 'Gravetos secos coletados de árvores mortas' },
   stone: { id: 'stone', name: 'Pedra', type: 'stone', icon: '🪨', stackable: true, maxStack: 64, description: 'Pedra bruta coletada de rochas' },
   fiber: { id: 'fiber', name: 'Fibra', type: 'fiber', icon: '🌿', stackable: true, maxStack: 64, description: 'Fibras naturais coletadas de arbustos' },
   seed: { id: 'seed', name: 'Semente', type: 'seed', icon: '🌱', stackable: true, maxStack: 32, description: 'Sementes para plantio' },
@@ -165,27 +179,27 @@ export const RECIPES: CraftingRecipe[] = [
   },
   {
     id: 'axe', name: 'Machado', result: ITEMS.axe, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 5 }, { item: ITEMS.stone, quantity: 3 }],
+    ingredients: [{ item: ITEMS.wood, quantity: 3 }, { item: ITEMS.stone, quantity: 2 }],
     description: 'Corte árvores mais rápido',
   },
   {
     id: 'pickaxe', name: 'Picareta', result: ITEMS.pickaxe, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 3 }, { item: ITEMS.stone, quantity: 5 }],
+    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 3 }],
     description: 'Minere pedras mais rápido',
   },
   {
     id: 'shovel', name: 'Pá', result: ITEMS.shovel, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 4 }, { item: ITEMS.stone, quantity: 2 }],
+    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 1 }],
     description: 'Cave e prepare o solo',
   },
   {
     id: 'knife', name: 'Faca', result: ITEMS.knife, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 1 }],
+    ingredients: [{ item: ITEMS.wood, quantity: 1 }, { item: ITEMS.stone, quantity: 1 }],
     description: 'Ferramenta afiada para coleta de animais',
   },
   {
     id: 'sword', name: 'Espada', result: ITEMS.sword, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 8 }],
+    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 5 }],
     description: 'Uma arma afiada',
   },
 ];

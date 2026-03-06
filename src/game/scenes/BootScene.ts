@@ -72,9 +72,17 @@ export class BootScene extends Phaser.Scene {
     g.clear();
     g.fillStyle(0x888888);
     g.fillRoundedRect(4, 8, 24, 20, 6);
-    g.fillStyle(0x999999);
+    g.fillStyle(0x9a9a9a);
     g.fillRoundedRect(8, 10, 12, 8, 4);
     g.generateTexture('rock', 32, 32);
+
+    // Small Rock (loose on ground)
+    g.clear();
+    g.fillStyle(0x777777);
+    g.fillCircle(16, 20, 6);
+    g.fillStyle(0x999999);
+    g.fillCircle(14, 18, 3);
+    g.generateTexture('small_rock', 32, 32);
 
     // Bush
     g.clear();
@@ -271,8 +279,43 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(21, 20, 3, 2);
     g.generateTexture('crab_dead', 32, 32);
 
+    // Bear idle
+    g.clear();
+    g.fillStyle(0x5c4033); // Brown
+    g.fillEllipse(16, 18, 24, 18); // Body
+    g.fillCircle(16, 10, 10); // Head
+    g.fillStyle(0x4a3428); // Darker brown
+    g.fillCircle(8, 6, 4); // Ear L
+    g.fillCircle(24, 6, 4); // Ear R
+    g.fillStyle(0x1a1a1a);
+    g.fillRect(13, 8, 2, 2); // Eye L
+    g.fillRect(17, 8, 2, 2); // Eye R
+    g.generateTexture('bear_idle', 32, 32);
+
+    // Bear attack frame
+    g.clear();
+    g.fillStyle(0x5c4033);
+    g.fillEllipse(16, 18, 24, 18);
+    g.fillCircle(16, 10, 10);
+    g.fillStyle(0x4a3428);
+    g.fillCircle(8, 6, 4);
+    g.fillCircle(24, 6, 4);
+    g.fillStyle(0xff4444); // Angry eyes
+    g.fillRect(12, 8, 3, 2);
+    g.fillRect(17, 8, 3, 2);
+    g.fillStyle(0x1a1a1a);
+    g.fillRect(14, 14, 4, 2); // Mouth
+    g.generateTexture('bear_attack', 32, 32);
+
+    // Bear dead
+    g.clear();
+    g.fillStyle(0x3d2b22);
+    g.fillEllipse(16, 22, 26, 14);
+    g.generateTexture('bear_dead', 32, 32);
+
     // Arrow projectile
     g.clear();
+
     // Shaft (needle thin)
     g.fillStyle(0x8B5E3C);
     g.fillRect(8, 15.5, 16, 1);

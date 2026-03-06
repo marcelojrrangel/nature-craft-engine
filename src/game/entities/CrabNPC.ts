@@ -22,13 +22,14 @@ export class CrabNPC {
   private targetPos: { x: number; y: number } | null = null;
   private readonly wanderRadius: number;
   private readonly moveSpeed = 52;
+  private hpBar: Phaser.GameObjects.Graphics;
 
   constructor(scene: Phaser.Scene, config: CrabNPCConfig, hp: number = 10) {
     this.id = config.id;
     this.homeX = config.x;
     this.homeY = config.y;
     this.hp = hp;
-    this.maxHp = hp;
+    this.maxHp = 10; // Hardcoded initial max HP
     this.wanderRadius = config.wanderRadius ?? 70;
 
     this.sprite = scene.physics.add.sprite(config.x, config.y, 'crab_idle');
@@ -40,11 +41,17 @@ export class CrabNPC {
     body.setSize(20, 12);
     body.setOffset(6, 16);
 
+    this.hpBar = scene.add.graphics();
+    this.hpBar.setDepth(2000);
+
     this.setState('idle');
   }
 
   update(delta: number) {
-    if (!this.isAlive()) return;
+    if (!this.isAlive()) {
+      this.hpBar.clear();
+      return;
+    }
 
     this.stateTimer -= delta;
     if (this.stateTimer <= 0) {
@@ -56,25 +63,44 @@ export class CrabNPC {
       body.setVelocity(0, 0);
       this.targetPos = null;
       this.sprite.setTexture('crab_idle');
-      return;
+    } else {
+      this.sprite.setTexture(Math.random() > 0.5 ? 'crab_scuttle_0' : 'crab_scuttle_1');
+
+      if (!this.targetPos || Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y) < 6) {
+        this.targetPos = this.pickTarget();
+      }
+
+      const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+      const dx = this.targetPos.x - this.sprite.x;
+      const dy = this.targetPos.y - this.sprite.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      body.setVelocity((dx / len) * this.moveSpeed, (dy / len) * this.moveSpeed);
+
+      if (dx < -1) this.sprite.setFlipX(true);
+      if (dx > 1) this.sprite.setFlipX(false);
     }
-
-    this.sprite.setTexture(Math.random() > 0.5 ? 'crab_scuttle_0' : 'crab_scuttle_1');
-
-    if (!this.targetPos || Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y) < 6) {
-      this.targetPos = this.pickTarget();
-    }
-
-    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    const dx = this.targetPos.x - this.sprite.x;
-    const dy = this.targetPos.y - this.sprite.y;
-    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-    body.setVelocity((dx / len) * this.moveSpeed, (dy / len) * this.moveSpeed);
-
-    if (dx < -1) this.sprite.setFlipX(true);
-    if (dx > 1) this.sprite.setFlipX(false);
 
     this.sprite.setDepth(this.sprite.y);
+    this.drawHealthBar();
+  }
+
+  private drawHealthBar() {
+    this.hpBar.clear();
+    if (this.hp >= this.maxHp) return; // Only show if damaged
+
+    const x = this.sprite.x - 10;
+    const y = this.sprite.y - 10;
+    const width = 20;
+    const height = 3;
+
+    this.hpBar.fillStyle(0x000000, 0.7);
+    this.hpBar.fillRect(x, y, width, height);
+
+    const hpPercent = this.hp / this.maxHp;
+    const color = hpPercent < 0.3 ? 0xe74c3c : hpPercent < 0.6 ? 0xf1c40f : 0x2ecc71;
+    
+    this.hpBar.fillStyle(color, 1);
+    this.hpBar.fillRect(x, y, width * hpPercent, height);
   }
 
   isAlive() {
@@ -90,6 +116,7 @@ export class CrabNPC {
     if (!this.isAlive()) return;
     this.setState('dead');
     this.sprite.disableBody(true, true);
+    this.hpBar.clear();
   }
 
   takeDamage(amount: number): number {
@@ -102,6 +129,7 @@ export class CrabNPC {
   }
 
   destroy() {
+    this.hpBar.destroy();
     this.sprite.destroy();
   }
 

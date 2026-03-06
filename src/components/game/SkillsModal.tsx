@@ -29,7 +29,7 @@ export default function SkillsModal({ onClose }: Props) {
           <button className="game-btn game-btn-secondary text-sm" onClick={onClose}>✕</button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
           {toolTypes.map((toolType) => {
             const config = SKILLS_CONFIG[toolType];
             const skill = gameStore.getSkill(toolType);

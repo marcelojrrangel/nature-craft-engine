@@ -1,7 +1,7 @@
 // Game type definitions
 
-export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat';
-export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife';
+export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow';
+export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife' | 'bow';
 export type EquipSlot = 'head' | 'hands' | 'legs' | 'accessory' | 'mainHand';
 
 export interface Item {
@@ -61,6 +61,7 @@ export const SKILLS_CONFIG: Record<string, { name: string; icon: string; bonusPe
   knife: { name: 'Faca', icon: '🔪', bonusPerLevel: 0.08, description: 'Aumenta dano e coleta' },
   shovel: { name: 'Pá', icon: '🪏', bonusPerLevel: 0.1, description: 'Aumenta eficiência de escavação' },
   hoe: { name: 'Enxada', icon: '🌱', bonusPerLevel: 0.1, description: 'Aumenta eficiência de plantio' },
+  bow: { name: 'Arco', icon: '🏹', bonusPerLevel: 0.1, description: 'Aumenta dano à distância' },
 };
 
 export const HARDNESS: Record<string, number> = {
@@ -81,6 +82,7 @@ export const TOOL_DAMAGE: Record<string, number> = {
   knife: 1.0,
   shovel: 1.5,
   hoe: 1.5,
+  bow: 1.0,
 };
 
 export const BASE_DAMAGE = 1;
@@ -92,8 +94,8 @@ export const TOOL_REQUIREMENTS: Record<string, (ToolType | 'hands')[]> = {
   rock: ['pickaxe'],
   bush: ['hands', 'axe', 'pickaxe', 'sword', 'knife', 'shovel', 'hoe'],
   workbench: ['axe', 'pickaxe'],
-  chicken: ['sword', 'knife'],
-  crab: ['sword', 'knife', 'pickaxe'],
+  chicken: ['sword', 'knife', 'bow'],
+  crab: ['sword', 'knife', 'pickaxe', 'bow'],
 };
 
 export interface GameSaveData {
@@ -141,14 +143,26 @@ export const ITEMS: Record<string, Item> = {
   chicken_meat: { id: 'chicken_meat', name: 'Carne de Galinha', type: 'chicken_meat', icon: '🍗', stackable: true, maxStack: 32, description: 'Carne fresca de galinha' },
   crab_shell: { id: 'crab_shell', name: 'Casca de Siri', type: 'crab_shell', icon: '🐚', stackable: true, maxStack: 64, description: 'Fragmento de carapaça coletado na orla' },
   crab_meat: { id: 'crab_meat', name: 'Carne de Siri', type: 'crab_meat', icon: '🦀', stackable: true, maxStack: 32, description: 'Carne fresca de siri/caranguejo' },
+  arrow: { id: 'arrow', name: 'Flecha', type: 'arrow', icon: '🏹', stackable: true, maxStack: 64, description: 'Munição para o arco' },
   axe: { id: 'axe', name: 'Machado', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+50% velocidade de corte' },
   pickaxe: { id: 'pickaxe', name: 'Picareta', type: 'pickaxe', icon: '⛏️', stackable: false, maxStack: 1, description: '+50% velocidade de mineração' },
   shovel: { id: 'shovel', name: 'Pá', type: 'shovel', icon: '🪏', stackable: false, maxStack: 1, description: 'Permite cavar e plantar' },
   knife: { id: 'knife', name: 'Faca', type: 'knife', icon: '🔪', stackable: false, maxStack: 1, description: 'Ferramenta afiada para coleta animal' },
   sword: { id: 'sword', name: 'Espada', type: 'sword', icon: '⚔️', stackable: false, maxStack: 1, description: '+100% dano de ataque' },
+  bow: { id: 'bow', name: 'Arco', type: 'bow', icon: '🏹', stackable: false, maxStack: 1, description: 'Arma de longo alcance (Requer flechas)' },
 };
 
 export const RECIPES: CraftingRecipe[] = [
+  {
+    id: 'bow', name: 'Arco', result: ITEMS.bow, resultQty: 1,
+    ingredients: [{ item: ITEMS.wood, quantity: 5 }, { item: ITEMS.fiber, quantity: 10 }],
+    description: 'Ataque à distância',
+  },
+  {
+    id: 'arrow', name: 'Flechas', result: ITEMS.arrow, resultQty: 5,
+    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 1 }, { item: ITEMS.feather, quantity: 2 }],
+    description: 'Munição básica',
+  },
   {
     id: 'axe', name: 'Machado', result: ITEMS.axe, resultQty: 1,
     ingredients: [{ item: ITEMS.wood, quantity: 5 }, { item: ITEMS.stone, quantity: 3 }],

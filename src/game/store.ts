@@ -90,6 +90,14 @@ class GameStore {
     return this.countItem(itemId) >= qty;
   }
 
+  hasAmmo(): boolean {
+    return this.hasItems('arrow', 1);
+  }
+
+  consumeAmmo(): boolean {
+    return this.removeItem('arrow', 1);
+  }
+
   // Equipment
   equip(slot: EquipSlot, inventoryIndex: number) {
     const invSlot = this.inventory[inventoryIndex];
@@ -128,7 +136,7 @@ class GameStore {
 
   getQuickBarTool(): Item | null {
     const item = this.getSelectedQuickBarItem();
-    if (item && (item.type === 'axe' || item.type === 'pickaxe' || item.type === 'shovel' || item.type === 'hoe' || item.type === 'sword' || item.type === 'knife')) {
+    if (item && (item.type === 'axe' || item.type === 'pickaxe' || item.type === 'shovel' || item.type === 'hoe' || item.type === 'sword' || item.type === 'knife' || item.type === 'bow')) {
       return item;
     }
     return null;
@@ -195,7 +203,7 @@ class GameStore {
       }
     }
     
-    const attackDamage = baseDmg * (1 + skillBonus);
+    let attackDamage = baseDmg * (1 + skillBonus);
     
     let miningSpeed = 1;
     let choppingSpeed = 1;
@@ -218,6 +226,10 @@ class GameStore {
     if (tool?.type === 'knife') {
       const skill = this.skills.knife;
       if (skill) choppingSpeed += skill.level * SKILLS_CONFIG.knife.bonusPerLevel;
+    }
+    if (tool?.type === 'bow') {
+      const skill = this.skills.bow;
+      if (skill) attackDamage += skill.level * SKILLS_CONFIG.bow.bonusPerLevel;
     }
     if (this.equipment.hands.item) moveSpeed = 1.1;
     

@@ -271,6 +271,19 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(21, 20, 3, 2);
     g.generateTexture('crab_dead', 32, 32);
 
+    // Arrow projectile
+    g.clear();
+    // Shaft (needle thin)
+    g.fillStyle(0x8B5E3C);
+    g.fillRect(8, 15.5, 16, 1);
+    // Head (needle sharp)
+    g.fillStyle(0xdddddd);
+    g.fillTriangle(24, 15, 24, 17, 28, 16);
+    // Fletching (minimalist)
+    g.fillStyle(0xffffff);
+    g.fillRect(6, 15, 2, 2);
+    g.generateTexture('arrow_projectile', 32, 32);
+
     g.destroy();
   }
 }

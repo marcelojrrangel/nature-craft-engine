@@ -7,17 +7,14 @@ interface Props { onClose: () => void }
 
 export default function CraftingModal({ onClose }: Props) {
   useGameStore();
-  const [msg, setMsg] = useState('');
+  const [lastCrafted, setLastCrafted] = useState<string | null>(null);
 
   const handleCraft = (recipeId: string) => {
     const recipe = RECIPES.find(r => r.id === recipeId);
     if (!recipe) return;
     if (gameStore.craft(recipe)) {
-      setMsg(`✅ ${recipe.name} criado!`);
-      setTimeout(() => setMsg(''), 1500);
-    } else {
-      setMsg('❌ Materiais insuficientes');
-      setTimeout(() => setMsg(''), 1500);
+      setLastCrafted(recipeId);
+      setTimeout(() => setLastCrafted(null), 300);
     }
   };
 
@@ -30,11 +27,13 @@ export default function CraftingModal({ onClose }: Props) {
           <button className="game-btn game-btn-secondary text-sm" onClick={onClose}>✕</button>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-1 custom-scrollbar">
           {RECIPES.map(recipe => {
             const canCraft = gameStore.canCraft(recipe);
+            const isJustCrafted = lastCrafted === recipe.id;
+
             return (
-              <div key={recipe.id} className="game-slot p-3 flex items-start gap-3">
+              <div key={recipe.id} className={`game-slot p-3 flex items-start gap-3 transition-all duration-300 ${isJustCrafted ? 'border-primary ring-1 ring-primary/30' : ''}`}>
                 <span className="text-2xl">{recipe.result.icon}</span>
                 <div className="flex-1">
                   <div className="game-body-text font-bold" style={{ color: 'hsl(var(--foreground))' }}>
@@ -60,22 +59,22 @@ export default function CraftingModal({ onClose }: Props) {
                   </div>
                 </div>
                 <button
-                  className={`game-btn text-sm ${canCraft ? 'game-btn-primary' : ''}`}
-                  style={canCraft ? {} : { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }}
-                  disabled={!canCraft}
+                  className={`game-btn text-sm min-w-[60px] transition-all duration-150 ${
+                    isJustCrafted ? 'scale-110 bg-primary text-white' : canCraft ? 'game-btn-primary' : ''
+                  }`}
+                  style={
+                    !isJustCrafted && !canCraft 
+                      ? { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }
+                      : {}
+                  }
+                  disabled={!canCraft && !isJustCrafted}
                   onClick={() => handleCraft(recipe.id)}>
-                  Criar
+                  {isJustCrafted ? '✨' : 'Criar'}
                 </button>
               </div>
             );
           })}
         </div>
-
-        {msg && (
-          <div className="mt-2 text-center game-body-text" style={{ color: 'hsl(var(--foreground))' }}>
-            {msg}
-          </div>
-        )}
       </div>
     </div>
   );

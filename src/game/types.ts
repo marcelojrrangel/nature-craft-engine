@@ -86,6 +86,16 @@ export const TOOL_DAMAGE: Record<string, number> = {
 export const BASE_DAMAGE = 1;
 export const DROP_BONUS_CHANCE = 0.5;
 
+export const TOOL_REQUIREMENTS: Record<string, (ToolType | 'hands')[]> = {
+  tree: ['axe'],
+  dead_tree: ['axe', 'hands'],
+  rock: ['pickaxe'],
+  bush: ['hands', 'axe', 'pickaxe', 'sword', 'knife', 'shovel', 'hoe'],
+  workbench: ['axe', 'pickaxe'],
+  chicken: ['sword', 'knife'],
+  crab: ['sword', 'knife', 'pickaxe'],
+};
+
 export interface GameSaveData {
   playerX: number;
   playerY: number;

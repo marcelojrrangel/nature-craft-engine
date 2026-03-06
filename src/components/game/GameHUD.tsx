@@ -62,7 +62,7 @@ export default function GameHUD() {
           style={{ background: 'hsl(var(--destructive) / 0.8)' }}
           onPointerDown={() => gameEvents.emit('attack', undefined)}
         >
-          {state.equipment.mainHand.item?.icon || '👊'}
+          {gameStore.getEquippedTool()?.icon || '👊'}
         </button>
         <button
           className="w-14 h-14 rounded-full flex items-center justify-center text-2xl active:scale-90 transition-transform"

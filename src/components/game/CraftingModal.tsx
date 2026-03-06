@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { gameStore } from '../../game/store';
+import { useGameStore } from '../../hooks/useGameStore';
 import { RECIPES } from '../../game/types';
 
 interface Props { onClose: () => void }
 
 export default function CraftingModal({ onClose }: Props) {
+  useGameStore();
   const [msg, setMsg] = useState('');
 
   const handleCraft = (recipeId: string) => {

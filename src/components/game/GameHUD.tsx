@@ -7,9 +7,6 @@ import { gameEvents } from '../../game/events';
 export default function GameHUD() {
   const state = useGameStore();
 
-  // Quick bar: first 5 inventory slots
-  const quickBar = gameStore.inventory.slice(0, 5);
-
   return (
     <div className="absolute inset-0 pointer-events-none z-10">
       {/* Top bar: HP + resources */}

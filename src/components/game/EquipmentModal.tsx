@@ -1,4 +1,5 @@
 import { gameStore } from '../../game/store';
+import { useGameStore } from '../../hooks/useGameStore';
 import type { EquipSlot } from '../../game/types';
 
 interface Props { onClose: () => void }
@@ -12,7 +13,7 @@ const SLOT_LABELS: Record<EquipSlot, { label: string; icon: string }> = {
 };
 
 export default function EquipmentModal({ onClose }: Props) {
-  const equip = gameStore.equipment;
+  const { equipment: equip } = useGameStore();
   const slots = Object.entries(SLOT_LABELS) as [EquipSlot, { label: string; icon: string }][];
   const stats = gameStore.getStats();
 

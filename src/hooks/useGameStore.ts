@@ -16,6 +16,8 @@ function buildMainSnapshot() {
     showCrafting: gameStore.showCrafting,
     showEquipment: gameStore.showEquipment,
     showSkills: gameStore.showSkills,
+    quickBar: gameStore.quickBar,
+    selectedQuickBarIndex: gameStore.selectedQuickBarIndex,
   };
 }
 

@@ -1,19 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { gameStore } from '../../game/store';
+import { useGameStore } from '../../hooks/useGameStore';
 import { SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL } from '../../game/types';
 
 interface Props { onClose: () => void }
 
 export default function SkillsModal({ onClose }: Props) {
+  useGameStore();
   const [confirmUnlearn, setConfirmUnlearn] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    const unsubscribe = gameStore.subscribe(() => {
-      setRefreshKey(k => k + 1);
-    });
-    return () => { unsubscribe(); };
-  }, []);
 
   const handleUnlearn = (toolType: string) => {
     if (confirmUnlearn === toolType) {
@@ -35,13 +29,13 @@ export default function SkillsModal({ onClose }: Props) {
           <button className="game-btn game-btn-secondary text-sm" onClick={onClose}>✕</button>
         </div>
 
-        <div className="space-y-3" key={refreshKey}>
+        <div className="space-y-3">
           {toolTypes.map((toolType) => {
             const config = SKILLS_CONFIG[toolType];
             const skill = gameStore.getSkill(toolType);
             const level = skill?.level || 0;
             const xp = skill?.xp || 0;
-            const hasUsed = skill !== undefined;
+            const hasUsed = skill !== null;
             const progress = hasUsed ? (xp / SKILL_XP_PER_LEVEL) * 100 : 0;
             const bonusPercent = Math.round(level * config.bonusPerLevel * 100);
 

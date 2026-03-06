@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { gameStore } from '../../game/store';
+import { useGameStore } from '../../hooks/useGameStore';
 
 export default function QuickBar() {
-  const quickBar = gameStore.quickBar;
-  const selectedIndex = gameStore.selectedQuickBarIndex;
+  const { quickBar, selectedQuickBarIndex: selectedIndex } = useGameStore();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

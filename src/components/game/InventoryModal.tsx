@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { gameStore } from '../../game/store';
+import { useGameStore } from '../../hooks/useGameStore';
 
 interface Props { onClose: () => void }
 
 export default function InventoryModal({ onClose }: Props) {
-  const inventory = gameStore.inventory;
+  const { inventory } = useGameStore();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; index: number } | null>(null);
 
   const handleDoubleClick = (index: number) => {

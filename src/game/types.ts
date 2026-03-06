@@ -98,6 +98,7 @@ export interface GameSaveData {
   quickBar?: (number | null)[];
   selectedQuickBarIndex?: number;
   skills?: Record<string, Skill>;
+  respawnQueue?: { x: number; y: number; type: string; hp: number; id: string; respawnAt: number }[];
 }
 
 export interface ChickenState {

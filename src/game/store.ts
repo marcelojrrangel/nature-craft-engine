@@ -22,6 +22,7 @@ class GameStore {
   crabStates: Record<string, CrabState> = {};
   skills: Record<string, Skill> = {};
   showSkills = false;
+  respawnQueue: { x: number; y: number; type: string; hp: number; id: string; respawnAt: number }[] = [];
   private saveInterval: number | null = null;
 
   constructor() {
@@ -61,6 +62,7 @@ class GameStore {
       qty -= toAdd;
     }
     this.notify();
+    this.save(); // Save after inventory change
     return true;
   }
 
@@ -74,7 +76,9 @@ class GameStore {
         if (slot.quantity <= 0) { slot.item = null; slot.quantity = 0; }
       }
     }
+    this.validateQuickBarReferences();
     this.notify();
+    this.save(); // Save after inventory change
     return remaining <= 0;
   }
 
@@ -248,7 +252,6 @@ class GameStore {
       skill.level++;
     }
     this.notify();
-    this.save();
   }
 
   getSkill(toolType: string): Skill | null {
@@ -292,6 +295,7 @@ class GameStore {
       quickBar: this.quickBar,
       selectedQuickBarIndex: this.selectedQuickBarIndex,
       skills: this.skills,
+      respawnQueue: this.respawnQueue,
     };
     localStorage.setItem('naturequest_save', JSON.stringify(data));
   }
@@ -311,6 +315,7 @@ class GameStore {
       this.quickBar = data.quickBar || [null, null, null, null, null];
       this.selectedQuickBarIndex = data.selectedQuickBarIndex || 0;
       this.skills = data.skills || {};
+      this.respawnQueue = data.respawnQueue || [];
       this.validateQuickBarReferences();
     } catch { /* ignore corrupt saves */ }
   }
@@ -328,6 +333,7 @@ class GameStore {
     this.quickBar = [null, null, null, null, null];
     this.selectedQuickBarIndex = 0;
     this.skills = {};
+    this.respawnQueue = [];
     this.notify();
   }
 

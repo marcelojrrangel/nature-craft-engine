@@ -36,7 +36,6 @@ export class MainScene extends Phaser.Scene {
   private unsubscribeJoystick?: () => void;
   private unsubscribeAttack?: () => void;
   private unsubscribeInteract?: () => void;
-  private respawnQueue: { x: number; y: number; type: 'tree' | 'rock' | 'bush' | 'dead_tree'; hp: number; id: string; respawnAt: number }[] = [];
   private respawnCounter = 0;
 
   constructor() {
@@ -335,7 +334,12 @@ export class MainScene extends Phaser.Scene {
       this.keysDown.add(key);
       if (key === 'e') this.doInteract();
       if (key === 'i') gameStore.toggleInventory();
-      if (key === 'c') gameStore.toggleCrafting();
+      if (key === 'q') gameStore.toggleEquipment();
+      if (key === 'c') {
+        if (this.nearWorkbench) {
+          gameStore.toggleCrafting();
+        }
+      }
       if (key === 'k') gameStore.toggleSkills();
       if (key === ' ') { e.preventDefault(); this.doAttack(); }
       if (key === 'escape') gameStore.closeAll();
@@ -398,10 +402,6 @@ export class MainScene extends Phaser.Scene {
     this.player.play('attack');
 
     const tool = gameStore.getEquippedTool();
-    if (tool) {
-      gameStore.useTool(tool.type);
-    }
-
     const stats = gameStore.getStats();
 
     const nearbyChicken = this.chickens.find(chicken =>
@@ -409,6 +409,7 @@ export class MainScene extends Phaser.Scene {
     );
 
     if (nearbyChicken) {
+      gameStore.useTool(tool?.type === 'knife' ? 'knife' : 'sword');
       const chickenState = gameStore.chickenStates[nearbyChicken.id];
       if (!this.hasSharpToolEquipped()) {
         this.showFloatingText(this.player.x - 40, this.player.y - 40, 'Você precisa de algo afiado para isso.', '#ffcc66');
@@ -434,6 +435,7 @@ export class MainScene extends Phaser.Scene {
     );
 
     if (nearbyCrab) {
+      gameStore.useTool(tool?.type === 'knife' ? 'knife' : 'sword');
       const crabState = gameStore.crabStates[nearbyCrab.id];
       if (!this.hasSharpToolEquipped()) {
         this.showFloatingText(this.player.x - 40, this.player.y - 56, 'Você precisa de algo afiado para isso.', '#ffcc66');
@@ -462,8 +464,10 @@ export class MainScene extends Phaser.Scene {
         
         if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') {
           dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.choppingSpeed;
+          gameStore.useTool('axe');
         } else if (res.resourceType === 'rock') {
           dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.miningSpeed;
+          gameStore.useTool('pickaxe');
         } else {
           dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType];
         }
@@ -494,6 +498,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   private collectChicken(chicken: ChickenNPC) {
+    const tool = gameStore.getEquippedTool();
+    gameStore.useTool(tool?.type === 'knife' ? 'knife' : 'sword');
+
     const state = gameStore.chickenStates[chicken.id] || {
       id: chicken.id,
       x: chicken.homeX,
@@ -531,6 +538,9 @@ export class MainScene extends Phaser.Scene {
   }
 
   private collectCrab(crab: CrabNPC) {
+    const tool = gameStore.getEquippedTool();
+    gameStore.useTool(tool?.type === 'knife' ? 'knife' : 'sword');
+
     const state = gameStore.crabStates[crab.id] || {
       id: crab.id,
       x: crab.homeX,
@@ -572,9 +582,9 @@ export class MainScene extends Phaser.Scene {
     let dropItem;
     let qty = 1;
     switch (res.resourceType) {
-      case 'tree': dropItem = ITEMS.wood; qty = Phaser.Math.Between(2, 4); break;
-      case 'dead_tree': dropItem = ITEMS.twig; qty = Phaser.Math.Between(2, 5); break;
-      case 'rock': dropItem = ITEMS.stone; qty = Phaser.Math.Between(1, 3); break;
+      case 'tree': dropItem = ITEMS.wood; qty = Phaser.Math.Between(2, 4); gameStore.useTool('axe'); break;
+      case 'dead_tree': dropItem = ITEMS.twig; qty = Phaser.Math.Between(2, 5); gameStore.useTool('axe'); break;
+      case 'rock': dropItem = ITEMS.stone; qty = Phaser.Math.Between(1, 3); gameStore.useTool('pickaxe'); break;
       case 'bush': dropItem = Math.random() > 0.5 ? ITEMS.fiber : ITEMS.seed; qty = Phaser.Math.Between(1, 2); break;
     }
 
@@ -592,10 +602,10 @@ export class MainScene extends Phaser.Scene {
     // Queue respawn (30-60 seconds)
     const delay = Phaser.Math.Between(30000, 60000);
     this.respawnCounter++;
-    this.respawnQueue.push({
+    gameStore.respawnQueue.push({
       x: res.x, y: res.y, type: res.resourceType, hp: res.maxHp,
-      id: `${res.resourceType}_r${this.respawnCounter}`,
-      respawnAt: this.time.now + delay,
+      id: `${res.resourceType}_r${this.respawnCounter}_${Date.now()}`,
+      respawnAt: Date.now() + delay,
     });
 
     // Remove resource
@@ -603,15 +613,16 @@ export class MainScene extends Phaser.Scene {
     if (idx >= 0) this.resources.splice(idx, 1);
     delete gameStore.resourceStates[res.resourceId];
     res.destroy();
+    gameStore.save();
   }
 
   private processRespawns() {
-    const sceneNow = this.time.now;
-    for (let i = this.respawnQueue.length - 1; i >= 0; i--) {
-      const entry = this.respawnQueue[i];
-      if (sceneNow >= entry.respawnAt) {
-        this.respawnQueue.splice(i, 1);
-        this.createResource(entry.x, entry.y, entry.type, entry.hp, entry.id);
+    const now = Date.now();
+    for (let i = gameStore.respawnQueue.length - 1; i >= 0; i--) {
+      const entry = gameStore.respawnQueue[i];
+      if (now >= entry.respawnAt) {
+        gameStore.respawnQueue.splice(i, 1);
+        this.createResource(entry.x, entry.y, entry.type as any, entry.hp, entry.id);
       }
     }
 
@@ -689,7 +700,7 @@ export class MainScene extends Phaser.Scene {
         const dist = Phaser.Math.Distance.Between(this.player.x, this.player.y, child.x, child.y);
         if (dist < 50) {
           this.nearWorkbench = true;
-          this.interactText.setText('[E] Bancada');
+          this.interactText.setText('[C] Bancada');
           this.interactText.setPosition(child.x - 30, child.y - 30);
           this.interactText.setVisible(true);
         }
@@ -700,6 +711,7 @@ export class MainScene extends Phaser.Scene {
     // Sort depth by y position
     this.player.setDepth(this.player.y);
     this.resources.forEach(r => r.setDepth(r.y));
+    this.chickens.forEach(chicken => chicken.sprite.setDepth(chicken.sprite.y));
     this.crabs.forEach(crab => crab.sprite.setDepth(crab.sprite.y));
   }
 }

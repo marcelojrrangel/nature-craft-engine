@@ -123,6 +123,45 @@ export class BootScene extends Phaser.Scene {
       g.generateTexture(`fire_${i}`, 32, 32);
     }
 
+    // --- Particle Textures ---
+    
+    // Wood chip
+    g.clear();
+    g.fillStyle(0x8B5E3C);
+    g.fillRect(0, 0, 4, 4);
+    g.generateTexture('p_wood', 4, 4);
+
+    // Stone spark
+    g.clear();
+    g.fillStyle(0xaaaaaa);
+    g.fillRect(0, 0, 3, 3);
+    g.generateTexture('p_stone', 3, 3);
+
+    // Feather / White particle
+    g.clear();
+    g.fillStyle(0xffffff);
+    g.fillCircle(4, 4, 4);
+    g.generateTexture('p_white', 8, 8);
+
+    // Dust / Brown particle
+    g.clear();
+    g.fillStyle(0x8B5E3C, 0.5);
+    g.fillCircle(4, 4, 4);
+    g.generateTexture('p_dust', 8, 8);
+
+    // Light Mask Texture (Radial Gradient for torch)
+    g.clear();
+    const canvas = this.textures.createCanvas('light_mask', 256, 256);
+    if (canvas) {
+      const ctx = canvas.getContext();
+      const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+      gradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+      gradient.addColorStop(1, 'rgba(255, 255, 255, 0.0)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, 256, 256);
+      canvas.update();
+    }
+
     // Player body (idle)
     g.clear();
     // Body
@@ -158,22 +197,31 @@ export class BootScene extends Phaser.Scene {
       g.generateTexture(`player_run_${f}`, 32, 32);
     }
 
-    // Attack frame
+    // Attack frame (Improved - With Weapon)
     g.clear();
-    g.fillStyle(0x4488cc);
-    g.fillRect(8, 12, 16, 14);
+    const bx = 4;
+    g.fillStyle(0x4488cc); g.fillRect(bx, 12, 16, 14); // Body
+    g.fillStyle(0xffcc99); g.fillRect(bx + 2, 2, 12, 12); // Head
+    g.fillStyle(0x333333); g.fillRect(bx + 5, 6, 3, 3); g.fillRect(bx + 11, 6, 3, 3); // Eyes
+    g.fillStyle(0x555555); g.fillRect(bx + 2, 26, 5, 6); g.fillRect(bx + 9, 26, 5, 6); // Legs
+    // DRAMATIC ARM
     g.fillStyle(0xffcc99);
-    g.fillRect(10, 2, 12, 12);
-    g.fillStyle(0x333333);
-    g.fillRect(13, 6, 3, 3);
-    g.fillRect(19, 6, 3, 3);
-    g.fillStyle(0x555555);
-    g.fillRect(10, 26, 5, 6);
-    g.fillRect(17, 26, 5, 6);
-    // Arm extended
-    g.fillStyle(0xffcc99);
-    g.fillRect(24, 14, 8, 4);
+    g.fillRect(bx + 14, 14, 10, 5); 
+    // WEAPON BLADE
+    g.fillStyle(0xdddddd);
+    g.fillRect(bx + 22, 8, 4, 16); // Vertical blade
+    g.lineStyle(1, 0x000000, 0.5);
+    g.strokeRect(bx + 14, 14, 10, 5);
+    g.strokeRect(bx + 22, 8, 4, 16);
     g.generateTexture('player_attack', 32, 32);
+
+    // Slash Effect (Visual feedback for hit)
+    g.clear();
+    g.lineStyle(2, 0xffffff, 0.8);
+    g.beginPath();
+    g.arc(16, 16, 14, -Math.PI/4, Math.PI/4, false);
+    g.strokePath();
+    g.generateTexture('slash_effect', 32, 32);
 
     // Item drop effect
     g.clear();

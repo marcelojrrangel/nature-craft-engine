@@ -25,6 +25,7 @@ interface ResourceObj extends Phaser.GameObjects.Sprite {
 
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
+  private playerLight!: Phaser.GameObjects.Light;
   private resources: ResourceObj[] = [];
   private chickens: ChickenNPC[] = [];
   private crabs: CrabNPC[] = [];
@@ -32,13 +33,17 @@ export class MainScene extends Phaser.Scene {
   private rabbits: RabbitNPC[] = [];
   private campfireSprites: Phaser.GameObjects.Sprite[] = [];
   
-  private workbench!: Phaser.Physics.Arcade.Sprite;
   private resourceGroup!: Phaser.Physics.Arcade.StaticGroup;
   private chickenGroup!: Phaser.Physics.Arcade.Group;
   private crabGroup!: Phaser.Physics.Arcade.Group;
   private bearGroup!: Phaser.Physics.Arcade.Group;
   private rabbitGroup!: Phaser.Physics.Arcade.Group;
   private projectileGroup!: Phaser.Physics.Arcade.Group;
+
+  private woodParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private stoneParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private whiteParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private dustParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
 
   private speed = 160;
   private isAttacking = false;
@@ -67,18 +72,27 @@ export class MainScene extends Phaser.Scene {
 
   constructor() { super({ key: 'MainScene' }); }
 
-  // Definir como arrow function para garantir contexto
-  private drawSafeZone = () => {
-    const wbX = MAP_W * TILE / 2 + 64, wbY = MAP_H * TILE / 2 + 64;
+  private drawSafeZone() {
     if (!this.safeZoneVisual) return;
+    const wbX = MAP_W * TILE / 2 + 64, wbY = MAP_H * TILE / 2 + 64;
     this.safeZoneVisual.clear();
     this.safeZoneVisual.lineStyle(2, 0x3498db, 0.3);
     this.safeZoneVisual.strokeCircle(wbX, wbY, SAFE_ZONE_RADIUS);
     this.safeZoneVisual.fillStyle(0x3498db, 0.05);
     this.safeZoneVisual.fillCircle(wbX, wbY, SAFE_ZONE_RADIUS);
-  };
+  }
 
   create() {
+    this.lights.enable();
+    this.lights.setAmbientColor(0x444444);
+
+    this.campfireSprites = [];
+    this.resources = [];
+    this.chickens = [];
+    this.crabs = [];
+    this.bears = [];
+    this.rabbits = [];
+
     this.resourceGroup = this.physics.add.staticGroup();
     this.chickenGroup = this.physics.add.group();
     this.crabGroup = this.physics.add.group();
@@ -91,6 +105,10 @@ export class MainScene extends Phaser.Scene {
     this.generateMap();
     this.buildShoreSpawnPoints();
     this.createPlayer();
+    
+    this.playerLight = this.lights.addLight(this.player.x, this.player.y, 180).setColor(0xffffff).setIntensity(1.2);
+
+    this.setupParticles();
     this.generateResources();
     this.generateChickens();
     this.generateCrabs();
@@ -100,11 +118,10 @@ export class MainScene extends Phaser.Scene {
     this.setupCamera();
     this.setupCollisions();
     
-    // Chamar o método garantido
     this.drawSafeZone();
     this.restorePlacedItems();
 
-    this.interactText = this.add.text(0, 0, '', { fontSize: '12px', color: '#ffffff', backgroundColor: '#00000088', padding: { x: 4, y: 2 } }).setDepth(1000).setVisible(false);
+    this.interactText = this.add.text(0, 0, '', { fontSize: '12px', color: '#ffffff', backgroundColor: '#00000088', padding: { x: 4, y: 2 } }).setDepth(3000).setVisible(false);
     
     this.unsubscribeList.push(gameEvents.on('joystickMove', ({ x, y }) => { this.joyVec = { x, y }; }));
     this.unsubscribeList.push(gameEvents.on('attack', () => { this.doAttack(); }));
@@ -114,31 +131,33 @@ export class MainScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
   }
 
+  private setupParticles() {
+    this.woodParticles = this.add.particles(0, 0, 'p_wood', { speed: { min: 50, max: 150 }, scale: { start: 1, end: 0 }, lifespan: 400, gravityY: 200, emitting: false }).setDepth(1500);
+    this.stoneParticles = this.add.particles(0, 0, 'p_stone', { speed: { min: 80, max: 200 }, scale: { start: 1, end: 0 }, lifespan: 300, gravityY: 300, emitting: false }).setDepth(1500);
+    this.whiteParticles = this.add.particles(0, 0, 'p_white', { speed: { min: 30, max: 100 }, scale: { start: 0.5, end: 0 }, lifespan: 600, emitting: false }).setDepth(1500);
+    this.dustParticles = this.add.particles(0, 0, 'p_dust', { speed: { min: 10, max: 30 }, scale: { start: 0.8, end: 0 }, lifespan: 400, emitting: false }).setDepth(5);
+  }
+
   private restorePlacedItems() {
-    gameStore.placedItems.forEach(item => {
-      if (item.type === 'campfire') this.createCampfire(item.x, item.y);
-    });
+    gameStore.placedItems.forEach(item => { if (item.type === 'campfire') this.createCampfire(item.x, item.y); });
   }
 
   private handlePlaceItem(type: string, inventoryIndex: number) {
     if (type === 'campfire') {
       const x = this.player.x, y = this.player.y + 10;
-      this.createCampfire(x, y);
-      gameStore.placeItem(type, x, y, inventoryIndex);
+      this.createCampfire(x, y); gameStore.placeItem(type, x, y, inventoryIndex);
       this.showFloatingText(x, y - 20, 'Fogueira posicionada!', '#ffaa00');
       gameStore.closeAll();
     }
   }
 
   private createCampfire(x: number, y: number) {
-    const base = this.add.sprite(x, y, 'campfire_base').setDepth(y - 1);
-    const fire = this.add.sprite(x, y - 4, 'fire_0').setDepth(y);
-    if (!this.anims.exists('burn')) {
-      this.anims.create({ key: 'burn', frames: [{ key: 'fire_0' }, { key: 'fire_1' }, { key: 'fire_2' }], frameRate: 10, repeat: -1 });
-    }
-    fire.play('burn');
-    this.campfireSprites.push(fire);
-    this.add.circle(x, y, 40, 0xffaa00, 0.15).setDepth(0);
+    const base = this.add.sprite(x, y, 'campfire_base').setDepth(y - 1).setPipeline('Light2D');
+    const fire = this.add.sprite(x, y - 4, 'fire_0').setDepth(y).setPipeline('Light2D');
+    if (!this.anims.exists('burn')) { this.anims.create({ key: 'burn', frames: [{ key: 'fire_0' }, { key: 'fire_1' }, { key: 'fire_2' }], frameRate: 10, repeat: -1 }); }
+    fire.play('burn'); this.campfireSprites.push(fire);
+    const light = this.lights.addLight(x, y, 140).setColor(0xffaa00).setIntensity(1.5);
+    this.tweens.add({ targets: light, intensity: { from: 1.5, to: 1.3 }, radius: { from: 140, to: 135 }, duration: 150, yoyo: true, repeat: -1 });
   }
 
   private setupCollisions() {
@@ -147,17 +166,12 @@ export class MainScene extends Phaser.Scene {
       const resource = res as ResourceObj;
       if (this.canDamageTarget(resource.resourceType, false)) { this.applyDamageToResource(resource, gameStore.getStats().attackDamage); arrow.destroy(); }
     });
-    const npcConfigs = [
-      { group: this.chickenGroup, list: this.chickens, type: 'chicken' },
-      { group: this.crabGroup, list: this.crabs, type: 'crab' },
-      { group: this.bearGroup, list: this.bears, type: 'bear' },
-      { group: this.rabbitGroup, list: this.rabbits, type: 'rabbit' }
-    ];
-    npcConfigs.forEach(cfg => {
-      this.physics.add.overlap(this.projectileGroup, cfg.group, (arrow, sprite) => {
+    const configs = [{ g: this.chickenGroup, l: this.chickens, t: 'chicken' }, { g: this.crabGroup, l: this.crabs, t: 'crab' }, { g: this.bearGroup, l: this.bears, t: 'bear' }, { g: this.rabbitGroup, l: this.rabbits, t: 'rabbit' }];
+    configs.forEach(cfg => {
+      this.physics.add.overlap(this.projectileGroup, cfg.g, (arrow, sprite) => {
         if (!arrow.active) return;
-        const npc = cfg.list.find((n: any) => n.sprite === sprite);
-        if (npc && this.canDamageTarget(cfg.type, false)) { arrow.destroy(); this.applyDamageToNPC(npc, cfg.type, gameStore.getStats().attackDamage); }
+        const npc = cfg.l.find((n: any) => n.sprite === sprite);
+        if (npc && this.canDamageTarget(cfg.t, false)) { arrow.destroy(); this.applyDamageToNPC(npc, cfg.t, gameStore.getStats().attackDamage); }
       });
     });
   }
@@ -178,7 +192,7 @@ export class MainScene extends Phaser.Scene {
       for (let x = 0; x < MAP_W; x++) {
         const d = Math.sqrt((x / MAP_W - 0.5) ** 2 + (y / MAP_H - 0.5) ** 2);
         const tileKey = d > 0.45 ? 'water' : d > 0.38 ? 'sand' : `grass_${Math.floor(Math.random() * 3)}`;
-        this.add.sprite(x * TILE + TILE / 2, y * TILE + TILE / 2, tileKey).setDepth(0);
+        this.add.sprite(x * TILE + TILE / 2, y * TILE + TILE / 2, tileKey).setDepth(0).setPipeline('Light2D');
       }
     }
     this.physics.world.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE);
@@ -194,7 +208,7 @@ export class MainScene extends Phaser.Scene {
       const angle = Phaser.Math.FloatBetween(0, Math.PI * 2), dist = Phaser.Math.Between(60, 200);
       this.createResource(wbX + Math.cos(angle) * dist, wbY + Math.sin(angle) * dist, 'small_rock', 2, `small_rock_${i}`);
     }
-    this.workbench = this.physics.add.sprite(wbX, wbY, 'workbench');
+    this.workbench = this.physics.add.sprite(wbX, wbY, 'workbench').setPipeline('Light2D');
     this.workbench.setImmovable(true).setDepth(5); (this.workbench as any).isWorkbench = true;
     this.physics.add.collider(this.player, this.workbench);
   }
@@ -236,12 +250,7 @@ export class MainScene extends Phaser.Scene {
     const now = Date.now();
     for (let i = 0; i < RABBIT_COUNT; i++) {
       const id = `rabbit_${i}`; let s = gameStore.rabbitStates ? gameStore.rabbitStates[id] : null;
-      if (!s) { 
-        const p = this.getRandomPlaceablePosition(); if (!p) continue; 
-        s = { id, x: p.x, y: p.y, alive: true, respawnAt: null, hp: HARDNESS.rabbit }; 
-        if (!gameStore.rabbitStates) gameStore.rabbitStates = {};
-        gameStore.rabbitStates[id] = s; 
-      }
+      if (!s) { const p = this.getRandomPlaceablePosition(); if (!p) continue; s = { id, x: p.x, y: p.y, alive: true, respawnAt: null, hp: HARDNESS.rabbit }; if (!gameStore.rabbitStates) gameStore.rabbitStates = {}; gameStore.rabbitStates[id] = s; }
       if (s.respawnAt && now < s.respawnAt) continue;
       if (!s.alive || s.respawnAt !== null) { s.alive = true; s.respawnAt = null; s.hp = HARDNESS.rabbit; }
       this.spawnRabbit(s);
@@ -251,24 +260,28 @@ export class MainScene extends Phaser.Scene {
   private spawnChicken(s: ChickenState) {
     if (this.chickens.some(c => c.id === s.id)) return;
     const c = new ChickenNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 96 }, s.hp);
+    c.sprite.setPipeline('Light2D');
     this.chickens.push(c); this.chickenGroup.add(c.sprite); this.physics.add.collider(this.player, c.sprite);
   }
 
   private spawnCrab(s: CrabState) {
     if (this.crabs.some(c => c.id === s.id)) return;
     const c = new CrabNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 48 }, s.hp);
+    c.sprite.setPipeline('Light2D');
     this.crabs.push(c); this.crabGroup.add(c.sprite); this.physics.add.collider(this.player, c.sprite);
   }
 
   private spawnBear(s: BearState) {
     if (this.bears.some(b => b.id === s.id)) return;
     const b = new BearNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 150 }, s.hp);
+    b.sprite.setPipeline('Light2D');
     this.bears.push(b); this.bearGroup.add(b.sprite); this.physics.add.collider(this.player, b.sprite);
   }
 
   private spawnRabbit(s: RabbitState) {
     if (this.rabbits.some(r => r.id === s.id)) return;
     const r = new RabbitNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 150 }, s.hp);
+    r.sprite.setPipeline('Light2D');
     this.rabbits.push(r); this.rabbitGroup.add(r.sprite); this.physics.add.collider(this.player, r.sprite);
   }
 
@@ -297,17 +310,18 @@ export class MainScene extends Phaser.Scene {
   private createResource(x: number, y: number, type: any, hp: number, id: string) {
     const shp = gameStore.resourceStates[id]; if (shp !== undefined && shp <= 0) return;
     const s = this.resourceGroup.create(x, y, type) as ResourceObj;
+    s.setPipeline('Light2D');
     s.resourceType = type; s.resourceHp = shp ?? hp; s.maxHp = HARDNESS[type] || hp; s.resourceId = id; s.setDepth(5);
     this.resources.push(s); this.physics.add.collider(this.player, s);
   }
 
   private createPlayer() {
-    this.player = this.physics.add.sprite(gameStore.playerX, gameStore.playerY, 'player_idle');
+    this.player = this.physics.add.sprite(gameStore.playerX, gameStore.playerY, 'player_idle').setPipeline('Light2D');
     this.player.setDepth(10); const b = this.player.body as Phaser.Physics.Arcade.Body;
     b.setCollideWorldBounds(true).setSize(20, 24).setOffset(6, 8);
     if (!this.anims.exists('idle')) this.anims.create({ key: 'idle', frames: [{ key: 'player_idle' }], frameRate: 1, repeat: -1 });
     if (!this.anims.exists('run')) this.anims.create({ key: 'run', frames: [{ key: 'player_run_0' }, { key: 'player_run_1' }, { key: 'player_run_2' }, { key: 'player_run_3' }], frameRate: 8, repeat: -1 });
-    if (!this.anims.exists('attack')) this.anims.create({ key: 'attack', frames: [{ key: 'player_attack' }], frameRate: 4, repeat: 0 });
+    if (!this.anims.exists('attack')) this.anims.create({ key: 'attack', frames: [{ key: 'player_attack' }, { key: 'player_attack' }, { key: 'player_idle' }], frameRate: 8, repeat: 0 });
   }
 
   private setupInput() {
@@ -320,10 +334,7 @@ export class MainScene extends Phaser.Scene {
     this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     this.keyI.on('down', () => gameStore.toggleInventory());
     this.keyQ.on('down', () => gameStore.toggleEquipment());
-    this.keyC.on('down', () => { 
-      if (this.nearWorkbench) { (gameStore as any).currentStation = 'workbench'; gameStore.toggleCrafting(); }
-      else if (this.nearCampfire) { (gameStore as any).currentStation = 'campfire'; gameStore.toggleCrafting(); }
-    });
+    this.keyC.on('down', () => { if (this.nearWorkbench || this.nearCampfire) { (gameStore as any).currentStation = this.nearWorkbench ? 'workbench' : 'campfire'; gameStore.toggleCrafting(); } });
     this.keyK.on('down', () => gameStore.toggleSkills());
     this.keyE.on('down', () => this.doInteract());
     this.keySpace.on('down', () => this.doAttack());
@@ -340,21 +351,15 @@ export class MainScene extends Phaser.Scene {
 
   private showFloatingText(x: number, y: number, text: string, color: string) {
     if (!this.scene.isActive()) return;
-    const f = this.add.text(x, y, text, { fontSize: '12px', color, fontStyle: 'bold', backgroundColor: '#00000066', padding: { x: 4, y: 2 } }).setDepth(1000);
+    const f = this.add.text(x, y, text, { fontSize: '12px', color, fontStyle: 'bold', backgroundColor: '#00000066', padding: { x: 4, y: 2 } }).setDepth(3500);
     this.tweens.add({ targets: f, y: y - 24, alpha: 0, duration: 850, onComplete: () => f.destroy() });
   }
 
   private canDamageTarget(type: string, show = true): boolean {
-    const tool = gameStore.getEquippedTool();
-    const t = tool?.type || 'hands';
-    const r = TOOL_REQUIREMENTS[type];
+    const t = gameStore.getEquippedTool()?.type || 'hands', r = TOOL_REQUIREMENTS[type];
     if (!r || r.includes(t as any)) return true;
     if (t === 'hands' && (type === 'small_rock' || type === 'dead_tree' || type === 'bush')) return true;
-    if (show) {
-      let m = 'Ferramenta incorreta';
-      if (r.includes('axe')) m = 'Precisa de Machado 🪓'; else if (r.includes('pickaxe')) m = 'Precisa de Picareta ⛏️'; else if (r.includes('sword') || r.includes('knife')) m = 'Precisa de Lâmina ⚔️';
-      this.showFloatingText(this.player.x, this.player.y - 40, m, '#ffcc66');
-    }
+    if (show) { this.showFloatingText(this.player.x, this.player.y - 40, 'Ferramenta incorreta', '#ffcc66'); }
     return false;
   }
 
@@ -364,7 +369,7 @@ export class MainScene extends Phaser.Scene {
     let vx = 0, vy = 0, rot = 0;
     if (this.facingDir === 'up') { vy = -400; rot = -Math.PI / 2; } else if (this.facingDir === 'down') { vy = 400; rot = Math.PI / 2; }
     else if (this.facingDir === 'left') { vx = -400; rot = Math.PI; } else { vx = 400; rot = 0; }
-    const arrow = this.physics.add.sprite(this.player.x, this.player.y, 'arrow_projectile').setDepth(15);
+    const arrow = this.physics.add.sprite(this.player.x, this.player.y, 'arrow_projectile').setDepth(15).setPipeline('Light2D');
     arrow.setRotation(rot);
     this.projectileGroup.add(arrow); (arrow.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setVelocity(vx, vy);
     this.time.delayedCall(1500, () => { if (arrow && arrow.active) arrow.destroy(); });
@@ -374,6 +379,8 @@ export class MainScene extends Phaser.Scene {
     if (!res || !res.active) return;
     res.resourceHp -= dmg; gameStore.resourceStates[res.resourceId] = res.resourceHp; res.setTint(0xffffff);
     this.time.delayedCall(100, () => { if (res && res.active) res.clearTint(); });
+    if (res.resourceType === 'rock' || res.resourceType === 'small_rock') this.stoneParticles.emitParticleAt(res.x, res.y, 5);
+    else this.woodParticles.emitParticleAt(res.x, res.y, 5);
     const t = this.add.text(res.x, res.y - 20, `-${dmg.toFixed(0)}`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000);
     this.tweens.add({ targets: t, y: res.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() });
     if (res.resourceHp <= 0) this.harvestResource(res);
@@ -384,6 +391,7 @@ export class MainScene extends Phaser.Scene {
     if (!sMap) return;
     const s = sMap[npc.id]; if (!s) return;
     const hp = npc.takeDamage(dmg); s.hp = hp;
+    this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8);
     const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000);
     this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() });
     if (hp <= 0) { if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc); else if (type === 'bear') this.collectBear(npc); else if (type === 'rabbit') this.collectRabbit(npc); }
@@ -391,21 +399,30 @@ export class MainScene extends Phaser.Scene {
 
   private doAttack() {
     if (this.isAttacking || this.attackCooldown > 0) return;
-    this.isAttacking = true; this.attackCooldown = 300; this.player.play('attack');
+    this.isAttacking = true; this.attackCooldown = 300;
+    this.player.play('attack');
+    
+    const slashX = this.player.x + (this.facingDir === 'right' ? 24 : this.facingDir === 'left' ? -24 : 0);
+    const slashY = this.player.y + (this.facingDir === 'down' ? 24 : this.facingDir === 'up' ? -24 : 0);
+    const slash = this.add.sprite(slashX, slashY, 'slash_effect').setDepth(20);
+    if (this.facingDir === 'left') slash.setFlipX(true);
+    if (this.facingDir === 'up') slash.setRotation(-Math.PI/2);
+    if (this.facingDir === 'down') slash.setRotation(Math.PI/2);
+    this.tweens.add({ targets: slash, alpha: 0, scale: 1.2, duration: 200, onComplete: () => slash.destroy() });
+
     const t = gameStore.getEquippedTool(); if (t?.type === 'bow') this.fireArrow(); else this.doMeleeAttack();
-    this.time.delayedCall(250, () => { this.isAttacking = false; });
+    this.time.delayedCall(300, () => { this.isAttacking = false; });
   }
 
   private doMeleeAttack() {
     const stats = gameStore.getStats(), t = gameStore.getEquippedTool();
-    const chi = this.chickens.find(c => c.isInRange(this.player.x, this.player.y, 42));
-    if (chi && this.canDamageTarget('chicken')) { gameStore.useTool(t?.type === 'knife' ? 'knife' : 'sword'); this.applyDamageToNPC(chi, 'chicken', stats.attackDamage); }
-    const cra = this.crabs.find(c => c.isInRange(this.player.x, this.player.y, 42));
-    if (cra && this.canDamageTarget('crab')) { gameStore.useTool(t?.type === 'knife' ? 'knife' : 'sword'); this.applyDamageToNPC(cra, 'crab', stats.attackDamage); }
-    const bea = this.bears.find(b => Phaser.Math.Distance.Between(this.player.x, this.player.y, b.sprite.x, b.sprite.y) < 42);
-    if (bea && this.canDamageTarget('bear')) { gameStore.useTool('sword'); this.applyDamageToNPC(bea, 'bear', stats.attackDamage); }
-    const rab = this.rabbits.find(r => r.isInRange(this.player.x, this.player.y, 42));
-    if (rab && this.canDamageTarget('rabbit')) { gameStore.useTool(t?.type === 'knife' ? 'knife' : 'sword'); this.applyDamageToNPC(rab, 'rabbit', stats.attackDamage); }
+    const targets = [...this.chickens, ...this.crabs, ...this.bears, ...this.rabbits];
+    targets.forEach((npc: any) => {
+      if (npc.isInRange && npc.isInRange(this.player.x, this.player.y, 42)) {
+        let type = npc instanceof CrabNPC ? 'crab' : npc instanceof BearNPC ? 'bear' : npc instanceof RabbitNPC ? 'rabbit' : 'chicken';
+        if (this.canDamageTarget(type)) { gameStore.useTool(t?.type === 'knife' ? 'knife' : 'sword'); this.applyDamageToNPC(npc, type, stats.attackDamage); }
+      }
+    });
     for (const res of this.resources) {
       if (res.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, res.x, res.y) < 40 && this.canDamageTarget(res.resourceType)) {
         let dmg = stats.attackDamage;
@@ -484,24 +501,28 @@ export class MainScene extends Phaser.Scene {
   update(_t: number, delta: number) {
     if (this.attackCooldown > 0) this.attackCooldown -= delta; this.processRespawns();
     this.chickens.forEach(c => c.update(delta)); this.crabs.forEach(c => c.update(delta)); this.rabbits.forEach(r => r.update(delta));
+    if (this.playerLight) { this.playerLight.x = this.player.x; this.playerLight.y = this.player.y; }
     this.inSafeZone = false; this.nearCampfire = false;
     const wbX = MAP_W * TILE / 2 + 64, wbY = MAP_H * TILE / 2 + 64, distToWB = Phaser.Math.Distance.Between(this.player.x, this.player.y, wbX, wbY);
     if (distToWB < SAFE_ZONE_RADIUS) this.inSafeZone = true;
-    this.campfireSprites.forEach(cf => { if (Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50) this.nearCampfire = true; });
+    this.campfireSprites.forEach(cf => { if (cf && cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50) this.nearCampfire = true; });
     this.bears.forEach(b => b.update(delta, this.player.x, this.player.y, { x: wbX, y: wbY, radius: SAFE_ZONE_RADIUS }, this.inSafeZone));
     this.drawResourceHpBars();
+    
+    // ATTACH LOCK: Se estiver atacando, ignora animações de movimento
     if (this.isAttacking) return;
+
     const body = this.player.body as Phaser.Physics.Arcade.Body; let vx = 0, vy = 0;
     if (this.moveKeys.A.isDown || this.moveKeys.LEFT.isDown) { vx = -1; this.facingDir = 'left'; } else if (this.moveKeys.D.isDown || this.moveKeys.RIGHT.isDown) { vx = 1; this.facingDir = 'right'; }
     if (this.moveKeys.W.isDown || this.moveKeys.UP.isDown) { vy = -1; this.facingDir = 'up'; } else if (this.moveKeys.S.isDown || this.moveKeys.DOWN.isDown) { vy = 1; this.facingDir = 'down'; }
     if (this.joyVec.x !== 0 || this.joyVec.y !== 0) { vx = this.joyVec.x; vy = this.joyVec.y; if (Math.abs(vx) > Math.abs(vy)) this.facingDir = vx < 0 ? 'left' : 'right'; else this.facingDir = vy < 0 ? 'up' : 'down'; }
     const stats = gameStore.getStats();
-    if (vx !== 0 || vy !== 0) { const len = Math.sqrt(vx * vx + vy * vy); body.setVelocity((vx / len) * 160 * stats.moveSpeed, (vy / len) * 160 * stats.moveSpeed); this.player.setFlipX(this.facingDir === 'left').play('run', true); }
+    if (vx !== 0 || vy !== 0) { const len = Math.sqrt(vx * vx + vy * vy); body.setVelocity((vx / len) * 160 * stats.moveSpeed, (vy / len) * 160 * stats.moveSpeed); this.player.setFlipX(this.facingDir === 'left').play('run', true); this.dustParticles.emitParticleAt(this.player.x, this.player.y + 10, 1); }
     else { if (body) body.setVelocity(0, 0); this.player.play('idle', true); }
     gameStore.updatePlayerPos(this.player.x, this.player.y);
     this.nearWorkbench = distToWB < 50;
     if (this.nearWorkbench) this.interactText.setText('[C] Bancada').setPosition(wbX - 30, wbY - 30).setVisible(true);
-    else if (this.nearCampfire) { const closestCF = this.campfireSprites.find(cf => Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50); if (closestCF) this.interactText.setText('[C] Cozinhar').setPosition(closestCF.x - 30, closestCF.y - 30).setVisible(true); }
+    else if (this.nearCampfire) { const closestCF = this.campfireSprites.find(cf => cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50); if (closestCF) this.interactText.setText('[C] Cozinhar').setPosition(closestCF.x - 30, closestCF.y - 30).setVisible(true); }
     else this.interactText.setVisible(false);
     this.player.setDepth(this.player.y); this.resources.forEach(r => r.setDepth(r.y));
     this.chickens.forEach(c => c.sprite.setDepth(c.sprite.y)); this.crabs.forEach(c => c.sprite.setDepth(c.sprite.y));

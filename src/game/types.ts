@@ -1,6 +1,6 @@
 // Game type definitions
 
-export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow';
+export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow' | 'campfire';
 export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife' | 'bow';
 export type EquipSlot = 'head' | 'hands' | 'legs' | 'accessory' | 'mainHand';
 
@@ -108,14 +108,22 @@ export interface GameSaveData {
   inventory: InventorySlot[];
   equipment: Equipment;
   timestamp: number;
-  resourceStates: Record<string, number>; // resource id -> remaining hp
+  resourceStates: Record<string, number>;
   chickenStates: Record<string, ChickenState>;
   crabStates: Record<string, CrabState>;
   bearStates?: Record<string, BearState>;
+  placedItems?: PlacedItem[];
   quickBar?: (number | null)[];
   selectedQuickBarIndex?: number;
   skills?: Record<string, Skill>;
   respawnQueue?: { x: number; y: number; type: string; hp: number; id: string; respawnAt: number }[];
+}
+
+export interface PlacedItem {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
 }
 
 export interface ChickenState {
@@ -158,6 +166,7 @@ export const ITEMS: Record<string, Item> = {
   crab_shell: { id: 'crab_shell', name: 'Casca de Siri', type: 'crab_shell', icon: '🐚', stackable: true, maxStack: 64, description: 'Fragmento de carapaça coletado na orla' },
   crab_meat: { id: 'crab_meat', name: 'Carne de Siri', type: 'crab_meat', icon: '🦀', stackable: true, maxStack: 32, description: 'Carne fresca de siri/caranguejo' },
   arrow: { id: 'arrow', name: 'Flecha', type: 'arrow', icon: '🥢', stackable: true, maxStack: 64, description: 'Munição para o arco' },
+  campfire: { id: 'campfire', name: 'Fogueira', type: 'campfire', icon: '🔥', stackable: true, maxStack: 5, description: 'Luz e calor. Use do inventário para colocar' },
   axe: { id: 'axe', name: 'Machado', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+50% velocidade de corte' },
   pickaxe: { id: 'pickaxe', name: 'Picareta', type: 'pickaxe', icon: '⛏️', stackable: false, maxStack: 1, description: '+50% velocidade de mineração' },
   shovel: { id: 'shovel', name: 'Pá', type: 'shovel', icon: '🪏', stackable: false, maxStack: 1, description: 'Permite cavar e plantar' },
@@ -167,6 +176,11 @@ export const ITEMS: Record<string, Item> = {
 };
 
 export const RECIPES: CraftingRecipe[] = [
+  {
+    id: 'campfire', name: 'Fogueira', result: ITEMS.campfire, resultQty: 1,
+    ingredients: [{ item: ITEMS.twig, quantity: 8 }],
+    description: 'Ilumina a noite',
+  },
   {
     id: 'bow', name: 'Arco', result: ITEMS.bow, resultQty: 1,
     ingredients: [{ item: ITEMS.wood, quantity: 5 }, { item: ITEMS.fiber, quantity: 10 }],

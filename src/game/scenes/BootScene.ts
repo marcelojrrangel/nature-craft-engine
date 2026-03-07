@@ -103,6 +103,26 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(20, 14, 6, 4);
     g.generateTexture('workbench', 32, 32);
 
+    // Campfire Base
+    g.clear();
+    g.fillStyle(0x555555); // Stones
+    g.fillCircle(16, 24, 8);
+    g.fillStyle(0x8B5E3C); // Logs
+    g.fillRect(12, 18, 8, 4);
+    g.fillRect(14, 14, 4, 8);
+    g.generateTexture('campfire_base', 32, 32);
+
+    // Fire Frames (Animação)
+    const fireColors = [0xff4400, 0xffa500, 0xffff00];
+    for (let i = 0; i < 3; i++) {
+      g.clear();
+      g.fillStyle(fireColors[i]);
+      g.fillTriangle(16, 4 + i, 10, 20, 22, 20);
+      g.fillStyle(fireColors[(i + 1) % 3]);
+      g.fillTriangle(16, 10 + i, 12, 20, 20, 20);
+      g.generateTexture(`fire_${i}`, 32, 32);
+    }
+
     // Player body (idle)
     g.clear();
     // Body

@@ -1,94 +1,78 @@
-# Boas-vindas ao seu projeto Lovable
+# Nature Craft Engine
 
-## Informações do projeto
+Nature Craft Engine é um motor de jogo de sobrevivência e crafting 2D desenvolvido com **Phaser 3** e **React 18**. O projeto combina a potência de renderização e física do Phaser com a flexibilidade de interfaces do React, utilizando uma arquitetura modular baseada em componentes.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Tecnologias Core
 
-## Como posso editar este código?
+- **Engine de Jogo**: [Phaser 3.90](https://phaser.io/)
+- **Framework UI**: [React 18](https://reactjs.org/) com [TypeScript](https://www.typescriptlang.org/)
+- **Estilização**: [Tailwind CSS](https://tailwindcss.com/) & [shadcn/ui](https://ui.shadcn.com/)
+- **Gerenciamento de Estado**: Custom Reactive Store (Observer Pattern) com persistência em `LocalStorage`
+- **Testes**: [Vitest](https://vitest.dev/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
 
-Existem várias formas de editar sua aplicação.
+## 🎮 Funcionalidades Principais
 
-**Usar o Lovable**
+### 🏹 Sistema de Combate e Ferramentas
+- **Combate Híbrido**: Suporte para ataques corpo-a-corpo (Espadas, Facas, Machados) e à distância (Arco e Flecha com física de projéteis).
+- **Regras de Realidade**: Objetos exigem ferramentas específicas (ex: Árvores requerem Machado, Pedras requerem Picareta).
+- **Munição**: Sistema de consumo de flechas integrado ao inventário.
 
-Basta acessar o [Projeto Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) e começar a enviar prompts.
+### 🎒 Inventário e Crafting
+- **Mesa de Trabalho**: Zona central para criação de ferramentas avançadas.
+- **Barra Rápida (QuickBar)**: Atalhos numerados (1-5) para troca rápida de equipamentos.
+- **Persistência**: Todo o progresso (inventário, posição, recursos coletados e estado dos NPCs) é salvo automaticamente no navegador.
 
-As alterações feitas via Lovable serão commitadas automaticamente neste repositório.
+### 🐻 NPCs e IA
+- **Galinhas e Siris**: NPCs pacíficos com comportamento de perambulação (wander) e alimentação.
+- **Urso Agressivo**: Primeiro inimigo hostil com detecção de raio, perseguição veloz e ataque de proximidade.
+- **Barras de Vida**: Feedback visual dinâmico em todos os seres vivos e recursos em colheita.
 
-**Usar sua IDE preferida**
+### 🛡️ Safe Zone (Zona Segura)
+- Raio de proteção ao redor da Bancada de Trabalho onde NPCs hostis são bloqueados fisicamente e perdem o interesse no jogador, permitindo a recuperação pós-morte.
 
-Se você quiser trabalhar localmente com sua própria IDE, pode clonar este repositório e enviar suas alterações. Os pushes também serão refletidos no Lovable.
+## 🏗️ Arquitetura e Clean Code
 
-O único requisito é ter Node.js e npm instalados - [instalar com nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+O projeto segue princípios de **SOLID** e **Clean Architecture**, com foco em composição sobre herança:
 
-Siga estes passos:
+- **HealthComponent**: Lógica pura de vida e dano, desacoplada da engine de física.
+- **HealthBarRenderer**: Componente visual reutilizável para renderização de UI sobre sprites.
+- **Event Bus**: Comunicação entre React e Phaser via `src/game/events.ts`, mantendo as camadas isoladas.
+- **Snapshots de Estado**: Uso de `useSyncExternalStore` para re-renderizações eficientes da UI React apenas quando necessário.
+
+## 🛠️ Guia de Desenvolvimento
+
+### Instalação e Execução local
 
 ```sh
-# Passo 1: Clone o repositório usando a URL Git do projeto.
-git clone <YOUR_GIT_URL>
+# Instalar dependências
+npm install
 
-# Passo 2: Navegue até o diretório do projeto.
-cd <YOUR_PROJECT_NAME>
-
-# Passo 3: Instale as dependências necessárias.
-npm i
-
-# Passo 4: Inicie o servidor de desenvolvimento com recarregamento automático e preview instantâneo.
+# Rodar em modo desenvolvimento
 npm run dev
+
+# Executar testes unitários
+npm test
 ```
 
-**Editar um arquivo diretamente no GitHub**
+### Comandos de Jogo
+- **WASD / Setas**: Movimentação
+- **Espaço**: Atacar / Usar Ferramenta
+- **E / C**: Interagir com Bancada
+- **I**: Abrir Inventário
+- **Q**: Abrir Equipamentos
+- **K**: Abrir Habilidades
+- **1-5**: Selecionar Slot da Barra Rápida
 
-- Navegue até o(s) arquivo(s) desejado(s).
-- Clique no botão "Edit" (ícone de lápis) no canto superior direito da visualização do arquivo.
-- Faça suas alterações e commit.
+## 📂 Estrutura de Pastas
 
-**Usar GitHub Codespaces**
+- `src/components/game`: Componentes de UI do jogo (Modais, HUD).
+- `src/game/components`: Componentes lógicos da nova arquitetura (Health, etc).
+- `src/game/entities`: Classes de NPCs e IA.
+- `src/game/scenes`: Cenas do Phaser (Boot, Main).
+- `src/game/store.ts`: Store reativa central do jogo.
+- `src/test`: Suite de testes automatizados.
+- `docs/`: Documentação detalhada de processos (ex: `agent-refactor.md`).
 
-- Navegue até a página principal do seu repositório.
-- Clique no botão "Code" (botão verde) próximo ao canto superior direito.
-- Selecione a aba "Codespaces".
-- Clique em "New codespace" para iniciar um novo ambiente Codespace.
-- Edite os arquivos diretamente no Codespace e faça commit/push quando terminar.
-
-## Quais tecnologias são usadas neste projeto?
-
-Este projeto foi construído com:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## Arquitetura de eventos (React ↔ Phaser)
-
-O jogo usa um pequeno event bus tipado para desacoplar os controles da UI da cena do Phaser.
-
-- Componentes React emitem eventos (botões da HUD e joystick)
-- A `MainScene` do Phaser assina esses eventos e executa as ações de gameplay
-- Não é mais necessária uma ponte direta via `window.__game*`
-
-Eventos atuais:
-
-- `joystickMove` → vetor de movimento `{ x, y }`
-- `attack` → dispara ação de ataque
-- `interact` → dispara ação de interação
-
-Arquivos principais:
-
-- `src/game/events.ts`
-- `src/components/game/GameHUD.tsx`
-- `src/components/game/Joystick.tsx`
-- `src/game/scenes/MainScene.ts`
-
-## Como posso publicar este projeto?
-
-Basta abrir o [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) e clicar em Share -> Publish.
-
-## Posso conectar um domínio personalizado ao meu projeto Lovable?
-
-Sim, você pode!
-
-Para conectar um domínio, vá em Project > Settings > Domains e clique em Connect Domain.
-
-Leia mais aqui: [Como configurar um domínio personalizado](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+Desenvolvido com ❤️ para entusiastas de jogos de sobrevivência.

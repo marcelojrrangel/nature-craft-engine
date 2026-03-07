@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { gameStore } from '../store';
+import { HealthComponent } from '../components/HealthComponent';
+import { HealthBarRenderer } from '../components/HealthBarRenderer';
 
 export type BearVisualState = 'idle' | 'chasing' | 'attacking' | 'dead';
 
@@ -15,8 +17,10 @@ export class BearNPC {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
   readonly homeX: number;
   readonly homeY: number;
-  private hp: number;
-  private maxHp: number;
+  
+  // Components
+  public health: HealthComponent;
+  private hpBar: HealthBarRenderer;
 
   private state: BearVisualState = 'idle';
   private stateTimer = 0;
@@ -27,67 +31,73 @@ export class BearNPC {
   private readonly detectionRange = 120;
   private readonly attackRange = 40;
   private attackCooldown = 0;
-  private hpBar: Phaser.GameObjects.Graphics;
 
-  constructor(scene: Phaser.Scene, config: BearNPCConfig, hp: number = 30) {
+  constructor(scene: Phaser.Scene, config: BearNPCConfig, initialHp: number = 30) {
     this.id = config.id;
     this.homeX = config.x;
     this.homeY = config.y;
-    this.hp = hp;
-    this.maxHp = 30;
     this.wanderRadius = config.wanderRadius ?? 150;
 
+    // 1. Logic Component
+    const maxHp = 30;
+    this.health = new HealthComponent(initialHp > 0 ? initialHp : maxHp, maxHp);
+
+    // 2. Physics/Sprite
     this.sprite = scene.physics.add.sprite(config.x, config.y, 'bear_idle');
     this.sprite.setScale(1.2);
     this.sprite.setDepth(config.y);
-
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
     body.setCollideWorldBounds(true);
     body.setSize(24, 20);
     body.setOffset(4, 12);
 
-    this.hpBar = scene.add.graphics();
-    this.hpBar.setDepth(2000);
+    // 3. Visual Component (Always visible for the bear)
+    this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 22, true);
+
+    // 4. Events
+    this.health.onDeath(() => this.die());
 
     this.setState('idle');
   }
 
   update(delta: number, playerX: number, playerY: number, safeZone?: { x: number, y: number, radius: number }, isPlayerSafe: boolean = false) {
-    if (!this.isAlive()) {
-      this.hpBar.clear();
+    if (!this.health.isAlive) {
+      this.hpBar.update();
       return;
     }
 
     if (this.attackCooldown > 0) this.attackCooldown -= delta;
 
-    // Physical barrier logic: Don't allow bear to enter safe zone
+    this.updateFrictionWithSafeZone(safeZone);
+    this.updateAI(playerX, playerY, isPlayerSafe);
+    this.updateMovement(delta);
+
+    this.sprite.setDepth(this.sprite.y);
+    this.hpBar.update();
+  }
+
+  private updateFrictionWithSafeZone(safeZone?: { x: number, y: number, radius: number }) {
     if (safeZone) {
-      const distToSafeCenter = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, safeZone.x, safeZone.y);
-      const buffer = 15; // Bear's own size buffer
-      if (distToSafeCenter < safeZone.radius + buffer) {
+      const dist = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, safeZone.x, safeZone.y);
+      const buffer = 15;
+      if (dist < safeZone.radius + buffer) {
         const angle = Phaser.Math.Angle.Between(safeZone.x, safeZone.y, this.sprite.x, this.sprite.y);
         this.sprite.x = safeZone.x + Math.cos(angle) * (safeZone.radius + buffer);
         this.sprite.y = safeZone.y + Math.sin(angle) * (safeZone.radius + buffer);
-        
-        // If it was chasing, make it wander instead
-        if (this.state === 'chasing') {
-          this.setState('idle');
-          this.targetPos = this.pickTarget();
-        }
+        if (this.state === 'chasing') { this.setState('idle'); this.targetPos = this.pickTarget(); }
       }
     }
+  }
 
-    const distToPlayer = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, playerX, playerY);
+  private updateAI(playerX: number, playerY: number, isPlayerSafe: boolean) {
+    const dist = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, playerX, playerY);
 
     if (isPlayerSafe) {
-      if (this.state === 'chasing' || this.state === 'attacking') {
-        this.setState('idle');
-        this.targetPos = null;
-      }
+      if (this.state === 'chasing' || this.state === 'attacking') { this.setState('idle'); this.targetPos = null; }
     } else {
-      if (distToPlayer < this.attackRange && this.attackCooldown <= 0) {
+      if (dist < this.attackRange && this.attackCooldown <= 0) {
         this.attackPlayer();
-      } else if (distToPlayer < this.detectionRange) {
+      } else if (dist < this.detectionRange) {
         this.setState('chasing');
         this.targetPos = { x: playerX, y: playerY };
       } else if (this.state === 'chasing') {
@@ -95,54 +105,28 @@ export class BearNPC {
         this.targetPos = null;
       }
     }
+  }
 
+  private updateMovement(delta: number) {
     if (this.state === 'idle') {
-      this.updateIdle(delta);
-    } else if (this.state === 'chasing') {
-      this.updateChasing();
-    }
-
-    this.sprite.setDepth(this.sprite.y);
-    this.drawHealthBar();
-  }
-
-  private drawHealthBar() {
-    this.hpBar.clear();
-    const x = this.sprite.x - 12, y = this.sprite.y - 22, width = 24, height = 4;
-    this.hpBar.fillStyle(0x000000, 0.7);
-    this.hpBar.fillRect(x, y, width, height);
-    const hpPercent = this.hp / this.maxHp;
-    const color = hpPercent < 0.3 ? 0xe74c3c : hpPercent < 0.6 ? 0xf1c40f : 0x2ecc71;
-    this.hpBar.fillStyle(color, 1);
-    this.hpBar.fillRect(x, y, width * hpPercent, height);
-  }
-
-  private updateIdle(delta: number) {
-    this.stateTimer -= delta;
-    if (this.stateTimer <= 0) {
-      this.targetPos = this.pickTarget();
-      this.stateTimer = Phaser.Math.Between(2000, 4000);
-    }
-    if (this.targetPos) {
-      const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-      const dist = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y);
-      if (dist < 5) {
-        body.setVelocity(0, 0);
-        this.targetPos = null;
-      } else {
-        const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y);
-        body.setVelocity(Math.cos(angle) * this.walkSpeed, Math.sin(angle) * this.walkSpeed);
-        this.sprite.setFlipX(body.velocity.x < 0);
+      this.stateTimer -= delta;
+      if (this.stateTimer <= 0) { this.targetPos = this.pickTarget(); this.stateTimer = Phaser.Math.Between(2000, 4000); }
+      if (this.targetPos) {
+        const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+        if (Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y) < 5) {
+          body.setVelocity(0, 0); this.targetPos = null;
+        } else {
+          const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y);
+          body.setVelocity(Math.cos(angle) * this.walkSpeed, Math.sin(angle) * this.walkSpeed);
+          this.sprite.setFlipX(body.velocity.x < 0);
+        }
       }
+    } else if (this.state === 'chasing' && this.targetPos) {
+      const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+      const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y);
+      body.setVelocity(Math.cos(angle) * this.runSpeed, Math.sin(angle) * this.runSpeed);
+      this.sprite.setFlipX(body.velocity.x < 0);
     }
-  }
-
-  private updateChasing() {
-    if (!this.targetPos) return;
-    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y);
-    body.setVelocity(Math.cos(angle) * this.runSpeed, Math.sin(angle) * this.runSpeed);
-    this.sprite.setFlipX(body.velocity.x < 0);
   }
 
   private attackPlayer() {
@@ -151,21 +135,30 @@ export class BearNPC {
     gameStore.receiveDamage(20);
     this.sprite.setTexture('bear_attack');
     this.sprite.scene.time.delayedCall(300, () => {
-      if (this.isAlive()) this.sprite.setTexture('bear_idle');
+      if (this.health.isAlive) this.sprite.setTexture('bear_idle');
     });
   }
 
-  isAlive() { return this.state !== 'dead' && this.sprite.active; }
-
   takeDamage(amount: number): number {
-    this.hp = Math.max(0, this.hp - amount);
-    if (this.hp <= 0) { this.setState('dead'); this.hpBar.clear(); }
-    return this.hp;
+    this.health.takeDamage(amount);
+    return this.health.current;
   }
 
-  collect() { this.setState('dead'); this.sprite.disableBody(true, true); this.hpBar.clear(); }
+  collect() {
+    this.health.takeDamage(9999);
+    this.sprite.disableBody(true, false);
+    this.sprite.setTexture('bear_dead');
+  }
 
-  destroy() { this.hpBar.destroy(); this.sprite.destroy(); }
+  private die() {
+    this.setState('dead');
+    this.sprite.disableBody(true, false);
+  }
+
+  destroy() {
+    this.hpBar.destroy();
+    this.sprite.destroy();
+  }
 
   private setState(next: BearVisualState) {
     if (this.state === next) return;
@@ -174,7 +167,6 @@ export class BearNPC {
       this.sprite.setTexture('bear_dead');
       const body = this.sprite.body as Phaser.Physics.Arcade.Body;
       if (body) body.setVelocity(0, 0);
-      this.hpBar.clear();
     } else { this.sprite.setTexture('bear_idle'); }
   }
 

@@ -60,6 +60,7 @@ export default function InventoryModal({ onClose }: Props) {
                 title={slot.item?.description}
                 onDoubleClick={() => handleDoubleClick(i)}
                 onContextMenu={(e) => handleContextMenu(e, i)}
+                onClick={() => gameStore.useItem(i)}
               >
                 {slot.item && (
                   <>

@@ -55,6 +55,8 @@ export class MainScene extends Phaser.Scene {
   private keyEsc!: Phaser.Input.Keyboard.Key;
   private moveKeys!: { W: Phaser.Input.Keyboard.Key, A: Phaser.Input.Keyboard.Key, S: Phaser.Input.Keyboard.Key, D: Phaser.Input.Keyboard.Key, UP: Phaser.Input.Keyboard.Key, LEFT: Phaser.Input.Keyboard.Key, DOWN: Phaser.Input.Keyboard.Key, RIGHT: Phaser.Input.Keyboard.Key };
 
+  private unsubscribeList: (() => void)[] = [];
+
   constructor() { super({ key: 'MainScene' }); }
 
   create() {
@@ -77,12 +79,67 @@ export class MainScene extends Phaser.Scene {
     this.setupCamera();
     this.setupCollisions();
     this.drawSafeZone();
+    this.restorePlacedItems();
 
     this.interactText = this.add.text(0, 0, '', { fontSize: '12px', color: '#ffffff', backgroundColor: '#00000088', padding: { x: 4, y: 2 } }).setDepth(1000).setVisible(false);
-    gameEvents.on('joystickMove', ({ x, y }) => { this.joyVec = { x, y }; });
-    gameEvents.on('attack', () => { this.doAttack(); });
-    gameEvents.on('interact', () => { this.doInteract(); });
+    
+    // Cleanup old listeners if any
+    this.unsubscribeList.forEach(unsub => unsub());
+    this.unsubscribeList = [];
+
+    // Register listeners
+    this.unsubscribeList.push(gameEvents.on('joystickMove', ({ x, y }) => { this.joyVec = { x, y }; }));
+    this.unsubscribeList.push(gameEvents.on('attack', () => { this.doAttack(); }));
+    this.unsubscribeList.push(gameEvents.on('interact', () => { this.doInteract(); }));
+    this.unsubscribeList.push(gameEvents.on('placeItem', ({ type, inventoryIndex }) => { this.handlePlaceItem(type, inventoryIndex); }));
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
+  }
+
+  private restorePlacedItems() {
+    gameStore.placedItems.forEach(item => {
+      if (item.type === 'campfire') this.createCampfire(item.x, item.y);
+    });
+  }
+
+  private handlePlaceItem(type: string, inventoryIndex: number) {
+    if (type === 'campfire') {
+      const x = this.player.x;
+      const y = this.player.y + 10;
+      this.createCampfire(x, y);
+      gameStore.placeItem(type, x, y, inventoryIndex);
+      this.showFloatingText(x, y - 20, 'Fogueira posicionada!', '#ffaa00');
+      gameStore.closeAll(); // Close inventory to see the item
+    }
+  }
+
+  private createCampfire(x: number, y: number) {
+    const base = this.add.sprite(x, y, 'campfire_base').setDepth(y - 1);
+    const fire = this.add.sprite(x, y - 4, 'fire_0').setDepth(y);
+    
+    if (!this.anims.exists('burn')) {
+      this.anims.create({
+        key: 'burn',
+        frames: [
+          { key: 'fire_0' },
+          { key: 'fire_1' },
+          { key: 'fire_2' }
+        ],
+        frameRate: 10,
+        repeat: -1
+      });
+    }
+    fire.play('burn');
+
+    const light = this.add.circle(x, y, 40, 0xffaa00, 0.15).setDepth(0);
+    this.tweens.add({
+      targets: light,
+      radius: 45,
+      alpha: 0.1,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1
+    });
   }
 
   private drawSafeZone() {
@@ -186,12 +243,7 @@ export class MainScene extends Phaser.Scene {
     const now = Date.now();
     for (let i = 0; i < BEAR_COUNT; i++) {
       const id = `bear_${i}`; let s = gameStore.bearStates[id];
-      if (!s) { 
-        const p = this.getRandomBearPosition(); 
-        if (!p) continue; 
-        s = { id, x: p.x, y: p.y, alive: true, respawnAt: null, hp: HARDNESS.bear }; 
-        gameStore.bearStates[id] = s; 
-      }
+      if (!s) { const p = this.getRandomBearPosition(); if (!p) continue; s = { id, x: p.x, y: p.y, alive: true, respawnAt: null, hp: HARDNESS.bear }; gameStore.bearStates[id] = s; }
       if (s.respawnAt && now < s.respawnAt) continue;
       if (!s.alive || s.respawnAt !== null) { s.alive = true; s.respawnAt = null; s.hp = HARDNESS.bear; }
       this.spawnBear(s);
@@ -275,6 +327,7 @@ export class MainScene extends Phaser.Scene {
   private setupCamera() { this.cameras.main.startFollow(this.player, true, 0.08, 0.08); this.cameras.main.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE).setZoom(2); }
 
   shutdown() {
+    this.unsubscribeList.forEach(unsub => unsub());
     this.chickens.forEach(c => c.destroy()); this.crabs.forEach(c => c.destroy()); this.bears.forEach(b => b.destroy());
   }
 
@@ -296,13 +349,11 @@ export class MainScene extends Phaser.Scene {
   }
 
   private fireArrow() {
-    if (!gameStore.hasAmmo()) { this.showFloatingText(this.player.x, this.player.y - 40, 'Sem flechas! 🏹', '#ff4444'); return; }
+    if (!gameStore.hasAmmo()) { this.showFloatingText(this.player.x, this.player.y - 40, 'Sem flechas! 🥢', '#ff4444'); return; }
     gameStore.consumeAmmo(); gameStore.useTool('bow');
     let vx = 0, vy = 0, rot = 0;
     if (this.facingDir === 'up') { vy = -400; rot = -Math.PI / 2; } else if (this.facingDir === 'down') { vy = 400; rot = Math.PI / 2; }
     else if (this.facingDir === 'left') { vx = -400; rot = Math.PI; } else { vx = 400; rot = 0; }
-    
-    // USANDO O SPRITE FINO AGORA
     const arrow = this.physics.add.sprite(this.player.x, this.player.y, 'arrow_projectile').setDepth(15);
     arrow.setRotation(rot);
     this.projectileGroup.add(arrow); 
@@ -347,12 +398,10 @@ export class MainScene extends Phaser.Scene {
       if (res.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, res.x, res.y) < 40 && this.canDamageTarget(res.resourceType)) {
         let dmg = stats.attackDamage;
         if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') { 
-          dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.choppingSpeed; 
-          gameStore.useTool('axe'); 
+          dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.choppingSpeed; gameStore.useTool('axe'); 
         }
         else if (res.resourceType === 'rock' || res.resourceType === 'small_rock') { 
-          dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.miningSpeed; 
-          gameStore.useTool('pickaxe'); 
+          dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.miningSpeed; gameStore.useTool('pickaxe'); 
         }
         else dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType];
         this.applyDamageToResource(res, dmg);
@@ -389,7 +438,7 @@ export class MainScene extends Phaser.Scene {
     let item, qty = 1;
     switch (res.resourceType) {
       case 'tree': item = ITEMS.wood; qty = Phaser.Math.Between(2, 4); break;
-      case 'dead_tree': item = ITEMS.wood; qty = Phaser.Math.Between(1, 2); break;
+      case 'dead_tree': item = ITEMS.wood; qty = 1; gameStore.addItem(ITEMS.twig, Phaser.Math.Between(2, 4)); break;
       case 'rock': item = ITEMS.stone; qty = Phaser.Math.Between(1, 3); break;
       case 'small_rock': item = ITEMS.stone; qty = 1; break;
       case 'bush': item = Math.random() > 0.5 ? ITEMS.fiber : ITEMS.seed; qty = Phaser.Math.Between(1, 2); break;
@@ -436,9 +485,14 @@ export class MainScene extends Phaser.Scene {
     this.drawResourceHpBars();
     if (this.isAttacking) return;
     const body = this.player.body as Phaser.Physics.Arcade.Body; let vx = 0, vy = 0;
-    if (this.moveKeys.A.isDown || this.moveKeys.LEFT.isDown) { vx = -1; this.facingDir = 'left'; } else if (this.moveKeys.D.isDown || this.moveKeys.RIGHT.isDown) { vx = 1; this.facingDir = 'right'; }
-    if (this.moveKeys.W.isDown || this.moveKeys.UP.isDown) { vy = -1; this.facingDir = 'up'; } else if (this.moveKeys.S.isDown || this.moveKeys.DOWN.isDown) { vy = 1; this.facingDir = 'down'; }
-    if (this.joyVec.x !== 0 || this.joyVec.y !== 0) { vx = this.joyVec.x; vy = this.joyVec.y; if (Math.abs(vx) > Math.abs(vy)) this.facingDir = vx < 0 ? 'left' : 'right'; else this.facingDir = vy < 0 ? 'up' : 'down'; }
+    if (this.moveKeys.A.isDown || this.moveKeys.LEFT.isDown) { vx = -1; this.facingDir = 'left'; } 
+    else if (this.moveKeys.D.isDown || this.moveKeys.RIGHT.isDown) { vx = 1; this.facingDir = 'right'; }
+    if (this.moveKeys.W.isDown || this.moveKeys.UP.isDown) { vy = -1; this.facingDir = 'up'; } 
+    else if (this.moveKeys.S.isDown || this.moveKeys.DOWN.isDown) { vy = 1; this.facingDir = 'down'; }
+    if (this.joyVec.x !== 0 || this.joyVec.y !== 0) { 
+      vx = this.joyVec.x; vy = this.joyVec.y; 
+      if (Math.abs(vx) > Math.abs(vy)) this.facingDir = vx < 0 ? 'left' : 'right'; else this.facingDir = vy < 0 ? 'up' : 'down';
+    }
     const stats = gameStore.getStats();
     if (vx !== 0 || vy !== 0) {
       const len = Math.sqrt(vx * vx + vy * vy); body.setVelocity((vx / len) * 160 * stats.moveSpeed, (vy / len) * 160 * stats.moveSpeed);

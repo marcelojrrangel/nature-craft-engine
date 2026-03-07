@@ -47,7 +47,12 @@ export default function QuickBar() {
             onClick={() => handleSlotClick(index)}
             onContextMenu={(e) => handleSlotContextMenu(e, index)}
           >
-            {slot?.item ? (
+            {/* Slot Number - Always visible at top-left */}
+            <span className="absolute top-0 left-0.5 text-[8px] font-bold text-muted-foreground bg-background/50 px-0.5 rounded leading-none z-10">
+              {index + 1}
+            </span>
+
+            {slot?.item && (
               <>
                 <span className="text-xl absolute inset-0 flex items-center justify-center">
                   {slot.item.icon}
@@ -61,13 +66,6 @@ export default function QuickBar() {
                   </span>
                 )}
               </>
-            ) : (
-              <span
-                className="absolute inset-0 flex items-center justify-center text-[10px] game-pixel-text"
-                style={{ color: 'hsl(var(--muted-foreground))' }}
-              >
-                {index + 1}
-              </span>
             )}
           </div>
         );

@@ -148,7 +148,7 @@ export interface BearState {
 // Item definitions
 export const ITEMS: Record<string, Item> = {
   wood: { id: 'wood', name: 'Madeira', type: 'wood', icon: '🪵', stackable: true, maxStack: 64, description: 'Madeira bruta coletada de árvores' },
-  twig: { id: 'twig', name: 'Graveto', type: 'wood', icon: '🥢', stackable: true, maxStack: 64, description: 'Gravetos secos coletados de árvores mortas' },
+  twig: { id: 'twig', name: 'Graveto', type: 'wood', icon: '🎋', stackable: true, maxStack: 64, description: 'Gravetos secos coletados de árvores mortas' },
   stone: { id: 'stone', name: 'Pedra', type: 'stone', icon: '🪨', stackable: true, maxStack: 64, description: 'Pedra bruta coletada de rochas' },
   fiber: { id: 'fiber', name: 'Fibra', type: 'fiber', icon: '🌿', stackable: true, maxStack: 64, description: 'Fibras naturais coletadas de arbustos' },
   seed: { id: 'seed', name: 'Semente', type: 'seed', icon: '🌱', stackable: true, maxStack: 32, description: 'Sementes para plantio' },
@@ -157,7 +157,7 @@ export const ITEMS: Record<string, Item> = {
   chicken_meat: { id: 'chicken_meat', name: 'Carne de Galinha', type: 'chicken_meat', icon: '🍗', stackable: true, maxStack: 32, description: 'Carne fresca de galinha' },
   crab_shell: { id: 'crab_shell', name: 'Casca de Siri', type: 'crab_shell', icon: '🐚', stackable: true, maxStack: 64, description: 'Fragmento de carapaça coletado na orla' },
   crab_meat: { id: 'crab_meat', name: 'Carne de Siri', type: 'crab_meat', icon: '🦀', stackable: true, maxStack: 32, description: 'Carne fresca de siri/caranguejo' },
-  arrow: { id: 'arrow', name: 'Flecha', type: 'arrow', icon: '🏹', stackable: true, maxStack: 64, description: 'Munição para o arco' },
+  arrow: { id: 'arrow', name: 'Flecha', type: 'arrow', icon: '🥢', stackable: true, maxStack: 64, description: 'Munição para o arco' },
   axe: { id: 'axe', name: 'Machado', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+50% velocidade de corte' },
   pickaxe: { id: 'pickaxe', name: 'Picareta', type: 'pickaxe', icon: '⛏️', stackable: false, maxStack: 1, description: '+50% velocidade de mineração' },
   shovel: { id: 'shovel', name: 'Pá', type: 'shovel', icon: '🪏', stackable: false, maxStack: 1, description: 'Permite cavar e plantar' },

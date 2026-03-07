@@ -40,7 +40,6 @@ export class MainScene extends Phaser.Scene {
   private nearWorkbench = false;
   private inSafeZone = false;
   private joyVec = { x: 0, y: 0 };
-  private keysDown: Set<string> = new Set();
   private respawnCounter = 0;
   private shoreSpawnPoints: { x: number; y: number }[] = [];
   private facingDir: 'up' | 'down' | 'left' | 'right' = 'right';
@@ -302,9 +301,12 @@ export class MainScene extends Phaser.Scene {
     let vx = 0, vy = 0, rot = 0;
     if (this.facingDir === 'up') { vy = -400; rot = -Math.PI / 2; } else if (this.facingDir === 'down') { vy = 400; rot = Math.PI / 2; }
     else if (this.facingDir === 'left') { vx = -400; rot = Math.PI; } else { vx = 400; rot = 0; }
-    const arrow = this.add.text(this.player.x, this.player.y, '🏹', { fontSize: '16px' }).setDepth(15).setOrigin(0.5);
-    if (this.facingDir === 'left') (arrow as any).flipY = true; arrow.setRotation(rot);
-    this.projectileGroup.add(arrow); (arrow.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setVelocity(vx, vy);
+    
+    // USANDO O SPRITE FINO AGORA
+    const arrow = this.physics.add.sprite(this.player.x, this.player.y, 'arrow_projectile').setDepth(15);
+    arrow.setRotation(rot);
+    this.projectileGroup.add(arrow); 
+    (arrow.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setVelocity(vx, vy);
     this.time.delayedCall(1500, () => { if (arrow && arrow.active) arrow.destroy(); });
   }
 
@@ -430,20 +432,13 @@ export class MainScene extends Phaser.Scene {
     const wbX = MAP_W * TILE / 2 + 64, wbY = MAP_H * TILE / 2 + 64;
     const distToWB = Phaser.Math.Distance.Between(this.player.x, this.player.y, wbX, wbY);
     if (distToWB < SAFE_ZONE_RADIUS) this.inSafeZone = true;
-    
     this.bears.forEach(b => b.update(delta, this.player.x, this.player.y, { x: wbX, y: wbY, radius: SAFE_ZONE_RADIUS }, this.inSafeZone));
-    
     this.drawResourceHpBars();
     if (this.isAttacking) return;
     const body = this.player.body as Phaser.Physics.Arcade.Body; let vx = 0, vy = 0;
-    if (this.moveKeys.A.isDown || this.moveKeys.LEFT.isDown) { vx = -1; this.facingDir = 'left'; } 
-    else if (this.moveKeys.D.isDown || this.moveKeys.RIGHT.isDown) { vx = 1; this.facingDir = 'right'; }
-    if (this.moveKeys.W.isDown || this.moveKeys.UP.isDown) { vy = -1; this.facingDir = 'up'; } 
-    else if (this.moveKeys.S.isDown || this.moveKeys.DOWN.isDown) { vy = 1; this.facingDir = 'down'; }
-    if (this.joyVec.x !== 0 || this.joyVec.y !== 0) { 
-      vx = this.joyVec.x; vy = this.joyVec.y; 
-      if (Math.abs(vx) > Math.abs(vy)) this.facingDir = vx < 0 ? 'left' : 'right'; else this.facingDir = vy < 0 ? 'up' : 'down';
-    }
+    if (this.moveKeys.A.isDown || this.moveKeys.LEFT.isDown) { vx = -1; this.facingDir = 'left'; } else if (this.moveKeys.D.isDown || this.moveKeys.RIGHT.isDown) { vx = 1; this.facingDir = 'right'; }
+    if (this.moveKeys.W.isDown || this.moveKeys.UP.isDown) { vy = -1; this.facingDir = 'up'; } else if (this.moveKeys.S.isDown || this.moveKeys.DOWN.isDown) { vy = 1; this.facingDir = 'down'; }
+    if (this.joyVec.x !== 0 || this.joyVec.y !== 0) { vx = this.joyVec.x; vy = this.joyVec.y; if (Math.abs(vx) > Math.abs(vy)) this.facingDir = vx < 0 ? 'left' : 'right'; else this.facingDir = vy < 0 ? 'up' : 'down'; }
     const stats = gameStore.getStats();
     if (vx !== 0 || vy !== 0) {
       const len = Math.sqrt(vx * vx + vy * vy); body.setVelocity((vx / len) * 160 * stats.moveSpeed, (vy / len) * 160 * stats.moveSpeed);

@@ -12,14 +12,12 @@ export default function InventoryModal({ onClose }: Props) {
     const slot = inventory[inventoryIndex];
     if (!slot.item) return;
 
-    // If already in quickBar, remove it
     const existingSlot = quickBar.indexOf(inventoryIndex);
     if (existingSlot !== -1) {
       gameStore.removeFromQuickBar(existingSlot);
       return;
     }
 
-    // Find first empty slot
     const firstEmptySlot = quickBar.findIndex((s) => s === null);
     if (firstEmptySlot !== -1) {
       gameStore.assignToQuickBar(firstEmptySlot, inventoryIndex);
@@ -36,6 +34,13 @@ export default function InventoryModal({ onClose }: Props) {
   const assignToSlot = (slotIndex: number) => {
     if (contextMenu) {
       gameStore.assignToQuickBar(slotIndex, contextMenu.index);
+      setContextMenu(null);
+    }
+  };
+
+  const handleUseFromMenu = () => {
+    if (contextMenu) {
+      gameStore.useItem(contextMenu.index);
       setContextMenu(null);
     }
   };
@@ -60,7 +65,6 @@ export default function InventoryModal({ onClose }: Props) {
                 title={slot.item?.description}
                 onDoubleClick={() => handleDoubleClick(i)}
                 onContextMenu={(e) => handleContextMenu(e, i)}
-                onClick={() => gameStore.useItem(i)}
               >
                 {slot.item && (
                   <>
@@ -84,30 +88,34 @@ export default function InventoryModal({ onClose }: Props) {
             );
           })}
         </div>
-        <p className="mt-2 text-[10px] leading-tight" style={{ color: 'hsl(var(--muted-foreground))' }}>
-          Duplo clique: Adicionar/Remover da Barra Rápida<br/>
-          Botão direito: Escolher slot específico
-        </p>
+        <p className="mt-2 text-[10px] opacity-70">Duplo clique: Barra Rápida · Botão direito: Ações</p>
       </div>
 
       {contextMenu && (
         <div
-          className="fixed z-[60] bg-card border rounded-md shadow-md py-1 min-w-[120px]"
+          className="fixed z-[60] bg-card border rounded-md shadow-md py-1 min-w-[140px]"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="px-2 py-1 text-[10px] font-semibold border-b uppercase tracking-wider" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Alocar no Slot
+          <button
+            className="w-full px-3 py-2 text-left text-sm hover:bg-primary hover:text-white transition-colors font-bold border-b border-muted"
+            onClick={handleUseFromMenu}
+          >
+            🚀 Usar / Equipar
+          </button>
+          
+          <div className="px-2 py-1 text-[9px] font-semibold uppercase tracking-wider opacity-50 mt-1">
+            Alocar na Barra
           </div>
           {[0, 1, 2, 3, 4].map((slotIdx) => (
             <button
               key={slotIdx}
-              className="w-full px-3 py-1.5 text-left text-sm hover:bg-accent transition-colors flex justify-between items-center"
+              className="w-full px-3 py-1.5 text-left text-xs hover:bg-accent transition-colors flex justify-between items-center"
               style={{ color: 'hsl(var(--foreground))' }}
               onClick={() => assignToSlot(slotIdx)}
             >
               <span>Slot {slotIdx + 1}</span>
-              {quickBar[slotIdx] !== null && <span className="text-[10px] opacity-50">(ocupado)</span>}
+              {quickBar[slotIdx] !== null && <span className="text-[10px] opacity-30">({inventory[quickBar[slotIdx]!]?.item?.icon})</span>}
             </button>
           ))}
         </div>

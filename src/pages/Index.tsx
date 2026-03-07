@@ -17,7 +17,10 @@ const Index = () => {
       <GameHUD />
       {ui.showInventory && <InventoryModal onClose={() => gameStore.toggleInventory()} />}
       {ui.showEquipment && <EquipmentModal onClose={() => gameStore.toggleEquipment()} />}
-      {ui.showCrafting && <CraftingModal onClose={() => gameStore.toggleCrafting()} />}
+      {ui.showCrafting && <CraftingModal 
+        onClose={() => gameStore.toggleCrafting()} 
+        station={(gameStore as any).currentStation || 'workbench'} 
+      />}
       {ui.showSkills && <SkillsModal onClose={() => gameStore.toggleSkills()} />}
     </div>
   );

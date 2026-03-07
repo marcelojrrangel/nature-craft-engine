@@ -1,17 +1,19 @@
 // Game type definitions
 
-export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow' | 'campfire';
+export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow' | 'campfire' | 'pelt' | 'rabbit_meat' | 'cooked_chicken' | 'cooked_rabbit' | 'armor';
 export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife' | 'bow';
 export type EquipSlot = 'head' | 'hands' | 'legs' | 'accessory' | 'mainHand';
+export type CraftStation = 'none' | 'workbench' | 'campfire';
 
 export interface Item {
   id: string;
   name: string;
   type: ItemType | ToolType;
-  icon: string;  // emoji for MVP
+  icon: string;
   stackable: boolean;
   maxStack: number;
   description: string;
+  bonus?: { hp?: number; moveSpeed?: number; dmg?: number };
 }
 
 export interface InventorySlot {
@@ -34,6 +36,7 @@ export interface CraftingRecipe {
   resultQty: number;
   ingredients: { item: Item; quantity: number }[];
   description: string;
+  station: CraftStation;
 }
 
 export interface PlayerStats {
@@ -74,6 +77,7 @@ export const HARDNESS: Record<string, number> = {
   crab: 10,
   bear: 30,
   small_rock: 2,
+  rabbit: 3,
 };
 
 export const TOOL_DAMAGE: Record<string, number> = {
@@ -100,6 +104,7 @@ export const TOOL_REQUIREMENTS: Record<string, (ToolType | 'hands')[]> = {
   chicken: ['sword', 'knife', 'bow'],
   crab: ['sword', 'knife', 'pickaxe', 'bow'],
   bear: ['sword', 'knife', 'bow', 'axe'],
+  rabbit: ['sword', 'knife', 'bow'],
 };
 
 export interface GameSaveData {
@@ -112,6 +117,7 @@ export interface GameSaveData {
   chickenStates: Record<string, ChickenState>;
   crabStates: Record<string, CrabState>;
   bearStates?: Record<string, BearState>;
+  rabbitStates?: Record<string, RabbitState>;
   placedItems?: PlacedItem[];
   quickBar?: (number | null)[];
   selectedQuickBarIndex?: number;
@@ -126,32 +132,10 @@ export interface PlacedItem {
   y: number;
 }
 
-export interface ChickenState {
-  id: string;
-  x: number;
-  y: number;
-  alive: boolean;
-  respawnAt: number | null;
-  hp: number;
-}
-
-export interface CrabState {
-  id: string;
-  x: number;
-  y: number;
-  alive: boolean;
-  respawnAt: number | null;
-  hp: number;
-}
-
-export interface BearState {
-  id: string;
-  x: number;
-  y: number;
-  alive: boolean;
-  respawnAt: number | null;
-  hp: number;
-}
+export interface ChickenState { id: string; x: number; y: number; alive: boolean; respawnAt: number | null; hp: number; }
+export interface CrabState { id: string; x: number; y: number; alive: boolean; respawnAt: number | null; hp: number; }
+export interface BearState { id: string; x: number; y: number; alive: boolean; respawnAt: number | null; hp: number; }
+export interface RabbitState { id: string; x: number; y: number; alive: boolean; respawnAt: number | null; hp: number; }
 
 // Item definitions
 export const ITEMS: Record<string, Item> = {
@@ -162,11 +146,22 @@ export const ITEMS: Record<string, Item> = {
   seed: { id: 'seed', name: 'Semente', type: 'seed', icon: '🌱', stackable: true, maxStack: 32, description: 'Sementes para plantio' },
   food: { id: 'food', name: 'Fruta', type: 'food', icon: '🍎', stackable: true, maxStack: 16, description: 'Restaura HP ao consumir' },
   feather: { id: 'feather', name: 'Pena', type: 'feather', icon: '🪶', stackable: true, maxStack: 64, description: 'Pena coletada de aves' },
-  chicken_meat: { id: 'chicken_meat', name: 'Carne de Galinha', type: 'chicken_meat', icon: '🍗', stackable: true, maxStack: 32, description: 'Carne fresca de galinha' },
-  crab_shell: { id: 'crab_shell', name: 'Casca de Siri', type: 'crab_shell', icon: '🐚', stackable: true, maxStack: 64, description: 'Fragmento de carapaça coletado na orla' },
-  crab_meat: { id: 'crab_meat', name: 'Carne de Siri', type: 'crab_meat', icon: '🦀', stackable: true, maxStack: 32, description: 'Carne fresca de siri/caranguejo' },
+  chicken_meat: { id: 'chicken_meat', name: 'Carne de Galinha', type: 'chicken_meat', icon: '🍗', stackable: true, maxStack: 32, description: 'Carne crua. Precisa cozinhar' },
+  rabbit_meat: { id: 'rabbit_meat', name: 'Carne de Coelho', type: 'rabbit_meat', icon: '🥩', stackable: true, maxStack: 32, description: 'Carne crua. Precisa cozinhar' },
+  pelt: { id: 'pelt', name: 'Pele Macia', type: 'pelt', icon: '🧤', stackable: true, maxStack: 32, description: 'Pele coletada de pequenos animais' },
+  cooked_chicken: { id: 'cooked_chicken', name: 'Frango Assado', type: 'food', icon: '🍖', stackable: true, maxStack: 16, description: 'Restaura 25 HP', bonus: { hp: 25 } },
+  cooked_rabbit: { id: 'cooked_rabbit', name: 'Coelho Assado', type: 'food', icon: '🍢', stackable: true, maxStack: 16, description: 'Restaura 30 HP', bonus: { hp: 30 } },
+  crab_shell: { id: 'crab_shell', name: 'Casca de Siri', type: 'crab_shell', icon: '🐚', stackable: true, maxStack: 64, description: 'Fragmento de carapaça' },
+  crab_meat: { id: 'crab_meat', name: 'Carne de Siri', type: 'crab_meat', icon: '🦀', stackable: true, maxStack: 32, description: 'Pode ser comida crua' },
   arrow: { id: 'arrow', name: 'Flecha', type: 'arrow', icon: '🥢', stackable: true, maxStack: 64, description: 'Munição para o arco' },
-  campfire: { id: 'campfire', name: 'Fogueira', type: 'campfire', icon: '🔥', stackable: true, maxStack: 5, description: 'Luz e calor. Use do inventário para colocar' },
+  campfire: { id: 'campfire', name: 'Fogueira', type: 'campfire', icon: '🔥', stackable: true, maxStack: 5, description: 'Permite cozinhar e iluminar' },
+  
+  // Armor
+  helmet_rustic: { id: 'helmet_rustic', name: 'Capacete Rústico', type: 'armor', icon: '🪖', stackable: false, maxStack: 1, description: '+10 Max HP', bonus: { hp: 10 } },
+  gloves_rustic: { id: 'gloves_rustic', name: 'Luvas Rústicas', type: 'armor', icon: '🧤', stackable: false, maxStack: 1, description: '+10% Dano', bonus: { dmg: 0.1 } },
+  boots_rustic: { id: 'boots_rustic', name: 'Botas Rústicas', type: 'armor', icon: '👞', stackable: false, maxStack: 1, description: '+15% Velocidade', bonus: { moveSpeed: 0.15 } },
+
+  // Tools
   axe: { id: 'axe', name: 'Machado', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+50% velocidade de corte' },
   pickaxe: { id: 'pickaxe', name: 'Picareta', type: 'pickaxe', icon: '⛏️', stackable: false, maxStack: 1, description: '+50% velocidade de mineração' },
   shovel: { id: 'shovel', name: 'Pá', type: 'shovel', icon: '🪏', stackable: false, maxStack: 1, description: 'Permite cavar e plantar' },
@@ -176,46 +171,24 @@ export const ITEMS: Record<string, Item> = {
 };
 
 export const RECIPES: CraftingRecipe[] = [
-  {
-    id: 'campfire', name: 'Fogueira', result: ITEMS.campfire, resultQty: 1,
-    ingredients: [{ item: ITEMS.twig, quantity: 8 }],
-    description: 'Ilumina a noite',
-  },
-  {
-    id: 'bow', name: 'Arco', result: ITEMS.bow, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 5 }, { item: ITEMS.fiber, quantity: 10 }],
-    description: 'Ataque à distância',
-  },
-  {
-    id: 'arrow', name: 'Flechas', result: ITEMS.arrow, resultQty: 5,
-    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 1 }, { item: ITEMS.feather, quantity: 2 }],
-    description: 'Munição básica',
-  },
-  {
-    id: 'axe', name: 'Machado', result: ITEMS.axe, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 3 }, { item: ITEMS.stone, quantity: 2 }],
-    description: 'Corte árvores mais rápido',
-  },
-  {
-    id: 'pickaxe', name: 'Picareta', result: ITEMS.pickaxe, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 3 }],
-    description: 'Minere pedras mais rápido',
-  },
-  {
-    id: 'shovel', name: 'Pá', result: ITEMS.shovel, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 1 }],
-    description: 'Cave e prepare o solo',
-  },
-  {
-    id: 'knife', name: 'Faca', result: ITEMS.knife, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 1 }, { item: ITEMS.stone, quantity: 1 }],
-    description: 'Ferramenta afiada para coleta de animais',
-  },
-  {
-    id: 'sword', name: 'Espada', result: ITEMS.sword, resultQty: 1,
-    ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 5 }],
-    description: 'Uma arma afiada',
-  },
+  // Campfire Cooking
+  { id: 'cook_chicken', name: 'Assar Frango', result: ITEMS.cooked_chicken, resultQty: 1, ingredients: [{ item: ITEMS.chicken_meat, quantity: 1 }], description: 'Comida nutritiva', station: 'campfire' },
+  { id: 'cook_rabbit', name: 'Assar Coelho', result: ITEMS.cooked_rabbit, resultQty: 1, ingredients: [{ item: ITEMS.rabbit_meat, quantity: 1 }], description: 'Comida excelente', station: 'campfire' },
+  
+  // Workbench Advanced
+  { id: 'helmet_rustic', name: 'Capacete Rústico', result: ITEMS.helmet_rustic, resultQty: 1, ingredients: [{ item: ITEMS.pelt, quantity: 4 }, { item: ITEMS.fiber, quantity: 2 }], description: '+10 HP Máximo', station: 'workbench' },
+  { id: 'gloves_rustic', name: 'Luvas Rústicas', result: ITEMS.gloves_rustic, resultQty: 1, ingredients: [{ item: ITEMS.pelt, quantity: 2 }, { item: ITEMS.fiber, quantity: 4 }], description: '+10% Dano de ataque', station: 'workbench' },
+  { id: 'boots_rustic', name: 'Botas Rústicas', result: ITEMS.boots_rustic, resultQty: 1, ingredients: [{ item: ITEMS.pelt, quantity: 3 }, { item: ITEMS.fiber, quantity: 2 }], description: '+15% Vel. Movimento', station: 'workbench' },
+
+  // Basics
+  { id: 'campfire', name: 'Fogueira', result: ITEMS.campfire, resultQty: 1, ingredients: [{ item: ITEMS.twig, quantity: 8 }], description: 'Cozinhe e ilumine', station: 'workbench' },
+  { id: 'bow', name: 'Arco', result: ITEMS.bow, resultQty: 1, ingredients: [{ item: ITEMS.wood, quantity: 5 }, { item: ITEMS.fiber, quantity: 10 }], description: 'Ataque à distância', station: 'workbench' },
+  { id: 'arrow', name: 'Flechas', result: ITEMS.arrow, resultQty: 5, ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 1 }, { item: ITEMS.feather, quantity: 2 }], description: 'Munição básica', station: 'workbench' },
+  { id: 'axe', name: 'Machado', result: ITEMS.axe, resultQty: 1, ingredients: [{ item: ITEMS.wood, quantity: 3 }, { item: ITEMS.stone, quantity: 2 }], description: 'Corte árvores', station: 'workbench' },
+  { id: 'pickaxe', name: 'Picareta', result: ITEMS.pickaxe, resultQty: 1, ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 3 }], description: 'Minere pedras', station: 'workbench' },
+  { id: 'shovel', name: 'Pá', result: ITEMS.shovel, resultQty: 1, ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 1 }], description: 'Cave o solo', station: 'workbench' },
+  { id: 'knife', name: 'Faca', result: ITEMS.knife, resultQty: 1, ingredients: [{ item: ITEMS.wood, quantity: 1 }, { item: ITEMS.stone, quantity: 1 }], description: 'Coleta animal', station: 'workbench' },
+  { id: 'sword', name: 'Espada', result: ITEMS.sword, resultQty: 1, ingredients: [{ item: ITEMS.wood, quantity: 2 }, { item: ITEMS.stone, quantity: 5 }], description: 'Arma afiada', station: 'workbench' },
 ];
 
 export const DEFAULT_EQUIPMENT: Equipment = {

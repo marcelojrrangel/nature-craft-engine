@@ -333,6 +333,33 @@ export class BootScene extends Phaser.Scene {
     g.fillEllipse(16, 22, 26, 14);
     g.generateTexture('bear_dead', 32, 32);
 
+    // Rabbit idle
+    g.clear();
+    g.fillStyle(0xeeeeee); // Light grey/white
+    g.fillEllipse(16, 20, 12, 8); // Body
+    g.fillCircle(22, 14, 6); // Head
+    g.fillRect(18, 4, 3, 10); // Ear 1
+    g.fillRect(23, 4, 3, 10); // Ear 2
+    g.fillStyle(0xff9999); // Nose/Inside ear
+    g.fillRect(20, 5, 1, 4);
+    g.fillRect(25, 5, 1, 4);
+    g.generateTexture('rabbit_idle', 32, 32);
+
+    // Rabbit jump frame
+    g.clear();
+    g.fillStyle(0xeeeeee);
+    g.fillEllipse(16, 16, 14, 10);
+    g.fillCircle(24, 10, 6);
+    g.fillRect(20, 0, 3, 10);
+    g.fillRect(25, 0, 3, 10);
+    g.generateTexture('rabbit_jump', 32, 32);
+
+    // Rabbit dead
+    g.clear();
+    g.fillStyle(0xcccccc);
+    g.fillEllipse(16, 22, 14, 8);
+    g.generateTexture('rabbit_dead', 32, 32);
+
     // Arrow projectile
     g.clear();
 

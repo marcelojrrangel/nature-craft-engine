@@ -18,7 +18,6 @@ export class BearNPC {
   readonly homeX: number;
   readonly homeY: number;
   
-  // Components
   public health: HealthComponent;
   private hpBar: HealthBarRenderer;
 
@@ -38,11 +37,9 @@ export class BearNPC {
     this.homeY = config.y;
     this.wanderRadius = config.wanderRadius ?? 150;
 
-    // 1. Logic Component
     const maxHp = 30;
     this.health = new HealthComponent(initialHp > 0 ? initialHp : maxHp, maxHp);
 
-    // 2. Physics/Sprite
     this.sprite = scene.physics.add.sprite(config.x, config.y, 'bear_idle');
     this.sprite.setScale(1.2);
     this.sprite.setDepth(config.y);
@@ -51,10 +48,7 @@ export class BearNPC {
     body.setSize(24, 20);
     body.setOffset(4, 12);
 
-    // 3. Visual Component (Always visible for the bear)
     this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 22, true);
-
-    // 4. Events
     this.health.onDeath(() => this.die());
 
     this.setState('idle');
@@ -91,7 +85,6 @@ export class BearNPC {
 
   private updateAI(playerX: number, playerY: number, isPlayerSafe: boolean) {
     const dist = Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, playerX, playerY);
-
     if (isPlayerSafe) {
       if (this.state === 'chasing' || this.state === 'attacking') { this.setState('idle'); this.targetPos = null; }
     } else {
@@ -114,18 +107,18 @@ export class BearNPC {
       if (this.targetPos) {
         const body = this.sprite.body as Phaser.Physics.Arcade.Body;
         if (Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y) < 5) {
-          body.setVelocity(0, 0); this.targetPos = null;
+          if (body) body.setVelocity(0, 0); this.targetPos = null;
         } else {
           const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y);
-          body.setVelocity(Math.cos(angle) * this.walkSpeed, Math.sin(angle) * this.walkSpeed);
-          this.sprite.setFlipX(body.velocity.x < 0);
+          if (body) body.setVelocity(Math.cos(angle) * this.walkSpeed, Math.sin(angle) * this.walkSpeed);
+          this.sprite.setFlipX(this.sprite.body!.velocity.x < 0);
         }
       }
     } else if (this.state === 'chasing' && this.targetPos) {
       const body = this.sprite.body as Phaser.Physics.Arcade.Body;
       const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y);
-      body.setVelocity(Math.cos(angle) * this.runSpeed, Math.sin(angle) * this.runSpeed);
-      this.sprite.setFlipX(body.velocity.x < 0);
+      if (body) body.setVelocity(Math.cos(angle) * this.runSpeed, Math.sin(angle) * this.runSpeed);
+      this.sprite.setFlipX(this.sprite.body!.velocity.x < 0);
     }
   }
 
@@ -146,13 +139,14 @@ export class BearNPC {
 
   collect() {
     this.health.takeDamage(9999);
-    this.sprite.disableBody(true, false);
-    this.sprite.setTexture('bear_dead');
+    this.die();
   }
 
   private die() {
     this.setState('dead');
     this.sprite.disableBody(true, false);
+    this.sprite.setTexture('bear_dead');
+    this.hpBar.update();
   }
 
   destroy() {
@@ -164,10 +158,9 @@ export class BearNPC {
     if (this.state === next) return;
     this.state = next;
     if (next === 'dead') {
-      this.sprite.setTexture('bear_dead');
       const body = this.sprite.body as Phaser.Physics.Arcade.Body;
       if (body) body.setVelocity(0, 0);
-    } else { this.sprite.setTexture('bear_idle'); }
+    }
   }
 
   private pickTarget() {

@@ -17,7 +17,6 @@ export class ChickenNPC {
   readonly homeX: number;
   readonly homeY: number;
   
-  // Components (Composition)
   public health: HealthComponent;
   private hpBar: HealthBarRenderer;
 
@@ -33,11 +32,9 @@ export class ChickenNPC {
     this.homeY = config.y;
     this.wanderRadius = config.wanderRadius ?? 96;
 
-    // 1. Initialize Logic Component
     const maxHp = 5;
     this.health = new HealthComponent(initialHp > 0 ? initialHp : maxHp, maxHp);
 
-    // 2. Initialize Physics/Sprite
     this.sprite = scene.physics.add.sprite(config.x, config.y, 'chicken_idle');
     this.sprite.setDepth(config.y);
     this.sprite.setScale(0.9);
@@ -46,10 +43,7 @@ export class ChickenNPC {
     body.setSize(18, 14);
     body.setOffset(7, 16);
 
-    // 3. Initialize Visual Component (depends on Logic and Sprite)
     this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 12);
-
-    // 4. Setup Events
     this.health.onDeath(() => this.die());
 
     this.setState('idle');
@@ -57,13 +51,11 @@ export class ChickenNPC {
 
   update(delta: number) {
     if (!this.health.isAlive) {
-      this.hpBar.update(); // Clear bar if dead
+      this.hpBar.update();
       return;
     }
 
     this.updateAI(delta);
-    
-    // Update visuals
     this.sprite.setDepth(this.sprite.y);
     this.hpBar.update();
   }
@@ -99,21 +91,21 @@ export class ChickenNPC {
     return Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, x, y) <= distance;
   }
 
-  // Facade for MainScene interaction
   takeDamage(amount: number): number {
     this.health.takeDamage(amount);
     return this.health.current;
   }
 
   collect() {
-    this.health.takeDamage(9999); // Force death
-    this.sprite.disableBody(true, false); // Keep visible but no physics
-    this.sprite.setTexture('chicken_dead');
+    this.health.takeDamage(9999);
+    this.die();
   }
 
   private die() {
     this.setState('dead');
     this.sprite.disableBody(true, false);
+    this.sprite.setTexture('chicken_dead');
+    this.hpBar.update(); // Final clear
   }
 
   destroy() {

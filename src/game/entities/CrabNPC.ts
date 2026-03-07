@@ -17,7 +17,6 @@ export class CrabNPC {
   readonly homeX: number;
   readonly homeY: number;
   
-  // Components
   public health: HealthComponent;
   private hpBar: HealthBarRenderer;
 
@@ -33,11 +32,9 @@ export class CrabNPC {
     this.homeY = config.y;
     this.wanderRadius = config.wanderRadius ?? 70;
 
-    // 1. Initialize Logic Component
     const maxHp = 10;
     this.health = new HealthComponent(initialHp > 0 ? initialHp : maxHp, maxHp);
 
-    // 2. Initialize Physics/Sprite
     this.sprite = scene.physics.add.sprite(config.x, config.y, 'crab_idle');
     this.sprite.setScale(0.88);
     this.sprite.setDepth(config.y);
@@ -46,10 +43,7 @@ export class CrabNPC {
     body.setSize(20, 12);
     body.setOffset(6, 16);
 
-    // 3. Initialize Visual Component
     this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 10);
-
-    // 4. Setup Events
     this.health.onDeath(() => this.die());
 
     this.setState('idle');
@@ -61,14 +55,6 @@ export class CrabNPC {
       return;
     }
 
-    this.updateAI(delta);
-    
-    // Update visuals
-    this.sprite.setDepth(this.sprite.y);
-    this.hpBar.update();
-  }
-
-  private updateAI(delta: number) {
     this.stateTimer -= delta;
     if (this.stateTimer <= 0) {
       this.setState(this.state === 'idle' ? 'scuttle' : 'idle');
@@ -92,6 +78,9 @@ export class CrabNPC {
         if (dx > 1) this.sprite.setFlipX(false);
       }
     }
+
+    this.sprite.setDepth(this.sprite.y);
+    this.hpBar.update();
   }
 
   isInRange(x: number, y: number, distance: number) {
@@ -106,13 +95,14 @@ export class CrabNPC {
 
   collect() {
     this.health.takeDamage(9999);
-    this.sprite.disableBody(true, false);
-    this.sprite.setTexture('crab_dead');
+    this.die();
   }
 
   private die() {
     this.setState('dead');
     this.sprite.disableBody(true, false);
+    this.sprite.setTexture('crab_dead');
+    this.hpBar.update();
   }
 
   destroy() {

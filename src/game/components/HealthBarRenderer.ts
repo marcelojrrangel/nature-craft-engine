@@ -22,7 +22,8 @@ export class HealthBarRenderer {
   update() {
     this.graphics.clear();
     
-    if (!this.health.isAlive) return;
+    // Critically: Do not draw if dead
+    if (!this.health.isAlive || this.health.current <= 0) return;
     
     // Hide if full and not marked as always visible
     if (!this.alwaysVisible && this.health.current >= this.health.max) return;
@@ -45,6 +46,9 @@ export class HealthBarRenderer {
   }
 
   destroy() {
-    this.graphics.destroy();
+    if (this.graphics) {
+      this.graphics.clear();
+      this.graphics.destroy();
+    }
   }
 }

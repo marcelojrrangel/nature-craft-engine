@@ -87,38 +87,27 @@ class GameStore {
   hasAmmo(): boolean { return this.hasItems('arrow', 1); }
   consumeAmmo(): boolean { return this.removeItem('arrow', 1); }
 
-  // Unified Item Usage
   useItem(index: number) {
     const slot = this.inventory[index];
     if (!slot.item) return;
-
     if (slot.item.type === 'food') {
       const bonusHp = slot.item.bonus?.hp || 20;
       this.hp = Math.min(this.maxHp, this.hp + bonusHp);
       this.removeItem(slot.item.id, 1);
       this.notify();
     } else if (slot.item.id === 'campfire') {
-      import('./events').then(m => {
-        m.gameEvents.emit('placeItem', { type: 'campfire', inventoryIndex: index });
-      });
+      import('./events').then(m => { m.gameEvents.emit('placeItem', { type: 'campfire', inventoryIndex: index }); });
     } else if (slot.item.type === 'armor') {
-      const slotMap: Record<string, EquipSlot> = {
-        'helmet_rustic': 'head',
-        'gloves_rustic': 'hands',
-        'boots_rustic': 'legs'
-      };
+      const slotMap: Record<string, EquipSlot> = { 'helmet_rustic': 'head', 'gloves_rustic': 'hands', 'boots_rustic': 'legs' };
       const equipSlot = slotMap[slot.item.id];
       if (equipSlot) this.equip(equipSlot, index);
     } 
-    // TOOLS and WEAPONS are NOT equipped here anymore to prevent disappearing bug.
-    // They are handled via assignToQuickBar (Double Click).
   }
 
   placeItem(type: string, x: number, y: number, inventoryIndex: number) {
     this.placedItems.push({ id: `${type}_${Date.now()}`, type, x, y });
     this.removeItem(this.inventory[inventoryIndex].item!.id, 1);
-    this.notify();
-    this.save();
+    this.notify(); this.save();
   }
 
   equip(slot: EquipSlot, inventoryIndex: number) {
@@ -139,12 +128,8 @@ class GameStore {
   }
 
   getEquippedTool(): Item | null {
-    // Priority 1: Current selected slot in QuickBar
     const quickBarItem = this.getQuickBarTool();
     if (quickBarItem) return quickBarItem;
-    
-    // Priority 2: If quickbar slot is empty, we ARE using hands.
-    // We ignore equipment.mainHand to allow "unequipping" by choosing an empty slot.
     return null; 
   }
 
@@ -166,7 +151,6 @@ class GameStore {
     if (quickBarIndex < 0 || quickBarIndex >= 5) return;
     if (inventoryIndex < 0 || inventoryIndex >= this.inventory.length) return;
     if (!this.inventory[inventoryIndex].item) return;
-    // Prevent same inventory slot in multiple quickbar slots
     for (let i = 0; i < 5; i++) { if (this.quickBar[i] === inventoryIndex) { this.quickBar[i] = null; } }
     this.quickBar[quickBarIndex] = inventoryIndex;
     this.notify();
@@ -194,13 +178,11 @@ class GameStore {
     const tool = this.getEquippedTool();
     const toolType = tool?.type || 'hands';
     let miningSpeed = 1, choppingSpeed = 1, moveSpeed = 1, attackDamageBonus = 0, extraMaxHp = 0;
-
     let skillBonus = 0;
     if (tool) {
       const skill = this.skills[toolType];
       if (skill) { const config = SKILLS_CONFIG[toolType]; if (config) skillBonus = skill.level * config.bonusPerLevel; }
     }
-
     Object.values(this.equipment).forEach(slot => {
       if (slot.item?.bonus) {
         if (slot.item.bonus.hp) extraMaxHp += slot.item.bonus.hp;
@@ -208,25 +190,35 @@ class GameStore {
         if (slot.item.bonus.dmg) attackDamageBonus += slot.item.bonus.dmg;
       }
     });
-
     const currentMaxHp = 100 + extraMaxHp;
     const baseToolDmg = tool ? (TOOL_DAMAGE[toolType] || 1) : TOOL_DAMAGE.hands;
     const attackDamage = (BASE_DAMAGE * baseToolDmg) * (1 + skillBonus + attackDamageBonus);
-
     if (tool?.type === 'pickaxe') { miningSpeed = TOOL_DAMAGE.pickaxe + (this.skills.pickaxe?.level || 0) * SKILLS_CONFIG.pickaxe.bonusPerLevel; }
     if (tool?.type === 'axe') { choppingSpeed = TOOL_DAMAGE.axe + (this.skills.axe?.level || 0) * SKILLS_CONFIG.axe.bonusPerLevel; }
     if (tool?.type === 'sword') { choppingSpeed = TOOL_DAMAGE.sword + (this.skills.sword?.level || 0) * SKILLS_CONFIG.sword.bonusPerLevel; }
-    
     return { miningSpeed, choppingSpeed, moveSpeed, attackDamage, toolType, hp: this.hp, maxHp: currentMaxHp };
   }
 
-  useTool(toolType: string) {
+  // Skills Logic
+  getXPForLevel(level: number): number {
+    if (level === 0) return 100;
+    return Math.floor(100 * Math.pow(1.5, level));
+  }
+
+  useTool(toolType: string, xpAmount: number = 2) {
     if (!SKILLS_CONFIG[toolType]) return;
     let skill = this.skills[toolType];
     if (!skill) { skill = { toolType, xp: 0, level: 0 }; this.skills[toolType] = skill; }
     if (skill.level >= MAX_SKILL_LEVEL) return;
-    skill.xp += 10;
-    while (skill.xp >= SKILL_XP_PER_LEVEL && skill.level < MAX_SKILL_LEVEL) { skill.xp -= SKILL_XP_PER_LEVEL; skill.level++; }
+    
+    skill.xp += xpAmount;
+    let needed = this.getXPForLevel(skill.level);
+    
+    while (skill.xp >= needed && skill.level < MAX_SKILL_LEVEL) {
+      skill.xp -= needed;
+      skill.level++;
+      needed = this.getXPForLevel(skill.level);
+    }
     this.notify();
   }
 
@@ -258,7 +250,7 @@ class GameStore {
       this.quickBar = data.quickBar || [null, null, null, null, null]; this.selectedQuickBarIndex = data.selectedQuickBarIndex || 0;
       this.skills = data.skills || {}; this.respawnQueue = data.respawnQueue || [];
       this.validateQuickBarReferences();
-    } catch { /* ignore corrupt saves */ }
+    } catch { /* ignore saves */ }
   }
 
   resetSave() {

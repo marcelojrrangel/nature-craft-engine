@@ -197,23 +197,44 @@ export class BootScene extends Phaser.Scene {
       g.generateTexture(`player_run_${f}`, 32, 32);
     }
 
-    // Attack frame (Improved - With Weapon)
+    // Attack frame (Clean arm, no fixed weapon)
     g.clear();
     const bx = 4;
     g.fillStyle(0x4488cc); g.fillRect(bx, 12, 16, 14); // Body
     g.fillStyle(0xffcc99); g.fillRect(bx + 2, 2, 12, 12); // Head
     g.fillStyle(0x333333); g.fillRect(bx + 5, 6, 3, 3); g.fillRect(bx + 11, 6, 3, 3); // Eyes
     g.fillStyle(0x555555); g.fillRect(bx + 2, 26, 5, 6); g.fillRect(bx + 9, 26, 5, 6); // Legs
-    // DRAMATIC ARM
+    // BARE ARM
     g.fillStyle(0xffcc99);
     g.fillRect(bx + 14, 14, 10, 5); 
-    // WEAPON BLADE
-    g.fillStyle(0xdddddd);
-    g.fillRect(bx + 22, 8, 4, 16); // Vertical blade
-    g.lineStyle(1, 0x000000, 0.5);
+    g.lineStyle(1, 0x000000, 0.4);
     g.strokeRect(bx + 14, 14, 10, 5);
-    g.strokeRect(bx + 22, 8, 4, 16);
     g.generateTexture('player_attack', 32, 32);
+
+    // --- Miniature Tools ---
+    // Axe
+    g.clear();
+    g.fillStyle(0x8B4513); g.fillRect(4, 8, 8, 2); // Handle
+    g.fillStyle(0xaaaaaa); g.fillRect(10, 4, 4, 10); // Blade head
+    g.generateTexture('min_axe', 16, 16);
+
+    // Pickaxe
+    g.clear();
+    g.fillStyle(0x8B4513); g.fillRect(4, 8, 8, 2); // Handle
+    g.fillStyle(0xaaaaaa); g.fillTriangle(10, 2, 10, 14, 15, 8); // Double head spike
+    g.generateTexture('min_pickaxe', 16, 16);
+
+    // Sword
+    g.clear();
+    g.fillStyle(0x8B4513); g.fillRect(2, 7, 4, 2); // Hilt
+    g.fillStyle(0xaaaaaa); g.fillRect(6, 6, 10, 4); // Blade
+    g.generateTexture('min_sword', 16, 16);
+
+    // Knife
+    g.clear();
+    g.fillStyle(0x8B4513); g.fillRect(4, 7, 3, 2); // Hilt
+    g.fillStyle(0xaaaaaa); g.fillRect(7, 7, 6, 2); // Small blade
+    g.generateTexture('min_knife', 16, 16);
 
     // Slash Effect (Visual feedback for hit)
     g.clear();

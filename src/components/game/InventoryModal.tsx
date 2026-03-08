@@ -1,121 +1,124 @@
 import { useState } from 'react';
 import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
+import { type Item } from '../../game/types';
 
 interface Props { onClose: () => void }
 
 export default function InventoryModal({ onClose }: Props) {
-  const { inventory, quickBar } = useGameStore();
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; index: number } | null>(null);
+  useGameStore();
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, index: number } | null>(null);
+  const [hoveredItem, setHoveredItem] = useState<{ item: Item, x: number, y: number } | null>(null);
 
-  const handleDoubleClick = (inventoryIndex: number) => {
-    const slot = inventory[inventoryIndex];
-    if (!slot.item) return;
-
-    const existingSlot = quickBar.indexOf(inventoryIndex);
-    if (existingSlot !== -1) {
-      gameStore.removeFromQuickBar(existingSlot);
-      return;
-    }
-
-    const firstEmptySlot = quickBar.findIndex((s) => s === null);
-    if (firstEmptySlot !== -1) {
-      gameStore.assignToQuickBar(firstEmptySlot, inventoryIndex);
-    }
+  const handleSlotClick = (index: number) => {
+    setContextMenu(null);
+    gameStore.useItem(index);
   };
 
-  const handleContextMenu = (e: React.MouseEvent, index: number) => {
+  const handleRightClick = (e: React.MouseEvent, index: number) => {
     e.preventDefault();
-    if (inventory[index].item) {
-      setContextMenu({ x: e.clientX, y: e.clientY, index });
+    if (!gameStore.inventory[index].item) return;
+    setContextMenu({ x: e.clientX, y: e.clientY, index });
+  };
+
+  const handleMouseEnter = (e: React.MouseEvent, item: Item | null) => {
+    if (item) {
+      setHoveredItem({ item, x: e.clientX, y: e.clientY });
     }
   };
 
-  const assignToSlot = (slotIndex: number) => {
+  const assignToQuickBar = (quickBarIndex: number) => {
     if (contextMenu) {
-      gameStore.assignToQuickBar(slotIndex, contextMenu.index);
-      setContextMenu(null);
-    }
-  };
-
-  const handleUseFromMenu = () => {
-    if (contextMenu) {
-      gameStore.useItem(contextMenu.index);
+      gameStore.assignToQuickBar(quickBarIndex, contextMenu.index);
       setContextMenu(null);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'hsl(var(--background) / 0.7)' }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20"
       onClick={() => { onClose(); setContextMenu(null); }}>
-      <div className="game-modal w-80 max-w-[90vw]" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-3">
-          <h2 className="game-pixel-text text-sm" style={{ color: 'hsl(var(--primary))' }}>🎒 Inventário</h2>
+      <div className="game-modal w-80 max-w-[90vw] bg-background/60 backdrop-blur-md border-white/10 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="game-pixel-text text-lg" style={{ color: 'hsl(var(--primary))' }}>🎒 Mochila</h2>
           <button className="game-btn game-btn-secondary text-sm" onClick={onClose}>✕</button>
         </div>
-        <div className="grid grid-cols-5 gap-1.5">
-          {inventory.map((slot, i) => {
-            const isInQuickBar = quickBar.includes(i);
-            return (
-              <div
-                key={i}
-                className={`game-slot w-14 h-14 cursor-pointer relative transition-all ${
-                  isInQuickBar ? 'ring-2 ring-primary ring-inset border-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.5)]' : ''
-                }`}
-                title={slot.item?.description}
-                onDoubleClick={() => handleDoubleClick(i)}
-                onContextMenu={(e) => handleContextMenu(e, i)}
-              >
-                {slot.item && (
-                  <>
-                    <span className={`text-2xl absolute inset-0 flex items-center justify-center ${isInQuickBar ? 'scale-110' : ''}`}>
-                      {slot.item.icon}
+
+        <div className="grid grid-cols-5 gap-2">
+          {gameStore.inventory.map((slot, i) => (
+            <div
+              key={i}
+              className={`game-slot w-full aspect-square flex items-center justify-center relative cursor-pointer hover:bg-white/10 transition-colors ${slot.item ? 'bg-black/20 border-white/10' : 'bg-black/10 border-white/5'}`}
+              onClick={() => handleSlotClick(i)}
+              onContextMenu={(e) => handleRightClick(e, i)}
+              onMouseEnter={(e) => handleMouseEnter(e, slot.item)}
+              onMouseLeave={() => setHoveredItem(null)}
+            >
+              {slot.item && (
+                <>
+                  <span className="text-2xl drop-shadow-md">{slot.item.icon}</span>
+                  {slot.quantity > 1 && (
+                    <span className="absolute bottom-0 right-1 text-[10px] font-bold game-pixel-text text-white">
+                      {slot.quantity}
                     </span>
-                    {slot.quantity > 1 && (
-                      <span className="absolute bottom-0 right-0.5 text-[10px] game-pixel-text"
-                        style={{ color: 'hsl(var(--foreground))' }}>
-                        {slot.quantity}
-                      </span>
-                    )}
-                    {isInQuickBar && (
-                      <span className="absolute top-0 left-0.5 text-[8px] font-bold text-primary bg-background/80 px-0.5 rounded">
-                        {quickBar.indexOf(i) + 1}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-            );
-          })}
+                  )}
+                </>
+              )}
+            </div>
+          ))}
         </div>
-        <p className="mt-2 text-[10px] opacity-70">Duplo clique: Barra Rápida · Botão direito: Ações</p>
+
+        <div className="mt-4 p-3 bg-black/20 rounded border border-white/5">
+          <p className="text-[10px] opacity-60 leading-tight">
+            Clique: Usar • Direito: Atalho • Mouse: Info
+          </p>
+        </div>
       </div>
 
-      {contextMenu && (
-        <div
-          className="fixed z-[60] bg-card border rounded-md shadow-md py-1 min-w-[140px]"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
-          onClick={(e) => e.stopPropagation()}
+      {/* TOOLTIP MODERNA */}
+      {hoveredItem && !contextMenu && (
+        <div 
+          className="fixed z-[70] pointer-events-none bg-black/80 backdrop-blur-md border border-white/20 rounded-lg p-3 shadow-2xl animate-in fade-in zoom-in duration-150 min-w-[140px]"
+          style={{ 
+            top: hoveredItem.y + 15, 
+            left: Math.min(hoveredItem.x + 15, window.innerWidth - 160) 
+          }}
         >
-          <button
-            className="w-full px-3 py-2 text-left text-sm hover:bg-primary hover:text-white transition-colors font-bold border-b border-muted"
-            onClick={handleUseFromMenu}
-          >
-            🚀 Usar / Equipar
-          </button>
-          
-          <div className="px-2 py-1 text-[9px] font-semibold uppercase tracking-wider opacity-50 mt-1">
-            Alocar na Barra
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-xl">{hoveredItem.item.icon}</span>
+            <span className="font-bold text-sm text-white">{hoveredItem.item.name}</span>
           </div>
-          {[0, 1, 2, 3, 4].map((slotIdx) => (
+          <p className="text-[10px] text-white/70 leading-relaxed max-w-[180px]">
+            {hoveredItem.item.description}
+          </p>
+          {hoveredItem.item.bonus && (
+            <div className="mt-2 pt-2 border-t border-white/10">
+              <p className="text-[9px] text-primary font-bold uppercase tracking-wider">Status Bônus:</p>
+              {hoveredItem.item.bonus.hp && <p className="text-[10px] text-green-400">+{hoveredItem.item.bonus.hp} Saúde</p>}
+              {hoveredItem.item.bonus.dmg && <p className="text-[10px] text-red-400">+{hoveredItem.item.bonus.dmg * 100}% Dano</p>}
+              {hoveredItem.item.bonus.moveSpeed && <p className="text-[10px] text-blue-400">+{hoveredItem.item.bonus.moveSpeed * 100}% Velocidade</p>}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* CONTEXT MENU (Barra de Acesso Rápido) */}
+      {contextMenu && (
+        <div 
+          className="fixed z-[60] bg-background/90 backdrop-blur-xl border border-white/10 rounded-lg shadow-2xl p-1 w-40 animate-in fade-in zoom-in duration-100"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="p-2 border-b border-white/5 mb-1 text-center">
+            <p className="text-[10px] font-bold opacity-50 uppercase tracking-tighter text-primary">Atribuir Atalho</p>
+          </div>
+          {[0, 1, 2, 3, 4].map(idx => (
             <button
-              key={slotIdx}
-              className="w-full px-3 py-1.5 text-left text-xs hover:bg-accent transition-colors flex justify-between items-center"
-              style={{ color: 'hsl(var(--foreground))' }}
-              onClick={() => assignToSlot(slotIdx)}
+              key={idx}
+              className="w-full text-left px-3 py-1.5 text-xs hover:bg-primary hover:text-white rounded transition-colors flex justify-between items-center group"
+              onClick={() => assignToQuickBar(idx)}
             >
-              <span>Slot {slotIdx + 1}</span>
-              {quickBar[slotIdx] !== null && <span className="text-[10px] opacity-30">({inventory[quickBar[slotIdx]!]?.item?.icon})</span>}
+              <span>Slot {idx + 1}</span>
+              <span className="opacity-0 group-hover:opacity-50 text-[10px]">Pos {idx + 1}</span>
             </button>
           ))}
         </div>

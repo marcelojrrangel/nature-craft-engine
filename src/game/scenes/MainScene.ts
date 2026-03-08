@@ -26,6 +26,9 @@ interface ResourceObj extends Phaser.GameObjects.Sprite {
 export class MainScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Sprite;
   private playerLight!: Phaser.GameObjects.Light;
+  private workbenchLight!: Phaser.GameObjects.Light;
+  private safeZoneLight!: Phaser.GameObjects.Light;
+  
   private resources: ResourceObj[] = [];
   private chickens: ChickenNPC[] = [];
   private crabs: CrabNPC[] = [];
@@ -45,7 +48,6 @@ export class MainScene extends Phaser.Scene {
   private whiteParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
   private dustParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
 
-  private speed = 160;
   private isAttacking = false;
   private attackCooldown = 0;
   private interactText!: Phaser.GameObjects.Text;
@@ -76,15 +78,15 @@ export class MainScene extends Phaser.Scene {
     if (!this.safeZoneVisual) return;
     const wbX = MAP_W * TILE / 2 + 64, wbY = MAP_H * TILE / 2 + 64;
     this.safeZoneVisual.clear();
-    this.safeZoneVisual.lineStyle(2, 0x3498db, 0.3);
+    this.safeZoneVisual.lineStyle(2, 0x00ffff, 0.3);
     this.safeZoneVisual.strokeCircle(wbX, wbY, SAFE_ZONE_RADIUS);
-    this.safeZoneVisual.fillStyle(0x3498db, 0.05);
+    this.safeZoneVisual.fillStyle(0x00ffff, 0.05);
     this.safeZoneVisual.fillCircle(wbX, wbY, SAFE_ZONE_RADIUS);
   }
 
   create() {
     this.lights.enable();
-    this.lights.setAmbientColor(0x444444);
+    this.lights.setAmbientColor(0x333333);
 
     this.campfireSprites = [];
     this.resources = [];
@@ -106,7 +108,20 @@ export class MainScene extends Phaser.Scene {
     this.buildShoreSpawnPoints();
     this.createPlayer();
     
+    const wbX = MAP_W * TILE / 2 + 64, wbY = MAP_H * TILE / 2 + 64;
     this.playerLight = this.lights.addLight(this.player.x, this.player.y, 180).setColor(0xffffff).setIntensity(1.2);
+    this.workbenchLight = this.lights.addLight(wbX, wbY, 120).setColor(0xffaa00).setIntensity(1.0);
+    this.safeZoneLight = this.lights.addLight(wbX, wbY, SAFE_ZONE_RADIUS).setColor(0x00ffff).setIntensity(0.5);
+
+    this.tweens.add({
+      targets: this.safeZoneLight,
+      intensity: { from: 0.5, to: 0.8 },
+      radius: { from: SAFE_ZONE_RADIUS, to: SAFE_ZONE_RADIUS + 20 },
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
 
     this.setupParticles();
     this.generateResources();
@@ -117,7 +132,6 @@ export class MainScene extends Phaser.Scene {
     this.setupInput();
     this.setupCamera();
     this.setupCollisions();
-    
     this.drawSafeZone();
     this.restorePlacedItems();
 
@@ -135,7 +149,7 @@ export class MainScene extends Phaser.Scene {
     this.woodParticles = this.add.particles(0, 0, 'p_wood', { speed: { min: 50, max: 150 }, scale: { start: 1, end: 0 }, lifespan: 400, gravityY: 200, emitting: false }).setDepth(1500);
     this.stoneParticles = this.add.particles(0, 0, 'p_stone', { speed: { min: 80, max: 200 }, scale: { start: 1, end: 0 }, lifespan: 300, gravityY: 300, emitting: false }).setDepth(1500);
     this.whiteParticles = this.add.particles(0, 0, 'p_white', { speed: { min: 30, max: 100 }, scale: { start: 0.5, end: 0 }, lifespan: 600, emitting: false }).setDepth(1500);
-    this.dustParticles = this.add.particles(0, 0, 'p_dust', { speed: { min: 10, max: 30 }, scale: { start: 0.8, end: 0 }, lifespan: 400, emitting: false }).setDepth(5);
+    this.dustParticles = this.add.particles(0, 0, 'p_dust', { speed: { min: 10, max: 20 }, alpha: { start: 0.4, end: 0 }, scale: { start: 0.5, end: 0.2 }, lifespan: 400, emitting: false }).setDepth(5);
   }
 
   private restorePlacedItems() {
@@ -156,6 +170,7 @@ export class MainScene extends Phaser.Scene {
     const fire = this.add.sprite(x, y - 4, 'fire_0').setDepth(y).setPipeline('Light2D');
     if (!this.anims.exists('burn')) { this.anims.create({ key: 'burn', frames: [{ key: 'fire_0' }, { key: 'fire_1' }, { key: 'fire_2' }], frameRate: 10, repeat: -1 }); }
     fire.play('burn'); this.campfireSprites.push(fire);
+    
     const light = this.lights.addLight(x, y, 140).setColor(0xffaa00).setIntensity(1.5);
     this.tweens.add({ targets: light, intensity: { from: 1.5, to: 1.3 }, radius: { from: 140, to: 135 }, duration: 150, yoyo: true, repeat: -1 });
   }
@@ -185,6 +200,11 @@ export class MainScene extends Phaser.Scene {
         if (d > 0.405 && d < 0.445) this.shoreSpawnPoints.push({ x: wx, y: wy });
       }
     }
+  }
+
+  private getRandomShorePosition() {
+    if (this.shoreSpawnPoints.length === 0) return null;
+    return this.shoreSpawnPoints[Phaser.Math.Between(0, this.shoreSpawnPoints.length - 1)];
   }
 
   private generateMap() {
@@ -302,11 +322,6 @@ export class MainScene extends Phaser.Scene {
     return null;
   }
 
-  private getRandomShorePosition() {
-    if (this.shoreSpawnPoints.length === 0) return null;
-    return this.shoreSpawnPoints[Phaser.Math.Between(0, this.shoreSpawnPoints.length - 1)];
-  }
-
   private createResource(x: number, y: number, type: any, hp: number, id: string) {
     const shp = gameStore.resourceStates[id]; if (shp !== undefined && shp <= 0) return;
     const s = this.resourceGroup.create(x, y, type) as ResourceObj;
@@ -380,7 +395,7 @@ export class MainScene extends Phaser.Scene {
     res.resourceHp -= dmg; gameStore.resourceStates[res.resourceId] = res.resourceHp; res.setTint(0xffffff);
     this.time.delayedCall(100, () => { if (res && res.active) res.clearTint(); });
     if (res.resourceType === 'rock' || res.resourceType === 'small_rock') this.stoneParticles.emitParticleAt(res.x, res.y, 5);
-    else this.woodParticles.emitParticleAt(res.x, res.y, 5);
+    else if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') this.woodParticles.emitParticleAt(res.x, res.y, 5);
     const t = this.add.text(res.x, res.y - 20, `-${dmg.toFixed(0)}`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000);
     this.tweens.add({ targets: t, y: res.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() });
     if (res.resourceHp <= 0) this.harvestResource(res);
@@ -401,7 +416,21 @@ export class MainScene extends Phaser.Scene {
     if (this.isAttacking || this.attackCooldown > 0) return;
     this.isAttacking = true; this.attackCooldown = 300;
     this.player.play('attack');
-    
+    const tool = gameStore.getEquippedTool();
+    let toolTexture = '';
+    if (tool?.type === 'axe') toolTexture = 'min_axe';
+    else if (tool?.type === 'pickaxe') toolTexture = 'min_pickaxe';
+    else if (tool?.type === 'sword') toolTexture = 'min_sword';
+    else if (tool?.type === 'knife') toolTexture = 'min_knife';
+    if (toolTexture) {
+      const offsetX = this.facingDir === 'right' ? 12 : this.facingDir === 'left' ? -12 : 0;
+      const offsetY = this.facingDir === 'down' ? 12 : this.facingDir === 'up' ? -12 : 0;
+      const toolSprite = this.add.sprite(this.player.x + offsetX, this.player.y + offsetY, toolTexture).setDepth(21).setPipeline('Light2D');
+      if (this.facingDir === 'left') { toolSprite.setFlipX(true); toolSprite.x -= 4; }
+      if (this.facingDir === 'up') { toolSprite.setRotation(-Math.PI/2); toolSprite.y -= 4; }
+      if (this.facingDir === 'down') { toolSprite.setRotation(Math.PI/2); toolSprite.y += 4; }
+      this.time.delayedCall(250, () => { if (toolSprite) toolSprite.destroy(); });
+    }
     const slashX = this.player.x + (this.facingDir === 'right' ? 24 : this.facingDir === 'left' ? -24 : 0);
     const slashY = this.player.y + (this.facingDir === 'down' ? 24 : this.facingDir === 'up' ? -24 : 0);
     const slash = this.add.sprite(slashX, slashY, 'slash_effect').setDepth(20);
@@ -409,7 +438,6 @@ export class MainScene extends Phaser.Scene {
     if (this.facingDir === 'up') slash.setRotation(-Math.PI/2);
     if (this.facingDir === 'down') slash.setRotation(Math.PI/2);
     this.tweens.add({ targets: slash, alpha: 0, scale: 1.2, duration: 200, onComplete: () => slash.destroy() });
-
     const t = gameStore.getEquippedTool(); if (t?.type === 'bow') this.fireArrow(); else this.doMeleeAttack();
     this.time.delayedCall(300, () => { this.isAttacking = false; });
   }
@@ -506,12 +534,13 @@ export class MainScene extends Phaser.Scene {
     const wbX = MAP_W * TILE / 2 + 64, wbY = MAP_H * TILE / 2 + 64, distToWB = Phaser.Math.Distance.Between(this.player.x, this.player.y, wbX, wbY);
     if (distToWB < SAFE_ZONE_RADIUS) this.inSafeZone = true;
     this.campfireSprites.forEach(cf => { if (cf && cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50) this.nearCampfire = true; });
-    this.bears.forEach(b => b.update(delta, this.player.x, this.player.y, { x: wbX, y: wbY, radius: SAFE_ZONE_RADIUS }, this.inSafeZone));
+    this.bears.forEach(b => { 
+      b.update(delta, this.player.x, this.player.y, { x: wbX, y: wbY, radius: SAFE_ZONE_RADIUS }, this.inSafeZone); 
+      const bBody = b.sprite.body as Phaser.Physics.Arcade.Body;
+      if (bBody && (Math.abs(bBody.velocity.x) > 10 || Math.abs(bBody.velocity.y) > 10)) this.dustParticles.emitParticleAt(b.sprite.x, b.sprite.y + 10, 1);
+    });
     this.drawResourceHpBars();
-    
-    // ATTACH LOCK: Se estiver atacando, ignora animações de movimento
     if (this.isAttacking) return;
-
     const body = this.player.body as Phaser.Physics.Arcade.Body; let vx = 0, vy = 0;
     if (this.moveKeys.A.isDown || this.moveKeys.LEFT.isDown) { vx = -1; this.facingDir = 'left'; } else if (this.moveKeys.D.isDown || this.moveKeys.RIGHT.isDown) { vx = 1; this.facingDir = 'right'; }
     if (this.moveKeys.W.isDown || this.moveKeys.UP.isDown) { vy = -1; this.facingDir = 'up'; } else if (this.moveKeys.S.isDown || this.moveKeys.DOWN.isDown) { vy = 1; this.facingDir = 'down'; }
@@ -525,6 +554,7 @@ export class MainScene extends Phaser.Scene {
     else if (this.nearCampfire) { const closestCF = this.campfireSprites.find(cf => cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50); if (closestCF) this.interactText.setText('[C] Cozinhar').setPosition(closestCF.x - 30, closestCF.y - 30).setVisible(true); }
     else this.interactText.setVisible(false);
     this.player.setDepth(this.player.y); this.resources.forEach(r => r.setDepth(r.y));
-    this.chickens.forEach(c => c.sprite.setDepth(c.sprite.y)); this.crabs.forEach(c => c.sprite.setDepth(c.sprite.y));
+    this.chickens.forEach(c => { c.sprite.setDepth(c.sprite.y); const cb = c.sprite.body as Phaser.Physics.Arcade.Body; if (cb && (Math.abs(cb.velocity.x) > 10 || Math.abs(cb.velocity.y) > 10)) this.dustParticles.emitParticleAt(c.sprite.x, c.sprite.y + 8, 1); }); 
+    this.crabs.forEach(c => c.sprite.setDepth(c.sprite.y));
   }
 }

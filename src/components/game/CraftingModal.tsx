@@ -21,19 +21,18 @@ export default function CraftingModal({ onClose, station = 'workbench' }: Props)
     }
   };
 
-  // Filter recipes by station. Recipes with station 'none' show everywhere.
   const filteredRecipes = RECIPES.filter(r => 
     r.station === station || 
     r.station === 'none' || 
-    (!r.station && station === 'workbench') // Fallback for old recipes
+    (!r.station && station === 'workbench')
   );
   
   const title = station === 'campfire' ? '🔥 Culinária' : '🔨 Mesa de Trabalho';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'hsl(var(--background) / 0.7)' }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20"
       onClick={() => { onClose(); }}>
-      <div className="game-modal w-80 max-w-[90vw]" onClick={e => e.stopPropagation()}>
+      <div className="game-modal w-80 max-w-[90vw] bg-background/60 backdrop-blur-md border-white/10 shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3">
           <h2 className="game-pixel-text text-sm" style={{ color: 'hsl(var(--secondary))' }}>{title}</h2>
           <button className="game-btn game-btn-secondary text-sm" onClick={onClose}>✕</button>
@@ -48,13 +47,13 @@ export default function CraftingModal({ onClose, station = 'workbench' }: Props)
               const isJustCrafted = lastCrafted === recipe.id;
 
               return (
-                <div key={recipe.id} className={`game-slot p-3 flex items-start gap-3 transition-all duration-300 ${isJustCrafted ? 'border-primary ring-1 ring-primary/30' : ''}`}>
-                  <span className="text-2xl">{recipe.result.icon}</span>
+                <div key={recipe.id} className={`game-slot p-3 flex items-start gap-3 transition-all duration-300 bg-black/20 border-white/5 ${isJustCrafted ? 'border-primary ring-1 ring-primary/30 scale-[1.02]' : ''}`}>
+                  <span className="text-2xl drop-shadow-md">{recipe.result.icon}</span>
                   <div className="flex-1">
-                    <div className="game-body-text font-bold" style={{ color: 'hsl(var(--foreground))' }}>
+                    <div className="game-body-text font-bold text-sm" style={{ color: 'hsl(var(--foreground))' }}>
                       {recipe.name}
                     </div>
-                    <div className="text-xs mb-1" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                    <div className="text-[10px] mb-1 opacity-70" style={{ color: 'hsl(var(--muted-foreground))' }}>
                       {recipe.description}
                     </div>
                     <div className="flex gap-2 flex-wrap">
@@ -62,10 +61,10 @@ export default function CraftingModal({ onClose, station = 'workbench' }: Props)
                         const has = gameStore.countItem(ing.item.id);
                         const enough = has >= ing.quantity;
                         return (
-                          <span key={i} className="text-xs px-1.5 py-0.5 rounded"
+                          <span key={i} className="text-[9px] px-1.5 py-0.5 rounded border border-white/5"
                             style={{
-                              background: enough ? 'hsl(var(--primary) / 0.2)' : 'hsl(var(--destructive) / 0.2)',
-                              color: enough ? 'hsl(var(--primary))' : 'hsl(var(--destructive))',
+                              background: enough ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                              color: enough ? '#4ade80' : '#ef4444',
                             }}>
                             {ing.item.icon} {has}/{ing.quantity}
                           </span>
@@ -74,14 +73,9 @@ export default function CraftingModal({ onClose, station = 'workbench' }: Props)
                     </div>
                   </div>
                   <button
-                    className={`game-btn text-sm min-w-[60px] transition-all duration-150 ${
-                      isJustCrafted ? 'scale-110 bg-primary text-white' : canCraft ? 'game-btn-primary' : ''
+                    className={`game-btn text-xs min-w-[60px] h-8 transition-all duration-150 ${
+                      isJustCrafted ? 'bg-primary text-white' : canCraft ? 'game-btn-primary' : 'bg-white/5 text-white/30'
                     }`}
-                    style={
-                      !isJustCrafted && !canCraft 
-                        ? { background: 'hsl(var(--muted))', color: 'hsl(var(--muted-foreground))' }
-                        : {}
-                    }
                     disabled={!canCraft && !isJustCrafted}
                     onClick={() => handleCraft(recipe.id)}>
                     {isJustCrafted ? '✨' : 'Criar'}

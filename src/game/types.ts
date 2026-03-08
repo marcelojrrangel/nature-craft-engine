@@ -1,6 +1,6 @@
 // Game type definitions
 
-export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow' | 'campfire' | 'pelt' | 'rabbit_meat' | 'cooked_chicken' | 'cooked_rabbit' | 'armor';
+export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow' | 'campfire' | 'pelt' | 'rabbit_meat' | 'cooked_chicken' | 'cooked_rabbit' | 'cooked_crab' | 'armor';
 export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife' | 'bow';
 export type EquipSlot = 'head' | 'hands' | 'legs' | 'accessory' | 'mainHand';
 export type CraftStation = 'none' | 'workbench' | 'campfire';
@@ -150,9 +150,10 @@ export const ITEMS: Record<string, Item> = {
   rabbit_meat: { id: 'rabbit_meat', name: 'Carne de Coelho', type: 'rabbit_meat', icon: '🥩', stackable: true, maxStack: 32, description: 'Carne crua. Precisa cozinhar' },
   pelt: { id: 'pelt', name: 'Pele Macia', type: 'pelt', icon: '🧤', stackable: true, maxStack: 32, description: 'Pele coletada de pequenos animais' },
   cooked_chicken: { id: 'cooked_chicken', name: 'Frango Assado', type: 'food', icon: '🍖', stackable: true, maxStack: 16, description: 'Restaura 25 HP', bonus: { hp: 25 } },
-  cooked_rabbit: { id: 'cooked_rabbit', name: 'Coelho Assado', type: 'food', icon: '🍢', stackable: true, maxStack: 16, description: 'Restaura 30 HP', bonus: { hp: 30 } },
+  cooked_rabbit: { id: 'cooked_rabbit', name: 'Coelho Assado', type: 'food', icon: '🍢', stackable: true, maxStack: 16, description: 'Restaura 40 HP', bonus: { hp: 40 } },
+  cooked_crab: { id: 'cooked_crab', name: 'Siri Cozido', type: 'food', icon: '🦐', stackable: true, maxStack: 16, description: 'Restaura 15 HP', bonus: { hp: 15 } },
   crab_shell: { id: 'crab_shell', name: 'Casca de Siri', type: 'crab_shell', icon: '🐚', stackable: true, maxStack: 64, description: 'Fragmento de carapaça' },
-  crab_meat: { id: 'crab_meat', name: 'Carne de Siri', type: 'crab_meat', icon: '🦀', stackable: true, maxStack: 32, description: 'Pode ser comida crua' },
+  crab_meat: { id: 'crab_meat', name: 'Carne de Siri', type: 'crab_meat', icon: '🦀', stackable: true, maxStack: 32, description: 'Carne de siri crua' },
   arrow: { id: 'arrow', name: 'Flecha', type: 'arrow', icon: '🥢', stackable: true, maxStack: 64, description: 'Munição para o arco' },
   campfire: { id: 'campfire', name: 'Fogueira', type: 'campfire', icon: '🔥', stackable: true, maxStack: 5, description: 'Permite cozinhar e iluminar' },
   
@@ -172,8 +173,9 @@ export const ITEMS: Record<string, Item> = {
 
 export const RECIPES: CraftingRecipe[] = [
   // Campfire Cooking
-  { id: 'cook_chicken', name: 'Assar Frango', result: ITEMS.cooked_chicken, resultQty: 1, ingredients: [{ item: ITEMS.chicken_meat, quantity: 1 }], description: 'Comida nutritiva', station: 'campfire' },
-  { id: 'cook_rabbit', name: 'Assar Coelho', result: ITEMS.cooked_rabbit, resultQty: 1, ingredients: [{ item: ITEMS.rabbit_meat, quantity: 1 }], description: 'Comida excelente', station: 'campfire' },
+  { id: 'cook_chicken', name: 'Assar Frango', result: ITEMS.cooked_chicken, resultQty: 1, ingredients: [{ item: ITEMS.chicken_meat, quantity: 1 }], description: 'Cura 25 HP', station: 'campfire' },
+  { id: 'cook_rabbit', name: 'Assar Coelho', result: ITEMS.cooked_rabbit, resultQty: 1, ingredients: [{ item: ITEMS.rabbit_meat, quantity: 1 }], description: 'Cura 40 HP', station: 'campfire' },
+  { id: 'cook_crab', name: 'Cozinhar Siri', result: ITEMS.cooked_crab, resultQty: 1, ingredients: [{ item: ITEMS.crab_meat, quantity: 1 }], description: 'Cura 15 HP', station: 'campfire' },
   
   // Workbench Advanced
   { id: 'helmet_rustic', name: 'Capacete Rústico', result: ITEMS.helmet_rustic, resultQty: 1, ingredients: [{ item: ITEMS.pelt, quantity: 4 }, { item: ITEMS.fiber, quantity: 2 }], description: '+10 HP Máximo', station: 'workbench' },

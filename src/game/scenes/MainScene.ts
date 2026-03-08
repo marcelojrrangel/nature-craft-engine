@@ -68,6 +68,7 @@ export class MainScene extends Phaser.Scene {
   private keyE!: Phaser.Input.Keyboard.Key;
   private keySpace!: Phaser.Input.Keyboard.Key;
   private keyEsc!: Phaser.Input.Keyboard.Key;
+  private keyNumbers!: Phaser.Input.Keyboard.Key[];
   private moveKeys!: { W: Phaser.Input.Keyboard.Key, A: Phaser.Input.Keyboard.Key, S: Phaser.Input.Keyboard.Key, D: Phaser.Input.Keyboard.Key, UP: Phaser.Input.Keyboard.Key, LEFT: Phaser.Input.Keyboard.Key, DOWN: Phaser.Input.Keyboard.Key, RIGHT: Phaser.Input.Keyboard.Key };
 
   private unsubscribeList: (() => void)[] = [];
@@ -113,15 +114,7 @@ export class MainScene extends Phaser.Scene {
     this.workbenchLight = this.lights.addLight(wbX, wbY, 120).setColor(0xffaa00).setIntensity(1.0);
     this.safeZoneLight = this.lights.addLight(wbX, wbY, SAFE_ZONE_RADIUS).setColor(0x00ffff).setIntensity(0.5);
 
-    this.tweens.add({
-      targets: this.safeZoneLight,
-      intensity: { from: 0.5, to: 0.8 },
-      radius: { from: SAFE_ZONE_RADIUS, to: SAFE_ZONE_RADIUS + 20 },
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
+    this.tweens.add({ targets: this.safeZoneLight, intensity: { from: 0.5, to: 0.8 }, radius: { from: SAFE_ZONE_RADIUS, to: SAFE_ZONE_RADIUS + 20 }, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
     this.setupParticles();
     this.generateResources();
@@ -170,7 +163,6 @@ export class MainScene extends Phaser.Scene {
     const fire = this.add.sprite(x, y - 4, 'fire_0').setDepth(y).setPipeline('Light2D');
     if (!this.anims.exists('burn')) { this.anims.create({ key: 'burn', frames: [{ key: 'fire_0' }, { key: 'fire_1' }, { key: 'fire_2' }], frameRate: 10, repeat: -1 }); }
     fire.play('burn'); this.campfireSprites.push(fire);
-    
     const light = this.lights.addLight(x, y, 140).setColor(0xffaa00).setIntensity(1.5);
     this.tweens.add({ targets: light, intensity: { from: 1.5, to: 1.3 }, radius: { from: 140, to: 135 }, duration: 150, yoyo: true, repeat: -1 });
   }
@@ -347,6 +339,14 @@ export class MainScene extends Phaser.Scene {
     this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E);
     this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    
+    const keys = [Phaser.Input.Keyboard.KeyCodes.ONE, Phaser.Input.Keyboard.KeyCodes.TWO, Phaser.Input.Keyboard.KeyCodes.THREE, Phaser.Input.Keyboard.KeyCodes.FOUR, Phaser.Input.Keyboard.KeyCodes.FIVE];
+    this.keyNumbers = keys.map((k, i) => {
+      const key = this.input.keyboard.addKey(k);
+      key.on('down', () => gameStore.selectQuickBar(i));
+      return key;
+    });
+
     this.keyI.on('down', () => gameStore.toggleInventory());
     this.keyQ.on('down', () => gameStore.toggleEquipment());
     this.keyC.on('down', () => { if (this.nearWorkbench || this.nearCampfire) { (gameStore as any).currentStation = this.nearWorkbench ? 'workbench' : 'campfire'; gameStore.toggleCrafting(); } });
@@ -409,7 +409,44 @@ export class MainScene extends Phaser.Scene {
     this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8);
     const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000);
     this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() });
-    if (hp <= 0) { if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc); else if (type === 'bear') this.collectBear(npc); else if (type === 'rabbit') this.collectRabbit(npc); }
+    if (hp <= 0) { 
+      if (type === 'chicken') this.collectChicken(npc); 
+      else if (type === 'crab') this.collectCrab(npc); 
+      else if (type === 'bear') this.collectBear(npc); 
+      else if (type === 'rabbit') this.collectRabbit(npc); 
+    }
+  }
+
+  private collectChicken(c: ChickenNPC) {
+    const s = gameStore.chickenStates[c.id]; if (!s) return;
+    s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000);
+    gameStore.addItem(ITEMS.chicken_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.feather, 1);
+    c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); });
+    this.chickens = this.chickens.filter(chi => chi.id !== c.id); gameStore.save();
+  }
+
+  private collectCrab(c: CrabNPC) {
+    const s = gameStore.crabStates[c.id]; if (!s) return;
+    s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000);
+    gameStore.addItem(ITEMS.crab_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.crab_shell, 1);
+    c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); });
+    this.crabs = this.crabs.filter(cra => cra.id !== c.id); gameStore.save();
+  }
+
+  private collectBear(b: BearNPC) {
+    const s = gameStore.bearStates[b.id]; if (!s) return;
+    s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(60000, 120000);
+    gameStore.addItem(ITEMS.pelt, Phaser.Math.Between(2, 4)); gameStore.addItem(ITEMS.food, 3);
+    b.collect(); this.time.delayedCall(80, () => { if (b.sprite && b.sprite.active) b.destroy(); });
+    this.bears = this.bears.filter(bear => bear.id !== b.id); gameStore.save();
+  }
+
+  private collectRabbit(r: RabbitNPC) {
+    const s = gameStore.rabbitStates[r.id]; if (!s) return;
+    s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000);
+    gameStore.addItem(ITEMS.rabbit_meat, 1); gameStore.addItem(ITEMS.pelt, 1);
+    r.collect(); this.time.delayedCall(80, () => { if (r.sprite && r.sprite.active) r.destroy(); });
+    this.rabbits = this.rabbits.filter(rab => rab.id !== r.id); gameStore.save();
   }
 
   private doAttack() {
@@ -460,38 +497,6 @@ export class MainScene extends Phaser.Scene {
         this.applyDamageToResource(res, dmg);
       }
     }
-  }
-
-  private collectChicken(c: ChickenNPC) {
-    const s = gameStore.chickenStates[c.id]; if (!s) return;
-    s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000);
-    gameStore.addItem(ITEMS.chicken_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.feather, 1);
-    c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); });
-    this.chickens = this.chickens.filter(chi => chi.id !== c.id); gameStore.save();
-  }
-
-  private collectCrab(c: CrabNPC) {
-    const s = gameStore.crabStates[c.id]; if (!s) return;
-    s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000);
-    gameStore.addItem(ITEMS.crab_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.crab_shell, 1);
-    c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); });
-    this.crabs = this.crabs.filter(cra => cra.id !== c.id); gameStore.save();
-  }
-
-  private collectBear(b: BearNPC) {
-    const s = gameStore.bearStates[b.id]; if (!s) return;
-    s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(60000, 120000);
-    gameStore.addItem(ITEMS.pelt, Phaser.Math.Between(2, 4)); gameStore.addItem(ITEMS.food, 3);
-    b.collect(); this.time.delayedCall(80, () => { if (b.sprite && b.sprite.active) b.destroy(); });
-    this.bears = this.bears.filter(bear => bear.id !== b.id); gameStore.save();
-  }
-
-  private collectRabbit(r: RabbitNPC) {
-    const s = gameStore.rabbitStates[r.id]; if (!s) return;
-    s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000);
-    gameStore.addItem(ITEMS.rabbit_meat, 1); gameStore.addItem(ITEMS.pelt, 1);
-    r.collect(); this.time.delayedCall(80, () => { if (r.sprite && r.sprite.active) r.destroy(); });
-    this.rabbits = this.rabbits.filter(rab => rab.id !== r.id); gameStore.save();
   }
 
   private harvestResource(res: ResourceObj) {

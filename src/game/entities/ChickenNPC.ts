@@ -103,9 +103,15 @@ export class ChickenNPC {
 
   private die() {
     this.setState('dead');
-    this.sprite.disableBody(true, false);
+    // SEGURANÇA FÍSICA: Desativa completamente a colisão
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.enable = false; // Desativa o motor de física para este corpo
+      this.sprite.disableBody(true, false); // Remove do mundo físico mas mantém visível
+    }
     this.sprite.setTexture('chicken_dead');
-    this.hpBar.update(); // Final clear
+    this.sprite.setDepth(this.sprite.y - 10); // Coloca levemente "abaixo" do jogador
+    this.hpBar.update();
   }
 
   destroy() {

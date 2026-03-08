@@ -144,8 +144,13 @@ export class BearNPC {
 
   private die() {
     this.setState('dead');
-    this.sprite.disableBody(true, false);
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    if (body) {
+      body.enable = false;
+      this.sprite.disableBody(true, false);
+    }
     this.sprite.setTexture('bear_dead');
+    this.sprite.setDepth(this.sprite.y - 10);
     this.hpBar.update();
   }
 

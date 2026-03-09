@@ -5,6 +5,31 @@ export class BootScene extends Phaser.Scene {
     super({ key: 'BootScene' });
   }
 
+  preload() {
+    // Player Animations (Pixel Crawler)
+    const p = 'assets/player/';
+    this.load.spritesheet('p_idle_down', p + 'Idle_Down-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('p_idle_side', p + 'Idle_Side-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('p_idle_up', p + 'Idle_Up-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+    
+    this.load.spritesheet('p_run_down', p + 'Run_Down-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('p_run_side', p + 'Run_Side-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('p_run_up', p + 'Run_Up-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+
+    this.load.spritesheet('p_attack_down', p + 'Slice_Down-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('p_attack_side', p + 'Slice_Side-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('p_attack_up', p + 'Slice_Up-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+
+    // Environment Assets
+    const e = 'assets/env/';
+    this.load.spritesheet('floor_tiles', e + 'Floors_Tiles.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet('water_tiles', e + 'Water_tiles.png', { frameWidth: 16, frameHeight: 16 });
+    this.load.image('tree_small', e + 'tree_small.png');
+    this.load.image('tree_large', e + 'tree_large.png');
+    this.load.image('rocks', e + 'rocks.png');
+    this.load.image('vegetation', e + 'vegetation.png');
+  }
+
   create() {
     this.generateTextures();
     this.scene.start('MainScene');

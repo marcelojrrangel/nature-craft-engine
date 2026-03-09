@@ -8,14 +8,19 @@ export default function PhaserGame() {
   const gameRef = useRef<Phaser.Game | null>(null);
 
   useEffect(() => {
-    if (!containerRef.current || gameRef.current) return;
+    // Evita múltiplas inicializações no React Strict Mode
+    if (gameRef.current) return;
+    if (!containerRef.current) return;
 
     const config: Phaser.Types.Core.GameConfig = {
-      type: Phaser.AUTO,
+      type: Phaser.AUTO, // Deixa o Phaser escolher o melhor disponível
       parent: containerRef.current,
       width: window.innerWidth,
       height: window.innerHeight,
-      backgroundColor: '#1a2a1a',
+      backgroundColor: '#050505',
+      pixelArt: true,
+      antialias: false,
+      autoFocus: true,
       input: {
         keyboard: true,
       },
@@ -24,16 +29,22 @@ export default function PhaserGame() {
         arcade: { gravity: { x: 0, y: 0 }, debug: false },
       },
       scene: [BootScene, MainScene],
-      pixelArt: true,
       scale: {
         mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
       },
+      render: {
+        powerPreference: 'high-performance',
+        batchSize: 4096
+      }
     };
 
-    gameRef.current = new Phaser.Game(config);
+    try {
+      gameRef.current = new Phaser.Game(config);
+    } catch (e) {
+      console.error('Falha ao iniciar Phaser:', e);
+    }
 
-    // Ensure canvas gets focus for keyboard input
     const focusCanvas = () => {
       const canvas = containerRef.current?.querySelector('canvas');
       if (canvas) {
@@ -43,14 +54,11 @@ export default function PhaserGame() {
       }
     };
 
-    // Try immediately and after a short delay (scene loading)
     setTimeout(focusCanvas, 100);
     setTimeout(focusCanvas, 500);
 
-    // Re-focus canvas when clicking anywhere on the game area
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      // Don't steal focus from UI buttons
       if (target.tagName === 'BUTTON' || target.closest('button') || target.closest('.game-modal')) return;
       focusCanvas();
     };
@@ -58,10 +66,12 @@ export default function PhaserGame() {
 
     return () => {
       document.removeEventListener('click', handleClick);
-      gameRef.current?.destroy(true);
-      gameRef.current = null;
+      if (gameRef.current) {
+        gameRef.current.destroy(true);
+        gameRef.current = null;
+      }
     };
   }, []);
 
-  return <div ref={containerRef} className="absolute inset-0" />;
+  return <div ref={containerRef} className="absolute inset-0 w-full h-full overflow-hidden" />;
 }

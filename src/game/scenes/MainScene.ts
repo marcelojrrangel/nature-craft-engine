@@ -132,7 +132,6 @@ export class MainScene extends Phaser.Scene {
 
     this.interactText = this.add.text(0, 0, '', { fontSize: '12px', color: '#ffffff', backgroundColor: '#00000088', padding: { x: 4, y: 2 } }).setDepth(3000).setVisible(false);
     
-    // Vinculando callbacks com verificação de segurança sys.isActive
     this.unsubscribeList.push(gameEvents.on('joystickMove', ({ x, y }) => { if (this.sys && this.sys.isActive()) this.joyVec = { x, y }; }));
     this.unsubscribeList.push(gameEvents.on('attack', () => { if (this.sys && this.sys.isActive()) this.doAttack(); }));
     this.unsubscribeList.push(gameEvents.on('interact', () => { if (this.sys && this.sys.isActive()) this.doInteract(); }));
@@ -215,6 +214,7 @@ export class MainScene extends Phaser.Scene {
         if (d > 0.45) {
           this.add.sprite(x * TILE + 8, y * TILE + 8, 'water_tiles', 0).setDepth(0).setPipeline('Light2D');
         } else {
+          // RESTORING GRAVEL FLOOR
           this.add.sprite(x * TILE + 8, y * TILE + 8, 'chao_cascalho').setDepth(0).setPipeline('Light2D');
         }
       }
@@ -326,11 +326,23 @@ export class MainScene extends Phaser.Scene {
   private createResource(x: number, y: number, type: any, hp: number, id: string) {
     const shp = gameStore.resourceStates[id]; if (shp !== undefined && shp <= 0) return;
     let key = type; let frame = undefined;
-    if (type === 'rock') { key = Math.random() > 0.5 ? 'rock_medium' : 'rock_large'; } else if (type === 'small_rock') { key = 'rock_small'; } else if (type === 'tree') { key = 'tree_common'; } else if (type === 'dead_tree') { key = 'tree_dry'; } else if (type === 'bush') { const variants = ['bush_41', 'bush_42', 'bush_45', 'bush_46']; key = variants[Math.floor(Math.random() * variants.length)]; }
+    if (type === 'rock') { key = Math.random() > 0.5 ? 'rock_medium' : 'rock_large'; } 
+    else if (type === 'small_rock') { key = 'rock_small'; } 
+    else if (type === 'tree') { key = 'tree_common'; } 
+    else if (type === 'dead_tree') { key = 'tree_dry'; } 
+    else if (type === 'bush') { const variants = ['bush_41', 'bush_42', 'bush_45', 'bush_46']; key = variants[Math.floor(Math.random() * variants.length)]; }
+    
     const s = this.resourceGroup.create(x, y, key, frame) as ResourceObj;
     s.setPipeline('Light2D'); s.resourceType = type; s.resourceHp = shp ?? hp; s.maxHp = HARDNESS[type] || hp; s.resourceId = id;
     const body = s.body as Phaser.Physics.Arcade.StaticBody;
-    if (key === 'rock_large') body.setSize(24, 20).setOffset(2, 20); else if (key === 'rock_medium') body.setSize(20, 16).setOffset(3, 8); else if (key === 'rock_small') body.setSize(12, 10).setOffset(2, 2); else if (key === 'tree_common') body.setSize(16, 12).setOffset(8, 48); else if (key === 'tree_dry') body.setSize(14, 10).setOffset(6, 35); else if (key.startsWith('bush')) { if (key === 'bush_41' || key === 'bush_42') body.setSize(24, 16).setOffset(10, 24); else body.setSize(16, 12).setOffset(6, 12); }
+    
+    if (key === 'rock_large') body.setSize(24, 20).setOffset(2, 20); 
+    else if (key === 'rock_medium') body.setSize(20, 16).setOffset(3, 8); 
+    else if (key === 'rock_small') body.setSize(12, 10).setOffset(2, 2); 
+    else if (key === 'tree_common') body.setSize(16, 12).setOffset(8, 48); 
+    else if (key === 'tree_dry') body.setSize(14, 10).setOffset(6, 35); 
+    else if (key.startsWith('bush')) { if (key === 'bush_41' || key === 'bush_42') body.setSize(24, 16).setOffset(10, 24); else body.setSize(16, 12).setOffset(6, 12); }
+    
     s.setDepth(y); this.resources.push(s); this.physics.add.collider(this.player, s);
   }
 
@@ -353,15 +365,7 @@ export class MainScene extends Phaser.Scene {
 
   private setupCamera() { this.cameras.main.startFollow(this.player, true, 0.08, 0.08); this.cameras.main.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE).setZoom(2.5); }
 
-  shutdown() { 
-    // Limpeza absoluta de eventos para evitar chamadas de cenas fantasmas
-    this.unsubscribeList.forEach(unsub => unsub()); 
-    this.unsubscribeList = [];
-    this.chickens.forEach(c => c.destroy()); 
-    this.crabs.forEach(c => c.destroy()); 
-    this.bears.forEach(b => b.destroy()); 
-    this.rabbits.forEach(r => r.destroy()); 
-  }
+  shutdown() { this.unsubscribeList.forEach(unsub => unsub()); this.unsubscribeList = []; this.chickens.forEach(c => c.destroy()); this.crabs.forEach(c => c.destroy()); this.bears.forEach(b => b.destroy()); this.rabbits.forEach(r => r.destroy()); }
 
   private showFloatingText(x: number, y: number, text: string, color: string) { if (!this.sys || !this.sys.isActive()) return; const f = this.add.text(x, y, text, { fontSize: '12px', color, fontStyle: 'bold', backgroundColor: '#00000066', padding: { x: 4, y: 2 } }).setDepth(3500); this.tweens.add({ targets: f, y: y - 24, alpha: 0, duration: 850, onComplete: () => f.destroy() }); }
 
@@ -391,11 +395,9 @@ export class MainScene extends Phaser.Scene {
 
   private doAttack() {
     if (this.isAttacking || this.attackCooldown > 0) return;
-    this.isAttacking = true; this.attackCooldown = 300; this.player.play('attack');
+    this.isAttacking = true; this.attackCooldown = 300;
     const animKey = this.facingDir === 'left' || this.facingDir === 'right' ? 'attack_side' : `attack_${this.facingDir}`;
     this.player.setFlipX(this.facingDir === 'left').play(animKey);
-    const tool = gameStore.getEquippedTool();
-    if (tool?.type === 'axe') { /* VFX opcional */ }
     const t = gameStore.getEquippedTool(); if (t?.type === 'bow') this.fireArrow(); else this.doMeleeAttack();
     this.time.delayedCall(400, () => { this.isAttacking = false; });
   }
@@ -446,25 +448,5 @@ export class MainScene extends Phaser.Scene {
     this.player.setDepth(this.player.y); this.resources.forEach(r => r.setDepth(r.y));
     this.chickens.forEach(c => { c.sprite.setDepth(c.sprite.y); const cb = c.sprite.body as Phaser.Physics.Arcade.Body; if (cb && (Math.abs(cb.velocity.x) > 10 || Math.abs(cb.velocity.y) > 10)) this.dustParticles.emitParticleAt(c.sprite.x, c.sprite.y + 8, 1); }); 
     this.crabs.forEach(c => c.sprite.setDepth(c.sprite.y));
-  }
-
-  private doMeleeAttack() {
-    const stats = gameStore.getStats(), t = gameStore.getEquippedTool();
-    const targets = [...this.chickens, ...this.crabs, ...this.bears, ...this.rabbits];
-    targets.forEach((npc: any) => {
-      if (npc.isInRange && npc.isInRange(this.player.x, this.player.y, 42)) {
-        let type = npc instanceof CrabNPC ? 'crab' : npc instanceof BearNPC ? 'bear' : npc instanceof RabbitNPC ? 'rabbit' : 'chicken';
-        if (this.canDamageTarget(type)) { gameStore.useTool(t?.type === 'knife' ? 'knife' : 'sword'); this.applyDamageToNPC(npc, type, stats.attackDamage); }
-      }
-    });
-    for (const res of this.resources) {
-      if (res.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, res.x, res.y) < 40 && this.canDamageTarget(res.resourceType)) {
-        let dmg = stats.attackDamage;
-        if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') { dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.choppingSpeed; gameStore.useTool('axe'); }
-        else if (res.resourceType === 'rock' || res.resourceType === 'small_rock') { dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.miningSpeed; gameStore.useTool('pickaxe'); }
-        else dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType];
-        this.applyDamageToResource(res, dmg);
-      }
-    }
   }
 }

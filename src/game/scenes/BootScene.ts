@@ -24,10 +24,20 @@ export class BootScene extends Phaser.Scene {
     const e = 'assets/env/';
     this.load.spritesheet('floor_tiles', e + 'Floors_Tiles.png', { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet('water_tiles', e + 'Water_tiles.png', { frameWidth: 16, frameHeight: 16 });
-    this.load.image('tree_small', e + 'tree_small.png');
-    this.load.image('tree_large', e + 'tree_large.png');
-    this.load.image('rocks', e + 'rocks.png');
+    this.load.spritesheet('rocks_prof', e + 'rocks.png', { frameWidth: 16, frameHeight: 16 });
     this.load.image('vegetation', e + 'vegetation.png');
+
+    // New Custom Assets
+    this.load.image('chao_cascalho', e + 'floors/chao_cascalho.png');
+    this.load.image('rock_small', e + 'common-rock/pedra_pequena.png');
+    this.load.image('rock_medium', e + 'common-rock/pedra_media.png');
+    this.load.image('rock_large', e + 'common-rock/pedra_grande.png');
+    this.load.image('tree_common', e + 'trees/common-trees/arvore_comum.png');
+    this.load.image('tree_dry', e + 'trees/common-trees/arvore_seca.png');
+    this.load.image('bush_41', e + 'bush/common-bush/arbusto_verde_41.png');
+    this.load.image('bush_42', e + 'bush/common-bush/arbusto_verde_42.png');
+    this.load.image('bush_45', e + 'bush/common-bush/arbusto_verde_45.png');
+    this.load.image('bush_46', e + 'bush/common-bush/arbusto_verde_46.png');
   }
 
   create() {

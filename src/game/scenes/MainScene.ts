@@ -79,10 +79,22 @@ export class MainScene extends Phaser.Scene {
     if (!this.sys || !this.safeZoneVisual) return;
     const wbX = (MAP_W * TILE) / 2, wbY = (MAP_H * TILE) / 2;
     this.safeZoneVisual.clear();
-    this.safeZoneVisual.lineStyle(2, 0x00ffff, 0.3);
-    this.safeZoneVisual.strokeCircle(wbX, wbY, SAFE_ZONE_RADIUS);
-    this.safeZoneVisual.fillStyle(0x00ffff, 0.05);
-    this.safeZoneVisual.fillCircle(wbX, wbY, SAFE_ZONE_RADIUS);
+    
+    // Borda ultra fina e sutil (0.3 de alpha)
+    this.safeZoneVisual.lineStyle(1, 0x00ffff, 0.3);
+    
+    const segments = 120; // Mais divisões para pontos menores
+    const angleStep = (Math.PI * 2) / segments;
+    const dotRatio = 0.3; // Desenha apenas 30% do segmento (efeito de ponto)
+    
+    for (let i = 0; i < segments; i++) {
+      const startAngle = i * angleStep;
+      const endAngle = startAngle + (angleStep * dotRatio);
+      
+      this.safeZoneVisual.beginPath();
+      this.safeZoneVisual.arc(wbX, wbY, SAFE_ZONE_RADIUS, startAngle, endAngle);
+      this.safeZoneVisual.strokePath();
+    }
   }
 
   create() {

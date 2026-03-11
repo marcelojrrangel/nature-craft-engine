@@ -4,7 +4,7 @@ import { ITEMS, HARDNESS, TOOL_DAMAGE, BASE_DAMAGE, DROP_BONUS_CHANCE, TOOL_REQU
 import { gameEvents } from '../events';
 import { ChickenNPC } from '../entities/ChickenNPC';
 import { CrabNPC } from '../entities/CrabNPC';
-import { BearNPC } from '../entities/BearNPC';
+import { OrcNPC } from '../entities/OrcNPC';
 import { RabbitNPC } from '../entities/RabbitNPC';
 
 const MAP_W = 100;
@@ -12,7 +12,7 @@ const MAP_H = 100;
 const TILE = 16;
 const CHICKEN_COUNT = 8;
 const CRAB_COUNT = 8;
-const BEAR_COUNT = 2;
+const BEAR_COUNT = 2; // Representa a contagem de Orcs agora
 const RABBIT_COUNT = 6;
 const SAFE_ZONE_RADIUS = 100;
 
@@ -24,22 +24,23 @@ interface ResourceObj extends Phaser.GameObjects.Sprite {
 }
 
 export class MainScene extends Phaser.Scene {
-  private player!: Phaser.GameObjects.Sprite;
+  private player!: Phaser.Physics.Arcade.Sprite;
   private playerLight!: Phaser.GameObjects.Light;
+  private workbench!: Phaser.Physics.Arcade.Sprite;
   private workbenchLight!: Phaser.GameObjects.Light;
   private safeZoneLight!: Phaser.GameObjects.Light;
   
   private resources: ResourceObj[] = [];
   private chickens: ChickenNPC[] = [];
   private crabs: CrabNPC[] = [];
-  private bears: BearNPC[] = [];
+  private orcs: OrcNPC[] = [];
   private rabbits: RabbitNPC[] = [];
   private campfireSprites: Phaser.GameObjects.Sprite[] = [];
   
   private resourceGroup!: Phaser.Physics.Arcade.StaticGroup;
   private chickenGroup!: Phaser.Physics.Arcade.Group;
   private crabGroup!: Phaser.Physics.Arcade.Group;
-  private bearGroup!: Phaser.Physics.Arcade.Group;
+  private bearGroup!: Phaser.Physics.Arcade.Group; // Grupo físico para Orcs
   private rabbitGroup!: Phaser.Physics.Arcade.Group;
   private projectileGroup!: Phaser.Physics.Arcade.Group;
 
@@ -80,18 +81,13 @@ export class MainScene extends Phaser.Scene {
     if (!this.sys || !this.safeZoneVisual) return;
     const wbX = (MAP_W * TILE) / 2, wbY = (MAP_H * TILE) / 2;
     this.safeZoneVisual.clear();
-    
-    // Borda ultra fina e sutil (0.3 de alpha)
     this.safeZoneVisual.lineStyle(1, 0x00ffff, 0.3);
-    
-    const segments = 120; // Mais divisões para pontos menores
+    const segments = 120;
     const angleStep = (Math.PI * 2) / segments;
-    const dotRatio = 0.3; // Desenha apenas 30% do segmento (efeito de ponto)
-    
+    const dotRatio = 0.3;
     for (let i = 0; i < segments; i++) {
       const startAngle = i * angleStep;
       const endAngle = startAngle + (angleStep * dotRatio);
-      
       this.safeZoneVisual.beginPath();
       this.safeZoneVisual.arc(wbX, wbY, SAFE_ZONE_RADIUS, startAngle, endAngle);
       this.safeZoneVisual.strokePath();
@@ -108,13 +104,13 @@ export class MainScene extends Phaser.Scene {
     this.resources = [];
     this.chickens = [];
     this.crabs = [];
-    this.bears = [];
+    this.orcs = [];
     this.rabbits = [];
 
     this.resourceGroup = this.physics.add.staticGroup();
     this.chickenGroup = this.physics.add.group();
     this.crabGroup = this.physics.add.group();
-    this.bearGroup = this.physics.add.group();
+    this.bearGroup = this.physics.add.group(); 
     this.rabbitGroup = this.physics.add.group();
     this.projectileGroup = this.physics.add.group();
     this.resourceHpGraphics = this.add.graphics().setDepth(2000);
@@ -135,7 +131,7 @@ export class MainScene extends Phaser.Scene {
     this.generateResources();
     this.generateChickens();
     this.generateCrabs();
-    this.generateBears();
+    this.generateBears(); // Agora gera Orcs internamente
     this.generateRabbits();
     this.setupInput();
     this.setupCamera();
@@ -143,15 +139,8 @@ export class MainScene extends Phaser.Scene {
     this.drawSafeZone();
     this.restorePlacedItems();
 
-    // Criar UI de interação (Container com Fundo Arredondado + Texto)
     this.interactBg = this.add.graphics();
-    const interactLabel = this.add.text(0, 0, '', { 
-      fontSize: '9px', 
-      fontFamily: 'monospace',
-      color: '#ffffff',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-
+    const interactLabel = this.add.text(0, 0, '', { fontSize: '9px', fontFamily: 'monospace', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     this.interactUI = this.add.container(0, 0, [this.interactBg, interactLabel]).setDepth(3000).setVisible(false);
     (this.interactUI as any).label = interactLabel;
     
@@ -186,35 +175,13 @@ export class MainScene extends Phaser.Scene {
 
   private createCampfire(x: number, y: number) {
     if (!this.add) return;
-    
-    // Base da fogueira (lenha/pedras)
     const base = this.add.sprite(x, y, 'bonfire_base', 0).setDepth(y - 1).setPipeline('Light2D');
-    
-    // Fogo animado (posicionado levemente acima da base)
     const fire = this.add.sprite(x, y - 8, 'fire_anim', 0).setDepth(y).setPipeline('Light2D');
-    
-    if (!this.anims.exists('bonfire_burn')) { 
-      this.anims.create({ 
-        key: 'bonfire_burn', 
-        frames: this.anims.generateFrameNumbers('fire_anim', { start: 0, end: 3 }), 
-        frameRate: 10, 
-        repeat: -1 
-      }); 
-    }
-    
-    fire.play('bonfire_burn'); 
-    this.campfireSprites.push(fire);
-    
+    if (!this.anims.exists('bonfire_burn')) { this.anims.create({ key: 'bonfire_burn', frames: this.anims.generateFrameNumbers('fire_anim', { start: 0, end: 3 }), frameRate: 10, repeat: -1 }); }
+    fire.play('bonfire_burn'); this.campfireSprites.push(fire);
     if (this.lights) {
       const light = this.lights.addLight(x, y, 140).setColor(0xffaa00).setIntensity(1.5);
-      this.tweens.add({ 
-        targets: light, 
-        intensity: { from: 1.5, to: 1.2 }, 
-        radius: { from: 140, to: 130 }, 
-        duration: 150, 
-        yoyo: true, 
-        repeat: -1 
-      });
+      this.tweens.add({ targets: light, intensity: { from: 1.5, to: 1.2 }, radius: { from: 140, to: 130 }, duration: 150, yoyo: true, repeat: -1 });
     }
   }
 
@@ -224,12 +191,12 @@ export class MainScene extends Phaser.Scene {
       const resource = res as ResourceObj;
       if (this.canDamageTarget(resource.resourceType, false)) { this.applyDamageToResource(resource, gameStore.getStats().attackDamage); arrow.destroy(); }
     });
-    const configs = [{ g: this.chickenGroup, l: this.chickens, t: 'chicken' }, { g: this.crabGroup, l: this.crabs, t: 'crab' }, { g: this.bearGroup, l: this.bears, t: 'bear' }, { g: this.rabbitGroup, l: this.rabbits, t: 'rabbit' }];
+    const configs = [{ g: this.chickenGroup, l: this.chickens, t: 'chicken' }, { g: this.crabGroup, l: this.crabs, t: 'crab' }, { g: this.bearGroup, l: this.orcs, t: 'bear' }, { g: this.rabbitGroup, l: this.rabbits, t: 'rabbit' }];
     configs.forEach(cfg => {
       this.physics.add.overlap(this.projectileGroup, cfg.g, (arrow, sprite) => {
         if (!arrow.active) return;
         const npc = cfg.l.find((n: any) => n.sprite === sprite);
-        if (npc && this.canDamageTarget(cfg.t, false)) { arrow.destroy(); this.applyDamageToNPC(npc, cfg.t, gameStore.getStats().attackDamage); }
+        if (npc && this.canDamageTarget(cfg.t, false)) { (arrow as any).destroy(); this.applyDamageToNPC(npc, cfg.t, gameStore.getStats().attackDamage); }
       });
     });
   }
@@ -253,15 +220,9 @@ export class MainScene extends Phaser.Scene {
   private generateMap() {
     for (let y = 0; y < MAP_H; y++) {
       for (let x = 0; x < MAP_W; x++) {
-        const dx = x / MAP_W - 0.5;
-        const dy = y / MAP_H - 0.5;
-        const d = Math.sqrt(dx * dx + dy * dy);
-        if (d > 0.45) {
-          this.add.sprite(x * TILE + 8, y * TILE + 8, 'water_tiles', 0).setDepth(0).setPipeline('Light2D');
-        } else {
-          // RESTORING GRAVEL FLOOR
-          this.add.sprite(x * TILE + 8, y * TILE + 8, 'chao_cascalho').setDepth(0).setPipeline('Light2D');
-        }
+        const dx = x / MAP_W - 0.5, dy = y / MAP_H - 0.5, d = Math.sqrt(dx * dx + dy * dy);
+        if (d > 0.45) this.add.sprite(x * TILE + 8, y * TILE + 8, 'water_tiles', 0).setDepth(0).setPipeline('Light2D');
+        else this.add.sprite(x * TILE + 8, y * TILE + 8, 'chao_cascalho').setDepth(0).setPipeline('Light2D');
       }
     }
     this.physics.world.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE);
@@ -274,16 +235,10 @@ export class MainScene extends Phaser.Scene {
     for (let i = 0; i < 20; i++) { const p = this.getRandomPlaceablePosition(); if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) this.createResource(p.x, p.y, 'bush', 3, `bush_${i}`); }
     for (let i = 0; i < 20; i++) { const p = this.getRandomPlaceablePosition(); if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) this.createResource(p.x, p.y, 'rock', 18, `rock_${i}`); }
     for (let i = 0; i < 15; i++) { const p = this.getRandomPlaceablePosition(); if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) this.createResource(p.x, p.y, 'small_rock', 2, `small_rock_${i}`); }
-    
-    // BANCADA PROFISSIONAL (Nível 1)
     this.workbench = this.physics.add.sprite(wbX, wbY, 'workbench_lv1').setPipeline('Light2D');
-    this.workbench.setImmovable(true).setDepth(wbY); 
-    (this.workbench as any).isWorkbench = true;
-    
-    // Ajuste de colisão na base para profundidade
+    this.workbench.setImmovable(true).setDepth(wbY); (this.workbench as any).isWorkbench = true;
     const wbBody = this.workbench.body as Phaser.Physics.Arcade.Body;
     wbBody.setSize(28, 12).setOffset(2, 12);
-    
     this.physics.add.collider(this.player, this.workbench);
   }
 
@@ -316,7 +271,7 @@ export class MainScene extends Phaser.Scene {
       if (!s) { const p = this.getRandomBearPosition(); if (!p) continue; s = { id, x: p.x, y: p.y, alive: true, respawnAt: null, hp: HARDNESS.bear }; gameStore.bearStates[id] = s; }
       if (s.respawnAt && now < s.respawnAt) continue;
       if (!s.alive || s.respawnAt !== null) { s.alive = true; s.respawnAt = null; s.hp = HARDNESS.bear; }
-      this.spawnBear(s);
+      this.spawnOrc(s);
     }
   }
 
@@ -333,44 +288,28 @@ export class MainScene extends Phaser.Scene {
 
   private spawnChicken(s: ChickenState) {
     if (this.chickens.some(c => c.id === s.id)) return;
-    
-    // Randomizar a cor da galinha
     const colors = ['chicken_white', 'chicken_black', 'chicken_brown'];
     const textureKey = colors[Math.floor(Math.random() * colors.length)];
-    
-    const c = new ChickenNPC(this, { 
-      id: s.id, 
-      x: s.x, 
-      y: s.y, 
-      textureKey, // Passando a cor escolhida
-      wanderRadius: 96 
-    }, s.hp);
-    
-    c.sprite.setPipeline('Light2D');
-    this.chickens.push(c); 
-    this.chickenGroup.add(c.sprite); 
-    this.physics.add.collider(this.player, c.sprite);
+    const c = new ChickenNPC(this, { id: s.id, x: s.x, y: s.y, textureKey, wanderRadius: 96 }, s.hp);
+    c.sprite.setPipeline('Light2D'); this.chickens.push(c); this.chickenGroup.add(c.sprite); this.physics.add.collider(this.player, c.sprite);
   }
 
   private spawnCrab(s: CrabState) {
     if (this.crabs.some(c => c.id === s.id)) return;
     const c = new CrabNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 48 }, s.hp);
-    c.sprite.setPipeline('Light2D');
-    this.crabs.push(c); this.crabGroup.add(c.sprite); this.physics.add.collider(this.player, c.sprite);
+    c.sprite.setPipeline('Light2D'); this.crabs.push(c); this.crabGroup.add(c.sprite); this.physics.add.collider(this.player, c.sprite);
   }
 
-  private spawnBear(s: BearState) {
-    if (this.bears.some(b => b.id === s.id)) return;
-    const b = new BearNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 150 }, s.hp);
-    b.sprite.setPipeline('Light2D');
-    this.bears.push(b); this.bearGroup.add(b.sprite); this.physics.add.collider(this.player, b.sprite);
+  private spawnOrc(s: BearState) {
+    if (this.orcs.some(b => b.id === s.id)) return;
+    const b = new OrcNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 150 }, s.hp);
+    b.sprite.setPipeline('Light2D'); this.orcs.push(b); this.bearGroup.add(b.sprite); this.physics.add.collider(this.player, b.sprite);
   }
 
   private spawnRabbit(s: RabbitState) {
     if (this.rabbits.some(r => r.id === s.id)) return;
     const r = new RabbitNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 150 }, s.hp);
-    r.sprite.setPipeline('Light2D');
-    this.rabbits.push(r); this.rabbitGroup.add(r.sprite); this.physics.add.collider(this.player, r.sprite);
+    r.sprite.setPipeline('Light2D'); this.rabbits.push(r); this.rabbitGroup.add(r.sprite); this.physics.add.collider(this.player, r.sprite);
   }
 
   private getRandomPlaceablePosition() {
@@ -383,39 +322,34 @@ export class MainScene extends Phaser.Scene {
 
   private getRandomBearPosition() {
     const wbX = (MAP_W * TILE) / 2, wbY = (MAP_H * TILE) / 2;
-    for (let i = 0; i < 30; i++) {
-      const p = this.getRandomPlaceablePosition();
-      if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > (SAFE_ZONE_RADIUS + 100)) return p;
-    }
+    for (let i = 0; i < 30; i++) { const p = this.getRandomPlaceablePosition(); if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > (SAFE_ZONE_RADIUS + 100)) return p; }
     return null;
   }
 
   private createResource(x: number, y: number, type: any, hp: number, id: string) {
     const shp = gameStore.resourceStates[id]; if (shp !== undefined && shp <= 0) return;
-    let key = type; let frame = undefined;
-    if (type === 'rock') { key = Math.random() > 0.5 ? 'rock_medium' : 'rock_large'; } 
-    else if (type === 'small_rock') { key = 'rock_small'; } 
-    else if (type === 'tree') { key = 'tree_common'; } 
-    else if (type === 'dead_tree') { key = 'tree_dry'; } 
+    let key = type, frame = undefined;
+    if (type === 'rock') key = Math.random() > 0.5 ? 'rock_medium' : 'rock_large';
+    else if (type === 'small_rock') key = 'rock_small';
+    else if (type === 'tree') key = 'tree_common';
+    else if (type === 'dead_tree') key = 'tree_dry';
     else if (type === 'bush') { const variants = ['bush_41', 'bush_42', 'bush_45', 'bush_46']; key = variants[Math.floor(Math.random() * variants.length)]; }
-    
     const s = this.resourceGroup.create(x, y, key, frame) as ResourceObj;
     s.setPipeline('Light2D'); s.resourceType = type; s.resourceHp = shp ?? hp; s.maxHp = HARDNESS[type] || hp; s.resourceId = id;
     const body = s.body as Phaser.Physics.Arcade.StaticBody;
-    
-    if (key === 'rock_large') body.setSize(24, 20).setOffset(2, 20); 
-    else if (key === 'rock_medium') body.setSize(20, 16).setOffset(3, 8); 
-    else if (key === 'rock_small') body.setSize(12, 10).setOffset(2, 2); 
-    else if (key === 'tree_common') body.setSize(16, 12).setOffset(8, 48); 
-    else if (key === 'tree_dry') body.setSize(14, 10).setOffset(6, 35); 
+    if (key === 'rock_large') body.setSize(24, 20).setOffset(2, 20);
+    else if (key === 'rock_medium') body.setSize(20, 16).setOffset(3, 8);
+    else if (key === 'rock_small') body.setSize(12, 10).setOffset(2, 2);
+    else if (key === 'tree_common') body.setSize(16, 12).setOffset(8, 48);
+    else if (key === 'tree_dry') body.setSize(14, 10).setOffset(6, 35);
     else if (key.startsWith('bush')) { if (key === 'bush_41' || key === 'bush_42') body.setSize(24, 16).setOffset(10, 24); else body.setSize(16, 12).setOffset(6, 12); }
-    
     s.setDepth(y); this.resources.push(s); this.physics.add.collider(this.player, s);
   }
 
   private createPlayer() {
-    this.player = this.physics.add.sprite(gameStore.playerX, gameStore.playerY, 'p_idle_down', 0).setPipeline('Light2D');
-    this.player.setDepth(10); const b = this.player.body as Phaser.Physics.Arcade.Body;
+    this.player = this.physics.add.sprite(gameStore.playerX, gameStore.playerY, 'p_idle_down', 0);
+    this.player.setPipeline('Light2D'); this.player.setDepth(10);
+    const b = this.player.body as Phaser.Physics.Arcade.Body;
     b.setCollideWorldBounds(true).setSize(16, 16).setOffset(24, 40);
     const anims = [{ key: 'idle_down', sheet: 'p_idle_down', frames: 4 }, { key: 'idle_side', sheet: 'p_idle_side', frames: 4 }, { key: 'idle_up', sheet: 'p_idle_up', frames: 4 }, { key: 'run_down', sheet: 'p_run_down', frames: 6 }, { key: 'run_side', sheet: 'p_run_side', frames: 6 }, { key: 'run_up', sheet: 'p_run_up', frames: 6 }, { key: 'attack_down', sheet: 'p_attack_down', frames: 8 }, { key: 'attack_side', sheet: 'p_attack_side', frames: 8 }, { key: 'attack_up', sheet: 'p_attack_up', frames: 8 }];
     anims.forEach(a => { if (!this.anims.exists(a.key)) { this.anims.create({ key: a.key, frames: this.anims.generateFrameNumbers(a.sheet, { start: 0, end: a.frames - 1 }), frameRate: a.key.includes('attack') ? 12 : 8, repeat: a.key.includes('attack') ? 0 : -1 }); } });
@@ -432,7 +366,7 @@ export class MainScene extends Phaser.Scene {
 
   private setupCamera() { this.cameras.main.startFollow(this.player, true, 0.08, 0.08); this.cameras.main.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE).setZoom(2.5); }
 
-  shutdown() { this.unsubscribeList.forEach(unsub => unsub()); this.unsubscribeList = []; this.chickens.forEach(c => c.destroy()); this.crabs.forEach(c => c.destroy()); this.bears.forEach(b => b.destroy()); this.rabbits.forEach(r => r.destroy()); }
+  shutdown() { this.unsubscribeList.forEach(unsub => unsub()); this.unsubscribeList = []; this.chickens.forEach(c => c.destroy()); this.crabs.forEach(c => c.destroy()); this.orcs.forEach(b => b.destroy()); this.rabbits.forEach(r => r.destroy()); }
 
   private showFloatingText(x: number, y: number, text: string, color: string) { if (!this.sys || !this.sys.isActive()) return; const f = this.add.text(x, y, text, { fontSize: '12px', color, fontStyle: 'bold', backgroundColor: '#00000066', padding: { x: 4, y: 2 } }).setDepth(3500); this.tweens.add({ targets: f, y: y - 24, alpha: 0, duration: 850, onComplete: () => f.destroy() }); }
 
@@ -442,19 +376,25 @@ export class MainScene extends Phaser.Scene {
 
   private applyDamageToResource(res: ResourceObj, dmg: number) { if (!res || !res.active) return; res.resourceHp -= dmg; gameStore.resourceStates[res.resourceId] = res.resourceHp; res.setTint(0xffffff); this.time.delayedCall(100, () => { if (res && res.active) res.clearTint(); }); if (res.resourceType === 'rock' || res.resourceType === 'small_rock') this.stoneParticles.emitParticleAt(res.x, res.y, 5); else if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') this.woodParticles.emitParticleAt(res.x, res.y, 5); const t = this.add.text(res.x, res.y - 20, `-${dmg.toFixed(0)}`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: res.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (res.resourceHp <= 0) this.harvestResource(res); }
 
-  private applyDamageToNPC(npc: any, type: string, dmg: number) { const sMap = type === 'chicken' ? gameStore.chickenStates : type === 'crab' ? gameStore.crabStates : type === 'bear' ? gameStore.bearStates : gameStore.rabbitStates; if (!sMap) return; const s = sMap[npc.id]; if (!s) return; const hp = npc.takeDamage(dmg); s.hp = hp; this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8); const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (hp <= 0) { if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc); else if (type === 'bear') this.collectBear(npc); else if (type === 'rabbit') this.collectRabbit(npc); } }
+  private applyDamageToNPC(npc: any, type: string, dmg: number) { const sMap = type === 'chicken' ? gameStore.chickenStates : type === 'crab' ? gameStore.crabStates : type === 'bear' ? gameStore.bearStates : gameStore.rabbitStates; if (!sMap) return; const s = sMap[npc.id]; if (!s) return; const hp = npc.takeDamage(dmg); s.hp = hp; this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8); const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (hp <= 0) { if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc); else if (type === 'bear') this.collectOrc(npc); else if (type === 'rabbit') this.collectRabbit(npc); } }
 
   private collectChicken(c: ChickenNPC) { const s = gameStore.chickenStates[c.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000); gameStore.addItem(ITEMS.chicken_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.feather, 1); c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); }); this.chickens = this.chickens.filter(chi => chi.id !== c.id); gameStore.save(); }
 
   private collectCrab(c: CrabNPC) { const s = gameStore.crabStates[c.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000); gameStore.addItem(ITEMS.crab_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.crab_shell, 1); c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); }); this.crabs = this.crabs.filter(cra => cra.id !== c.id); gameStore.save(); }
 
-  private collectBear(b: BearNPC) { const s = gameStore.bearStates[b.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(60000, 120000); gameStore.addItem(ITEMS.pelt, Phaser.Math.Between(2, 4)); gameStore.addItem(ITEMS.food, 3); b.collect(); this.time.delayedCall(80, () => { if (b.sprite && b.sprite.active) b.destroy(); }); this.bears = this.bears.filter(bear => bear.id !== b.id); gameStore.save(); }
+  private collectOrc(b: OrcNPC) { const s = gameStore.bearStates[b.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(60000, 120000); gameStore.addItem(ITEMS.pelt, Phaser.Math.Between(2, 4)); gameStore.addItem(ITEMS.food, 3); b.collect(); this.time.delayedCall(80, () => { if (b.sprite && b.sprite.active) b.destroy(); }); this.orcs = this.orcs.filter(orc => orc.id !== b.id); gameStore.save(); }
 
   private collectRabbit(r: RabbitNPC) { const s = gameStore.rabbitStates[r.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000); gameStore.addItem(ITEMS.rabbit_meat, 1); gameStore.addItem(ITEMS.pelt, 1); r.collect(); this.time.delayedCall(80, () => { if (r.sprite && r.sprite.active) r.destroy(); }); this.rabbits = this.rabbits.filter(rab => rab.id !== r.id); gameStore.save(); }
 
   private harvestResource(res: ResourceObj) { if (!res || !res.active) return; let item, qty = 1; switch (res.resourceType) { case 'tree': item = ITEMS.wood; qty = Phaser.Math.Between(2, 4); break; case 'dead_tree': item = ITEMS.wood; qty = 1; gameStore.addItem(ITEMS.twig, Phaser.Math.Between(2, 4)); break; case 'rock': item = ITEMS.stone; qty = Phaser.Math.Between(1, 3); break; case 'small_rock': item = ITEMS.stone; qty = 1; break; case 'bush': item = Math.random() > 0.5 ? ITEMS.fiber : ITEMS.seed; qty = Phaser.Math.Between(1, 2); break; } if (item) { gameStore.addItem(item, qty); this.showFloatingText(res.x, res.y - 10, `+${qty} ${item.icon}`, '#ffff00'); } this.respawnCounter++; gameStore.respawnQueue.push({ x: res.x, y: res.y, type: res.resourceType, hp: res.maxHp, id: `${res.resourceType}_r${this.respawnCounter}_${Date.now()}`, respawnAt: Date.now() + Phaser.Math.Between(30000, 60000) }); this.resources = this.resources.filter(r => r !== res); delete gameStore.resourceStates[res.resourceId]; res.destroy(); gameStore.save(); }
 
-  private processRespawns() { const now = Date.now(); for (let i = gameStore.respawnQueue.length - 1; i >= 0; i--) { const e = gameStore.respawnQueue[i]; if (now >= e.respawnAt) { gameStore.respawnQueue.splice(i, 1); this.createResource(e.x, e.y, e.type as any, e.hp, e.id); } } const configs = [{ s: gameStore.chickenStates, sp: (s: any) => this.spawnChicken(s) }, { s: gameStore.crabStates, sp: (s: any) => this.spawnCrab(s) }, { s: gameStore.bearStates, sp: (s: any) => this.spawnBear(s) }, { s: gameStore.rabbitStates, sp: (s: any) => this.spawnRabbit(s) }]; configs.forEach(cfg => { if (cfg.s) Object.values(cfg.s).forEach((s: any) => { if (!s.alive && s.respawnAt && now >= s.respawnAt) { s.alive = true; s.respawnAt = null; cfg.sp(s); } }); }); gameStore.save(); }
+  private processRespawns() {
+    const now = Date.now();
+    for (let i = gameStore.respawnQueue.length - 1; i >= 0; i--) { const e = gameStore.respawnQueue[i]; if (now >= e.respawnAt) { gameStore.respawnQueue.splice(i, 1); this.createResource(e.x, e.y, e.type as any, e.hp, e.id); } }
+    const configs = [{ s: gameStore.chickenStates, sp: (s: any) => this.spawnChicken(s) }, { s: gameStore.crabStates, sp: (s: any) => this.spawnCrab(s) }, { s: gameStore.bearStates, sp: (s: any) => this.spawnOrc(s) }, { s: gameStore.rabbitStates, sp: (s: any) => this.spawnRabbit(s) }];
+    configs.forEach(cfg => { if (cfg.s) Object.values(cfg.s).forEach((s: any) => { if (!s.alive && s.respawnAt && now >= s.respawnAt) { s.alive = true; s.respawnAt = null; cfg.sp(s); } }); });
+    gameStore.save();
+  }
 
   private doInteract() { if (this.nearWorkbench) { (gameStore as any).currentStation = 'workbench'; gameStore.toggleCrafting(); } else if (this.nearCampfire) { (gameStore as any).currentStation = 'campfire'; gameStore.toggleCrafting(); } }
 
@@ -471,10 +411,10 @@ export class MainScene extends Phaser.Scene {
 
   private doMeleeAttack() {
     const stats = gameStore.getStats(), t = gameStore.getEquippedTool();
-    const targets = [...this.chickens, ...this.crabs, ...this.bears, ...this.rabbits];
+    const targets = [...this.chickens, ...this.crabs, ...this.orcs, ...this.rabbits];
     targets.forEach((npc: any) => {
       if (npc.isInRange && npc.isInRange(this.player.x, this.player.y, 42)) {
-        let type = npc instanceof CrabNPC ? 'crab' : npc instanceof BearNPC ? 'bear' : npc instanceof RabbitNPC ? 'rabbit' : 'chicken';
+        let type = npc instanceof CrabNPC ? 'crab' : npc instanceof OrcNPC ? 'bear' : npc instanceof RabbitNPC ? 'rabbit' : 'chicken';
         if (this.canDamageTarget(type)) { gameStore.useTool(t?.type === 'knife' ? 'knife' : 'sword'); this.applyDamageToNPC(npc, type, stats.attackDamage); }
       }
     });
@@ -492,27 +432,13 @@ export class MainScene extends Phaser.Scene {
   private updateInteractUI(visible: boolean, text: string = '', x: number = 0, y: number = 0) {
     this.interactUI.setVisible(visible);
     if (!visible) return;
-
     const label = (this.interactUI as any).label as Phaser.GameObjects.Text;
     label.setText(text);
-    
-    const width = label.width + 20;
-    const height = label.height + 12;
-    
+    const width = label.width + 20, height = label.height + 12;
     this.interactBg.clear();
-    
-    // Sombra (Preta deslocada)
-    this.interactBg.fillStyle(0x000000, 0.4);
-    this.interactBg.fillRoundedRect(-(width/2) + 2, -(height/2) + 2, width, height, 6);
-    
-    // Fundo Principal (Preto como o HUD)
-    this.interactBg.fillStyle(0x000000, 0.7);
-    this.interactBg.fillRoundedRect(-(width/2), -(height/2), width, height, 6);
-    
-    // Borda Cinza Sombreada (Estilo HUD)
-    this.interactBg.lineStyle(1, 0x888888, 0.5);
-    this.interactBg.strokeRoundedRect(-(width/2), -(height/2), width, height, 6);
-    
+    this.interactBg.fillStyle(0x000000, 0.4); this.interactBg.fillRoundedRect(-(width/2) + 2, -(height/2) + 2, width, height, 6);
+    this.interactBg.fillStyle(0x000000, 0.7); this.interactBg.fillRoundedRect(-(width/2), -(height/2), width, height, 6);
+    this.interactBg.lineStyle(1, 0x888888, 0.5); this.interactBg.strokeRoundedRect(-(width/2), -(height/2), width, height, 6);
     this.interactUI.setPosition(x, y);
   }
 
@@ -524,7 +450,7 @@ export class MainScene extends Phaser.Scene {
     const wbX = (MAP_W * TILE) / 2, wbY = (MAP_H * TILE) / 2, distToWB = Phaser.Math.Distance.Between(this.player.x, this.player.y, wbX, wbY);
     if (distToWB < SAFE_ZONE_RADIUS) this.inSafeZone = true;
     this.campfireSprites.forEach(cf => { if (cf && cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50) this.nearCampfire = true; });
-    this.bears.forEach(b => { b.update(delta, this.player.x, this.player.y, { x: wbX, y: wbY, radius: SAFE_ZONE_RADIUS }, this.inSafeZone); const bBody = b.sprite.body as Phaser.Physics.Arcade.Body; if (bBody && (Math.abs(bBody.velocity.x) > 10 || Math.abs(bBody.velocity.y) > 10)) this.dustParticles.emitParticleAt(b.sprite.x, b.sprite.y + 10, 1); });
+    this.orcs.forEach(b => { b.update(delta, this.player.x, this.player.y, { x: wbX, y: wbY, radius: SAFE_ZONE_RADIUS }, this.inSafeZone); const bBody = b.sprite.body as Phaser.Physics.Arcade.Body; if (bBody && (Math.abs(bBody.velocity.x) > 10 || Math.abs(bBody.velocity.y) > 10)) this.dustParticles.emitParticleAt(b.sprite.x, b.sprite.y + 10, 1); });
     this.drawResourceHpBars();
     if (this.isAttacking) return;
     const body = this.player.body as Phaser.Physics.Arcade.Body; let vx = 0, vy = 0;
@@ -536,20 +462,9 @@ export class MainScene extends Phaser.Scene {
     else { if (body) body.setVelocity(0, 0); const animKey = this.facingDir === 'left' || this.facingDir === 'right' ? 'idle_side' : `idle_${this.facingDir}`; this.player.setFlipX(this.facingDir === 'left').play(animKey, true); }
     gameStore.updatePlayerPos(this.player.x, this.player.y);
     this.nearWorkbench = distToWB < 50;
-    if (this.nearWorkbench) {
-      this.updateInteractUI(true, '[C] BANCADA', wbX, wbY - 35);
-    }
-    else if (this.nearCampfire) { 
-      const closestCF = this.campfireSprites.find(cf => cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50); 
-      if (closestCF) {
-        this.updateInteractUI(true, '[C] COZINHAR', closestCF.x, closestCF.y - 35);
-      } else {
-        this.updateInteractUI(false);
-      }
-    }
-    else {
-      this.updateInteractUI(false);
-    }
+    if (this.nearWorkbench) this.updateInteractUI(true, '[C] BANCADA', wbX, wbY - 35);
+    else if (this.nearCampfire) { const closestCF = this.campfireSprites.find(cf => cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50); if (closestCF) this.updateInteractUI(true, '[C] COZINHAR', closestCF.x, closestCF.y - 35); else this.updateInteractUI(false); }
+    else this.updateInteractUI(false);
     this.player.setDepth(this.player.y); this.resources.forEach(r => r.setDepth(r.y));
     this.chickens.forEach(c => { c.sprite.setDepth(c.sprite.y); const cb = c.sprite.body as Phaser.Physics.Arcade.Body; if (cb && (Math.abs(cb.velocity.x) > 10 || Math.abs(cb.velocity.y) > 10)) this.dustParticles.emitParticleAt(c.sprite.x, c.sprite.y + 8, 1); }); 
     this.crabs.forEach(c => c.sprite.setDepth(c.sprite.y));

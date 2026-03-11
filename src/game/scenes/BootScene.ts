@@ -38,6 +38,24 @@ export class BootScene extends Phaser.Scene {
     this.load.image('bush_42', e + 'bush/common-bush/arbusto_verde_42.png');
     this.load.image('bush_45', e + 'bush/common-bush/arbusto_verde_45.png');
     this.load.image('bush_46', e + 'bush/common-bush/arbusto_verde_46.png');
+
+    // Chicken Spritesheets (32x32 frames)
+    this.load.spritesheet('chicken_white', e + 'chicken/Chicken_Sprite_Sheet.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('chicken_black', e + 'chicken/Chicken_Sprite_Sheet_Black.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('chicken_brown', e + 'chicken/Chicken_Sprite_Sheet_Light_Brown.png', { frameWidth: 32, frameHeight: 32 });
+    
+    // Crab Spritesheet (32x32 frames)
+    this.load.spritesheet('crab_prof', e + 'crab/Crab Sprite Sheet.png', { frameWidth: 32, frameHeight: 32 });
+
+    // Bonfire Assets
+    this.load.spritesheet('bonfire_base', e + 'bonfire/Bonfire_02-Sheet.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('fire_anim', e + 'bonfire/Fire_01-Sheet.png', { frameWidth: 32, frameHeight: 48 });
+
+    // Workbench (Bancada) Assets
+    const b = 'assets/env/bancada/';
+    this.load.image('workbench_lv1', b + 'rocha_01.png');
+    this.load.image('workbench_lv2', b + 'rocha_02.png');
+    this.load.image('workbench_lv3', b + 'rocha_03.png');
   }
 
   create() {

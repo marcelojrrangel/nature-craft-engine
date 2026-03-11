@@ -2,12 +2,13 @@ import Phaser from 'phaser';
 import { HealthComponent } from '../components/HealthComponent';
 import { HealthBarRenderer } from '../components/HealthBarRenderer';
 
-export type ChickenVisualState = 'idle' | 'eating' | 'dead';
+export type ChickenVisualState = 'idle' | 'walking' | 'eating' | 'dead';
 
 interface ChickenNPCConfig {
   id: string;
   x: number;
   y: number;
+  textureKey: string; // Nova propriedade para suportar cores diferentes
   wanderRadius?: number;
 }
 
@@ -16,6 +17,7 @@ export class ChickenNPC {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
   readonly homeX: number;
   readonly homeY: number;
+  private textureKey: string;
   
   public health: HealthComponent;
   private hpBar: HealthBarRenderer;
@@ -24,29 +26,54 @@ export class ChickenNPC {
   private stateTimer = 0;
   private targetPos: { x: number; y: number } | null = null;
   private readonly wanderRadius: number;
-  private readonly moveSpeed = 40;
+  private readonly moveSpeed = 35; // Leve ajuste na velocidade para combinar com a animação
 
   constructor(scene: Phaser.Scene, config: ChickenNPCConfig, initialHp: number = 5) {
     this.id = config.id;
     this.homeX = config.x;
     this.homeY = config.y;
+    this.textureKey = config.textureKey;
     this.wanderRadius = config.wanderRadius ?? 96;
 
     const maxHp = 5;
     this.health = new HealthComponent(initialHp > 0 ? initialHp : maxHp, maxHp);
 
-    this.sprite = scene.physics.add.sprite(config.x, config.y, 'chicken_idle');
+    // Criar o sprite com o asset profissional
+    this.sprite = scene.physics.add.sprite(config.x, config.y, this.textureKey, 0);
     this.sprite.setDepth(config.y);
-    this.sprite.setScale(0.9);
+    
+    // Ajustar corpo físico para o tamanho 32x32
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
     body.setCollideWorldBounds(true);
-    body.setSize(18, 14);
-    body.setOffset(7, 16);
+    body.setSize(16, 14).setOffset(8, 14); // Focado nos pés para profundidade correta
 
-    this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 12);
+    this.createAnimations(scene);
+    this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 14);
     this.health.onDeath(() => this.die());
 
     this.setState('idle');
+  }
+
+  private createAnimations(scene: Phaser.Scene) {
+    const k = this.textureKey;
+    // Criar animações globais uma única vez por cor de galinha
+    const anims = [
+      { key: `${k}_idle`, start: 0, end: 1, repeat: -1, rate: 4 }, // Piscar/Respirar
+      { key: `${k}_walk`, start: 4, end: 7, repeat: -1, rate: 8 }, // Andar
+      { key: `${k}_eat`, start: 8, end: 11, repeat: -1, rate: 6 },  // Bicar chão
+      { key: `${k}_dead`, start: 12, end: 15, repeat: 0, rate: 8 }  // Morrer
+    ];
+
+    anims.forEach(a => {
+      if (!scene.anims.exists(a.key)) {
+        scene.anims.create({
+          key: a.key,
+          frames: scene.anims.generateFrameNumbers(k, { start: a.start, end: a.end }),
+          frameRate: a.rate,
+          repeat: a.repeat
+        });
+      }
+    });
   }
 
   update(delta: number) {
@@ -62,27 +89,35 @@ export class ChickenNPC {
 
   private updateAI(delta: number) {
     this.stateTimer -= delta;
+    
     if (this.stateTimer <= 0) {
-      this.setState(this.state === 'idle' ? 'eating' : 'idle');
+      // Alternar entre Idle, Comer e Caminhar
+      const rand = Math.random();
+      if (rand < 0.4) this.setState('idle');
+      else if (rand < 0.7) this.setState('eating');
+      else this.setState('walking');
     }
 
-    if (this.state === 'eating') {
-      const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-      if (body) body.setVelocity(0, 0);
-      this.targetPos = null;
-    } else {
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    if (!body) return;
+
+    if (this.state === 'walking') {
       if (!this.targetPos || Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y) < 10) {
         this.targetPos = this.pickWanderTarget();
       }
-      const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-      if (body && this.targetPos) {
-        const dx = this.targetPos.x - this.sprite.x;
-        const dy = this.targetPos.y - this.sprite.y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        body.setVelocity((dx / len) * this.moveSpeed, (dy / len) * this.moveSpeed);
-        if (dx < -1) this.sprite.setFlipX(true);
-        if (dx > 1) this.sprite.setFlipX(false);
-      }
+      
+      const dx = this.targetPos.x - this.sprite.x;
+      const dy = this.targetPos.y - this.sprite.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      
+      body.setVelocity((dx / len) * this.moveSpeed, (dy / len) * this.moveSpeed);
+      
+      // Orientação visual
+      if (dx < -1) this.sprite.setFlipX(true);
+      if (dx > 1) this.sprite.setFlipX(false);
+    } else {
+      body.setVelocity(0, 0);
+      this.targetPos = null;
     }
   }
 
@@ -103,14 +138,59 @@ export class ChickenNPC {
 
   private die() {
     this.setState('dead');
-    // SEGURANÇA FÍSICA: Desativa completamente a colisão
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
     if (body) {
-      body.enable = false; // Desativa o motor de física para este corpo
-      this.sprite.disableBody(true, false); // Remove do mundo físico mas mantém visível
+      body.enable = false;
+      this.sprite.disableBody(true, false);
     }
-    this.sprite.setTexture('chicken_dead');
-    this.sprite.setDepth(this.sprite.y - 10); // Coloca levemente "abaixo" do jogador
+
+    // Criar mancha irregular com a cor da galinha
+    const colors: Record<string, number> = {
+      'chicken_white': 0xffffff,
+      'chicken_black': 0x222222,
+      'chicken_brown': 0x8B4513
+    };
+    const mainColor = colors[this.textureKey] || 0xffffff;
+
+    const g = this.sprite.scene.add.graphics();
+    g.setDepth(this.sprite.y - 5);
+    
+    // Desenhar mancha "rasgada" (múltiplos círculos aleatórios)
+    for (let i = 0; i < 6; i++) {
+      const offX = Phaser.Math.Between(-8, 8);
+      const offY = Phaser.Math.Between(-4, 4);
+      const radius = Phaser.Math.Between(4, 10);
+      const alpha = Phaser.Math.FloatBetween(0.2, 0.5);
+      
+      g.fillStyle(mainColor, alpha);
+      g.fillCircle(this.sprite.x + offX, this.sprite.y + 8 + offY, radius);
+    }
+    
+    // Pequenos "salpicos" extras
+    g.fillStyle(0x000000, 0.15);
+    g.fillCircle(this.sprite.x, this.sprite.y + 8, 12);
+
+    // Fade out do sprite original
+    this.sprite.scene.tweens.add({
+      targets: this.sprite,
+      alpha: 0,
+      duration: 400,
+      onComplete: () => {
+        this.sprite.setVisible(false);
+        
+        // Timer para sumir a mancha do chão após 5 segundos
+        if (this.sprite.scene) {
+          this.sprite.scene.tweens.add({
+            targets: g,
+            alpha: 0,
+            delay: 5000, // Tempo de espera no chão
+            duration: 2000, // Tempo de desaparecimento
+            onComplete: () => g.destroy()
+          });
+        }
+      }
+    });
+
     this.hpBar.update();
   }
 
@@ -121,20 +201,30 @@ export class ChickenNPC {
 
   private setState(nextState: ChickenVisualState) {
     this.state = nextState;
-    if (nextState === 'idle') {
-      this.sprite.setTexture('chicken_idle');
-      this.stateTimer = Phaser.Math.Between(1200, 3000);
-    } else if (nextState === 'eating') {
-      this.sprite.setTexture(Math.random() > 0.5 ? 'chicken_eat_0' : 'chicken_eat_1');
-      this.stateTimer = Phaser.Math.Between(800, 2000);
-    } else if (nextState === 'dead') {
-      this.sprite.setTexture('chicken_dead');
+    const k = this.textureKey;
+
+    switch (nextState) {
+      case 'idle':
+        this.sprite.play(`${k}_idle`, true);
+        this.stateTimer = Phaser.Math.Between(2000, 4000);
+        break;
+      case 'walking':
+        this.sprite.play(`${k}_walk`, true);
+        this.stateTimer = Phaser.Math.Between(3000, 6000);
+        break;
+      case 'eating':
+        this.sprite.play(`${k}_eat`, true);
+        this.stateTimer = Phaser.Math.Between(1500, 3000);
+        break;
+      case 'dead':
+        this.sprite.play(`${k}_dead`, true);
+        break;
     }
   }
 
   private pickWanderTarget() {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
-    const radius = Phaser.Math.FloatBetween(20, this.wanderRadius);
+    const radius = Phaser.Math.FloatBetween(30, this.wanderRadius);
     return { x: this.homeX + Math.cos(angle) * radius, y: this.homeY + Math.sin(angle) * radius };
   }
 }

@@ -28,13 +28,13 @@ export class HealthBarRenderer {
     // Hide if full and not marked as always visible
     if (!this.alwaysVisible && this.health.current >= this.health.max) return;
 
-    const width = 24;
-    const height = 4;
+    const width = 20; // REDUZIDO DE 24
+    const height = 2; // REDUZIDO DE 4
     const x = this.target.x - width / 2;
     const y = this.target.y + this.offset.y;
 
-    // Background
-    this.graphics.fillStyle(0x000000, 0.7);
+    // Background (Mais transparente)
+    this.graphics.fillStyle(0x000000, 0.5);
     this.graphics.fillRect(x, y, width, height);
 
     // Fill

@@ -50,7 +50,8 @@ export class MainScene extends Phaser.Scene {
 
   private isAttacking = false;
   private attackCooldown = 0;
-  private interactText!: Phaser.GameObjects.Text;
+  private interactUI!: Phaser.GameObjects.Container;
+  private interactBg!: Phaser.GameObjects.Graphics;
   private nearWorkbench = false;
   private nearCampfire = false;
   private inSafeZone = false;
@@ -142,7 +143,17 @@ export class MainScene extends Phaser.Scene {
     this.drawSafeZone();
     this.restorePlacedItems();
 
-    this.interactText = this.add.text(0, 0, '', { fontSize: '12px', color: '#ffffff', backgroundColor: '#00000088', padding: { x: 4, y: 2 } }).setDepth(3000).setVisible(false);
+    // Criar UI de interação (Container com Fundo Arredondado + Texto)
+    this.interactBg = this.add.graphics();
+    const interactLabel = this.add.text(0, 0, '', { 
+      fontSize: '9px', 
+      fontFamily: 'monospace',
+      color: '#ffffff',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    this.interactUI = this.add.container(0, 0, [this.interactBg, interactLabel]).setDepth(3000).setVisible(false);
+    (this.interactUI as any).label = interactLabel;
     
     this.unsubscribeList.push(gameEvents.on('joystickMove', ({ x, y }) => { if (this.sys && this.sys.isActive()) this.joyVec = { x, y }; }));
     this.unsubscribeList.push(gameEvents.on('attack', () => { if (this.sys && this.sys.isActive()) this.doAttack(); }));
@@ -175,13 +186,35 @@ export class MainScene extends Phaser.Scene {
 
   private createCampfire(x: number, y: number) {
     if (!this.add) return;
-    const base = this.add.sprite(x, y, 'campfire_base').setDepth(y - 1).setPipeline('Light2D');
-    const fire = this.add.sprite(x, y - 4, 'fire_0').setDepth(y).setPipeline('Light2D');
-    if (!this.anims.exists('burn')) { this.anims.create({ key: 'burn', frames: [{ key: 'fire_0' }, { key: 'fire_1' }, { key: 'fire_2' }], frameRate: 10, repeat: -1 }); }
-    fire.play('burn'); this.campfireSprites.push(fire);
+    
+    // Base da fogueira (lenha/pedras)
+    const base = this.add.sprite(x, y, 'bonfire_base', 0).setDepth(y - 1).setPipeline('Light2D');
+    
+    // Fogo animado (posicionado levemente acima da base)
+    const fire = this.add.sprite(x, y - 8, 'fire_anim', 0).setDepth(y).setPipeline('Light2D');
+    
+    if (!this.anims.exists('bonfire_burn')) { 
+      this.anims.create({ 
+        key: 'bonfire_burn', 
+        frames: this.anims.generateFrameNumbers('fire_anim', { start: 0, end: 3 }), 
+        frameRate: 10, 
+        repeat: -1 
+      }); 
+    }
+    
+    fire.play('bonfire_burn'); 
+    this.campfireSprites.push(fire);
+    
     if (this.lights) {
       const light = this.lights.addLight(x, y, 140).setColor(0xffaa00).setIntensity(1.5);
-      this.tweens.add({ targets: light, intensity: { from: 1.5, to: 1.3 }, radius: { from: 140, to: 135 }, duration: 150, yoyo: true, repeat: -1 });
+      this.tweens.add({ 
+        targets: light, 
+        intensity: { from: 1.5, to: 1.2 }, 
+        radius: { from: 140, to: 130 }, 
+        duration: 150, 
+        yoyo: true, 
+        repeat: -1 
+      });
     }
   }
 
@@ -241,8 +274,16 @@ export class MainScene extends Phaser.Scene {
     for (let i = 0; i < 20; i++) { const p = this.getRandomPlaceablePosition(); if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) this.createResource(p.x, p.y, 'bush', 3, `bush_${i}`); }
     for (let i = 0; i < 20; i++) { const p = this.getRandomPlaceablePosition(); if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) this.createResource(p.x, p.y, 'rock', 18, `rock_${i}`); }
     for (let i = 0; i < 15; i++) { const p = this.getRandomPlaceablePosition(); if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) this.createResource(p.x, p.y, 'small_rock', 2, `small_rock_${i}`); }
-    this.workbench = this.physics.add.sprite(wbX, wbY, 'workbench').setPipeline('Light2D');
-    this.workbench.setImmovable(true).setDepth(5); (this.workbench as any).isWorkbench = true;
+    
+    // BANCADA PROFISSIONAL (Nível 1)
+    this.workbench = this.physics.add.sprite(wbX, wbY, 'workbench_lv1').setPipeline('Light2D');
+    this.workbench.setImmovable(true).setDepth(wbY); 
+    (this.workbench as any).isWorkbench = true;
+    
+    // Ajuste de colisão na base para profundidade
+    const wbBody = this.workbench.body as Phaser.Physics.Arcade.Body;
+    wbBody.setSize(28, 12).setOffset(2, 12);
+    
     this.physics.add.collider(this.player, this.workbench);
   }
 
@@ -292,9 +333,23 @@ export class MainScene extends Phaser.Scene {
 
   private spawnChicken(s: ChickenState) {
     if (this.chickens.some(c => c.id === s.id)) return;
-    const c = new ChickenNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 96 }, s.hp);
+    
+    // Randomizar a cor da galinha
+    const colors = ['chicken_white', 'chicken_black', 'chicken_brown'];
+    const textureKey = colors[Math.floor(Math.random() * colors.length)];
+    
+    const c = new ChickenNPC(this, { 
+      id: s.id, 
+      x: s.x, 
+      y: s.y, 
+      textureKey, // Passando a cor escolhida
+      wanderRadius: 96 
+    }, s.hp);
+    
     c.sprite.setPipeline('Light2D');
-    this.chickens.push(c); this.chickenGroup.add(c.sprite); this.physics.add.collider(this.player, c.sprite);
+    this.chickens.push(c); 
+    this.chickenGroup.add(c.sprite); 
+    this.physics.add.collider(this.player, c.sprite);
   }
 
   private spawnCrab(s: CrabState) {
@@ -434,6 +489,33 @@ export class MainScene extends Phaser.Scene {
     }
   }
 
+  private updateInteractUI(visible: boolean, text: string = '', x: number = 0, y: number = 0) {
+    this.interactUI.setVisible(visible);
+    if (!visible) return;
+
+    const label = (this.interactUI as any).label as Phaser.GameObjects.Text;
+    label.setText(text);
+    
+    const width = label.width + 20;
+    const height = label.height + 12;
+    
+    this.interactBg.clear();
+    
+    // Sombra (Preta deslocada)
+    this.interactBg.fillStyle(0x000000, 0.4);
+    this.interactBg.fillRoundedRect(-(width/2) + 2, -(height/2) + 2, width, height, 6);
+    
+    // Fundo Principal (Preto como o HUD)
+    this.interactBg.fillStyle(0x000000, 0.7);
+    this.interactBg.fillRoundedRect(-(width/2), -(height/2), width, height, 6);
+    
+    // Borda Cinza Sombreada (Estilo HUD)
+    this.interactBg.lineStyle(1, 0x888888, 0.5);
+    this.interactBg.strokeRoundedRect(-(width/2), -(height/2), width, height, 6);
+    
+    this.interactUI.setPosition(x, y);
+  }
+
   update(_t: number, delta: number) {
     if (this.attackCooldown > 0) this.attackCooldown -= delta; this.processRespawns();
     this.chickens.forEach(c => c.update(delta)); this.crabs.forEach(c => c.update(delta)); this.rabbits.forEach(r => r.update(delta));
@@ -454,9 +536,20 @@ export class MainScene extends Phaser.Scene {
     else { if (body) body.setVelocity(0, 0); const animKey = this.facingDir === 'left' || this.facingDir === 'right' ? 'idle_side' : `idle_${this.facingDir}`; this.player.setFlipX(this.facingDir === 'left').play(animKey, true); }
     gameStore.updatePlayerPos(this.player.x, this.player.y);
     this.nearWorkbench = distToWB < 50;
-    if (this.nearWorkbench) this.interactText.setText('[C] Bancada').setPosition(wbX - 30, wbY - 30).setVisible(true);
-    else if (this.nearCampfire) { const closestCF = this.campfireSprites.find(cf => cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50); if (closestCF) this.interactText.setText('[C] Cozinhar').setPosition(closestCF.x - 30, closestCF.y - 30).setVisible(true); }
-    else this.interactText.setVisible(false);
+    if (this.nearWorkbench) {
+      this.updateInteractUI(true, '[C] BANCADA', wbX, wbY - 35);
+    }
+    else if (this.nearCampfire) { 
+      const closestCF = this.campfireSprites.find(cf => cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50); 
+      if (closestCF) {
+        this.updateInteractUI(true, '[C] COZINHAR', closestCF.x, closestCF.y - 35);
+      } else {
+        this.updateInteractUI(false);
+      }
+    }
+    else {
+      this.updateInteractUI(false);
+    }
     this.player.setDepth(this.player.y); this.resources.forEach(r => r.setDepth(r.y));
     this.chickens.forEach(c => { c.sprite.setDepth(c.sprite.y); const cb = c.sprite.body as Phaser.Physics.Arcade.Body; if (cb && (Math.abs(cb.velocity.x) > 10 || Math.abs(cb.velocity.y) > 10)) this.dustParticles.emitParticleAt(c.sprite.x, c.sprite.y + 8, 1); }); 
     this.crabs.forEach(c => c.sprite.setDepth(c.sprite.y));

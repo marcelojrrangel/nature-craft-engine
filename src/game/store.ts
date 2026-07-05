@@ -1,4 +1,5 @@
 // Reactive game store for shared state between Phaser & React
+import Phaser from 'phaser';
 import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL, TOOL_DAMAGE, BASE_DAMAGE, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState, type CrabState, type BearState, type RabbitState, type Skill, type PlacedItem } from './types';
 import { saveToIndexedDB, loadFromIndexedDB, deleteFromIndexedDB } from './persistence';
 
@@ -31,6 +32,13 @@ class GameStore {
   currentStation: 'workbench' | 'campfire' = 'workbench';
   respawnQueue: { x: number; y: number; type: string; hp: number; id: string; respawnAt: number }[] = [];
   private saveInterval: number | null = null;
+
+  // Exposed for minimap (read-only references managed by MainScene)
+  resources: Phaser.GameObjects.Sprite[] = [];
+  chickens: Phaser.GameObjects.Sprite[] = [];
+  crabs: Phaser.GameObjects.Sprite[] = [];
+  bears: Phaser.GameObjects.Sprite[] = [];
+  rabbits: Phaser.GameObjects.Sprite[] = [];
 
   constructor() {
     this.load();

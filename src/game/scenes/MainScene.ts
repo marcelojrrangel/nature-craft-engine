@@ -148,7 +148,14 @@ export class MainScene extends Phaser.Scene {
     const interactLabel = this.add.text(0, 0, '', { fontSize: '9px', fontFamily: 'monospace', color: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
     this.interactUI = this.add.container(0, 0, [this.interactBg, interactLabel]).setDepth(3000).setVisible(false);
     (this.interactUI as any).label = interactLabel;
-    
+
+    // Expose entities to gameStore for minimap
+    gameStore.resources = this.resources;
+    gameStore.chickens = this.chickens;
+    gameStore.crabs = this.crabs;
+    gameStore.bears = this.bears;
+    gameStore.rabbits = this.rabbits;
+
     this.unsubscribeList.push(gameEvents.on('joystickMove', ({ x, y }) => { if (this.sys && this.sys.isActive()) this.joyVec = { x, y }; }));
     this.unsubscribeList.push(gameEvents.on('attack', () => { if (this.sys && this.sys.isActive()) this.doAttack(); }));
     this.unsubscribeList.push(gameEvents.on('interact', () => { if (this.sys && this.sys.isActive()) this.doInteract(); }));

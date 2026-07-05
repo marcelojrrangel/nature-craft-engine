@@ -315,7 +315,7 @@ class GameStore {
     this.notify();
   }
 
-  updatePlayerPos(x: number, y: number) { this.playerX = x; this.playerY = y; }
+  updatePlayerPos(x: number, y: number) { this.playerX = x; this.playerY = y; this.notify('player'); }
 }
 
 export const gameStore = new GameStore();

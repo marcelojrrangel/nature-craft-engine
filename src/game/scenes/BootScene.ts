@@ -586,6 +586,37 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(6, 15, 2, 2);
     g.generateTexture('arrow_projectile', 32, 32);
 
+    // Ore Veins (via canvas)
+    const oreColors = {
+      iron: { base: 0x6b5b4f, vein: 0x8b7355, sparkle: 0xb8a08a },
+      bronze: { base: 0x8b6b4a, vein: 0xa67c52, sparkle: 0xcd853f },
+      gold: { base: 0x9a8b5a, vein: 0xc4a044, sparkle: 0xffd700 },
+    };
+
+    function drawOreVein(g: Phaser.GameObjects.Graphics, color: typeof oreColors.iron, name: string) {
+      g.clear();
+      g.fillStyle(color.base);
+      g.fillRoundedRect(4, 4, 24, 24, 4);
+      g.fillStyle(color.vein);
+      for (let i = 0; i < 5; i++) {
+        const x = Phaser.Math.Between(6, 22);
+        const y = Phaser.Math.Between(6, 22);
+        const size = Phaser.Math.Between(3, 6);
+        g.fillCircle(x, y, size);
+      }
+      g.fillStyle(color.sparkle);
+      for (let i = 0; i < 3; i++) {
+        const x = Phaser.Math.Between(8, 20);
+        const y = Phaser.Math.Between(8, 20);
+        g.fillRect(x, y, 2, 2);
+      }
+      g.generateTexture(name, 32, 32);
+    }
+
+    drawOreVein(g, oreColors.iron, 'iron_ore_vein');
+    drawOreVein(g, oreColors.bronze, 'bronze_ore_vein');
+    drawOreVein(g, oreColors.gold, 'gold_ore_vein');
+
     g.destroy();
   }
 }

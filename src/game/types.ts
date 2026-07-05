@@ -1,7 +1,7 @@
 // Game type definitions
 
-export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow' | 'campfire' | 'pelt' | 'rabbit_meat' | 'cooked_chicken' | 'cooked_rabbit' | 'cooked_crab' | 'armor';
-export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife' | 'bow';
+export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow' | 'campfire' | 'pelt' | 'rabbit_meat' | 'cooked_chicken' | 'cooked_rabbit' | 'cooked_crab' | 'armor' | 'iron_ore' | 'bronze_ore' | 'gold_ore';
+export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife' | 'bow' | 'iron_axe' | 'iron_pickaxe' | 'iron_sword' | 'iron_bow';
 export type EquipSlot = 'head' | 'hands' | 'legs' | 'accessory' | 'mainHand';
 export type CraftStation = 'none' | 'workbench' | 'campfire';
 
@@ -65,6 +65,10 @@ export const SKILLS_CONFIG: Record<string, { name: string; icon: string; bonusPe
   shovel: { name: 'Pá', icon: '🪏', bonusPerLevel: 0.1, description: 'Aumenta eficiência de escavação' },
   hoe: { name: 'Enxada', icon: '🌱', bonusPerLevel: 0.1, description: 'Aumenta eficiência de plantio' },
   bow: { name: 'Arco', icon: '🏹', bonusPerLevel: 0.1, description: 'Aumenta dano à distância' },
+  iron_axe: { name: 'Corte Avançado', icon: '🪓', bonusPerLevel: 0.15, description: 'Aumenta velocidade de corte de árvores' },
+  iron_pickaxe: { name: 'Mineração Avançada', icon: '⛏️', bonusPerLevel: 0.15, description: 'Aumenta velocidade de mineração' },
+  iron_sword: { name: 'Espada Avançada', icon: '⚔️', bonusPerLevel: 0.15, description: 'Aumenta dano de ataque' },
+  iron_bow: { name: 'Arco Avançado', icon: '🏹', bonusPerLevel: 0.15, description: 'Aumenta dano à distância' },
 };
 
 export const HARDNESS: Record<string, number> = {
@@ -78,6 +82,9 @@ export const HARDNESS: Record<string, number> = {
   bear: 30,
   small_rock: 2,
   rabbit: 3,
+  iron_ore: 40,
+  bronze_ore: 60,
+  gold_ore: 80,
 };
 
 export const TOOL_DAMAGE: Record<string, number> = {
@@ -89,22 +96,29 @@ export const TOOL_DAMAGE: Record<string, number> = {
   shovel: 1.5,
   hoe: 1.5,
   bow: 1.0,
+  iron_axe: 2.5,
+  iron_pickaxe: 2.5,
+  iron_sword: 2.0,
+  iron_bow: 1.5,
 };
 
 export const BASE_DAMAGE = 1;
 export const DROP_BONUS_CHANCE = 0.5;
 
 export const TOOL_REQUIREMENTS: Record<string, (ToolType | 'hands')[]> = {
-  tree: ['axe'],
-  dead_tree: ['axe', 'hands'],
-  rock: ['pickaxe', 'hands'],
-  small_rock: ['hands', 'pickaxe'],
-  bush: ['hands', 'axe', 'pickaxe', 'sword', 'knife', 'shovel', 'hoe'],
-  workbench: ['axe', 'pickaxe'],
-  chicken: ['sword', 'knife', 'bow'],
-  crab: ['sword', 'knife', 'pickaxe', 'bow'],
-  bear: ['sword', 'knife', 'bow', 'axe'],
-  rabbit: ['sword', 'knife', 'bow'],
+  tree: ['axe', 'iron_axe'],
+  dead_tree: ['axe', 'iron_axe', 'hands'],
+  rock: ['pickaxe', 'iron_pickaxe', 'hands'],
+  small_rock: ['hands', 'pickaxe', 'iron_pickaxe'],
+  bush: ['hands', 'axe', 'iron_axe', 'pickaxe', 'iron_pickaxe', 'sword', 'iron_sword', 'knife', 'shovel', 'hoe'],
+  workbench: ['axe', 'iron_axe', 'pickaxe', 'iron_pickaxe'],
+  chicken: ['sword', 'iron_sword', 'knife', 'bow', 'iron_bow'],
+  crab: ['sword', 'iron_sword', 'knife', 'pickaxe', 'iron_pickaxe', 'bow', 'iron_bow'],
+  bear: ['sword', 'iron_sword', 'knife', 'bow', 'iron_bow', 'axe', 'iron_axe'],
+  rabbit: ['sword', 'iron_sword', 'knife', 'bow', 'iron_bow'],
+  iron_ore: ['pickaxe', 'iron_pickaxe'],
+  bronze_ore: ['pickaxe', 'iron_pickaxe'],
+  gold_ore: ['pickaxe', 'iron_pickaxe'],
 };
 
 export interface GameSaveData {
@@ -156,11 +170,24 @@ export const ITEMS: Record<string, Item> = {
   crab_meat: { id: 'crab_meat', name: 'Carne de Siri', type: 'crab_meat', icon: '🦀', stackable: true, maxStack: 32, description: 'Carne de siri crua' },
   arrow: { id: 'arrow', name: 'Flecha', type: 'arrow', icon: '🥢', stackable: true, maxStack: 64, description: 'Munição para o arco' },
   campfire: { id: 'campfire', name: 'Fogueira', type: 'campfire', icon: '🔥', stackable: true, maxStack: 5, description: 'Permite cozinhar e iluminar' },
+
+  // Ores
+  iron_ore: { id: 'iron_ore', name: 'Minério de Ferro', type: 'iron_ore', icon: '🪨', stackable: true, maxStack: 64, description: 'Minério de ferro bruto' },
+  bronze_ore: { id: 'bronze_ore', name: 'Minério de Bronze', type: 'bronze_ore', icon: '🟤', stackable: true, maxStack: 64, description: 'Minério de bronze bruto' },
+  gold_ore: { id: 'gold_ore', name: 'Minério de Ouro', type: 'gold_ore', icon: '🟡', stackable: true, maxStack: 64, description: 'Minério de ouro bruto' },
   
   // Armor
   helmet_rustic: { id: 'helmet_rustic', name: 'Capacete Rústico', type: 'armor', icon: '🪖', stackable: false, maxStack: 1, description: '+10 Max HP', bonus: { hp: 10 } },
   gloves_rustic: { id: 'gloves_rustic', name: 'Luvas Rústicas', type: 'armor', icon: '🧤', stackable: false, maxStack: 1, description: '+10% Dano', bonus: { dmg: 0.1 } },
   boots_rustic: { id: 'boots_rustic', name: 'Botas Rústicas', type: 'armor', icon: '👞', stackable: false, maxStack: 1, description: '+15% Velocidade', bonus: { moveSpeed: 0.15 } },
+
+  // Metal Armor
+  iron_helmet: { id: 'iron_helmet', name: 'Capacete de Ferro', type: 'armor', icon: '🪖', stackable: false, maxStack: 1, description: '+25 Max HP', bonus: { hp: 25 } },
+  iron_chestplate: { id: 'iron_chestplate', name: 'Peitoral de Ferro', type: 'armor', icon: '🦺', stackable: false, maxStack: 1, description: '+20% Dano', bonus: { dmg: 0.2 } },
+  iron_boots: { id: 'iron_boots', name: 'Botas de Ferro', type: 'armor', icon: '👞', stackable: false, maxStack: 1, description: '+25% Velocidade', bonus: { moveSpeed: 0.25 } },
+  bronze_helmet: { id: 'bronze_helmet', name: 'Capacete de Bronze', type: 'armor', icon: '🪖', stackable: false, maxStack: 1, description: '+35 Max HP', bonus: { hp: 35 } },
+  bronze_chestplate: { id: 'bronze_chestplate', name: 'Peitoral de Bronze', type: 'armor', icon: '🦺', stackable: false, maxStack: 1, description: '+30% Dano', bonus: { dmg: 0.3 } },
+  bronze_boots: { id: 'bronze_boots', name: 'Botas de Bronze', type: 'armor', icon: '👞', stackable: false, maxStack: 1, description: '+35% Velocidade', bonus: { moveSpeed: 0.35 } },
 
   // Tools
   axe: { id: 'axe', name: 'Machado', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+50% velocidade de corte' },
@@ -169,6 +196,12 @@ export const ITEMS: Record<string, Item> = {
   knife: { id: 'knife', name: 'Faca', type: 'knife', icon: '🔪', stackable: false, maxStack: 1, description: 'Ferramenta afiada para coleta animal' },
   sword: { id: 'sword', name: 'Espada', type: 'sword', icon: '⚔️', stackable: false, maxStack: 1, description: '+100% dano de ataque' },
   bow: { id: 'bow', name: 'Arco', type: 'bow', icon: '🏹', stackable: false, maxStack: 1, description: 'Arma de longo alcance (Requer flechas)' },
+
+  // Metal Tools
+  iron_sword: { id: 'iron_sword', name: 'Espada de Ferro', type: 'sword', icon: '⚔️', stackable: false, maxStack: 1, description: '+150% dano de ataque' },
+  iron_pickaxe: { id: 'iron_pickaxe', name: 'Picareta de Ferro', type: 'pickaxe', icon: '⛏️', stackable: false, maxStack: 1, description: '+100% velocidade de mineração' },
+  iron_axe: { id: 'iron_axe', name: 'Machado de Ferro', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+100% velocidade de corte' },
+  iron_bow: { id: 'iron_bow', name: 'Arco de Ferro', type: 'bow', icon: '🏹', stackable: false, maxStack: 1, description: 'Arma de longo alcance reforçada' },
 };
 
 export const RECIPES: CraftingRecipe[] = [
@@ -181,6 +214,20 @@ export const RECIPES: CraftingRecipe[] = [
   { id: 'helmet_rustic', name: 'Capacete Rústico', result: ITEMS.helmet_rustic, resultQty: 1, ingredients: [{ item: ITEMS.pelt, quantity: 4 }, { item: ITEMS.fiber, quantity: 2 }], description: '+10 HP Máximo', station: 'workbench' },
   { id: 'gloves_rustic', name: 'Luvas Rústicas', result: ITEMS.gloves_rustic, resultQty: 1, ingredients: [{ item: ITEMS.pelt, quantity: 2 }, { item: ITEMS.fiber, quantity: 4 }], description: '+10% Dano de ataque', station: 'workbench' },
   { id: 'boots_rustic', name: 'Botas Rústicas', result: ITEMS.boots_rustic, resultQty: 1, ingredients: [{ item: ITEMS.pelt, quantity: 3 }, { item: ITEMS.fiber, quantity: 2 }], description: '+15% Vel. Movimento', station: 'workbench' },
+
+  // Metal Armor
+  { id: 'iron_helmet', name: 'Capacete de Ferro', result: ITEMS.iron_helmet, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 5 }, { item: ITEMS.stone, quantity: 2 }], description: '+25 HP Máximo', station: 'workbench' },
+  { id: 'iron_chestplate', name: 'Peitoral de Ferro', result: ITEMS.iron_chestplate, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 8 }, { item: ITEMS.wood, quantity: 4 }], description: '+20% Dano', station: 'workbench' },
+  { id: 'iron_boots', name: 'Botas de Ferro', result: ITEMS.iron_boots, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 6 }, { item: ITEMS.fiber, quantity: 3 }], description: '+25% Velocidade', station: 'workbench' },
+  { id: 'bronze_helmet', name: 'Capacete de Bronze', result: ITEMS.bronze_helmet, resultQty: 1, ingredients: [{ item: ITEMS.bronze_ore, quantity: 5 }, { item: ITEMS.iron_ore, quantity: 2 }], description: '+35 HP Máximo', station: 'workbench' },
+  { id: 'bronze_chestplate', name: 'Peitoral de Bronze', result: ITEMS.bronze_chestplate, resultQty: 1, ingredients: [{ item: ITEMS.bronze_ore, quantity: 8 }, { item: ITEMS.iron_ore, quantity: 4 }], description: '+30% Dano', station: 'workbench' },
+  { id: 'bronze_boots', name: 'Botas de Bronze', result: ITEMS.bronze_boots, resultQty: 1, ingredients: [{ item: ITEMS.bronze_ore, quantity: 6 }, { item: ITEMS.fiber, quantity: 3 }], description: '+35% Velocidade', station: 'workbench' },
+
+  // Metal Tools
+  { id: 'iron_sword', name: 'Espada de Ferro', result: ITEMS.iron_sword, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 6 }, { item: ITEMS.wood, quantity: 2 }], description: '+150% dano', station: 'workbench' },
+  { id: 'iron_pickaxe', name: 'Picareta de Ferro', result: ITEMS.iron_pickaxe, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 5 }, { item: ITEMS.wood, quantity: 2 }], description: '+100% mineração', station: 'workbench' },
+  { id: 'iron_axe', name: 'Machado de Ferro', result: ITEMS.iron_axe, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 5 }, { item: ITEMS.wood, quantity: 2 }], description: '+100% corte', station: 'workbench' },
+  { id: 'iron_bow', name: 'Arco de Ferro', result: ITEMS.iron_bow, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 4 }, { item: ITEMS.wood, quantity: 3 }, { item: ITEMS.fiber, quantity: 5 }], description: 'Arco reforçado', station: 'workbench' },
 
   // Basics
   { id: 'campfire', name: 'Fogueira', result: ITEMS.campfire, resultQty: 1, ingredients: [{ item: ITEMS.twig, quantity: 8 }], description: 'Cozinhe e ilumine', station: 'workbench' },

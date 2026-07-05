@@ -16,9 +16,12 @@ const CRAB_COUNT = 8;
 const BEAR_COUNT = 2; // Representa a contagem de Orcs agora
 const RABBIT_COUNT = 6;
 const SAFE_ZONE_RADIUS = 100;
+const IRON_ORE_COUNT = 8;
+const BRONZE_ORE_COUNT = 5;
+const GOLD_ORE_COUNT = 3;
 
 interface ResourceObj extends Phaser.GameObjects.Sprite {
-  resourceType: 'tree' | 'rock' | 'bush' | 'dead_tree' | 'small_rock';
+  resourceType: 'tree' | 'rock' | 'bush' | 'dead_tree' | 'small_rock' | 'iron_ore' | 'bronze_ore' | 'gold_ore';
   resourceHp: number;
   maxHp: number;
   resourceId: string;
@@ -130,6 +133,7 @@ export class MainScene extends Phaser.Scene {
 
     this.setupParticles();
     this.generateResources();
+    this.generateOreVeins();
     this.generateChickens();
     this.generateCrabs();
     this.generateBears();
@@ -243,6 +247,28 @@ export class MainScene extends Phaser.Scene {
     this.physics.add.collider(this.player, this.workbench);
   }
 
+  private generateOreVeins() {
+    const wbX = (MAP_W * TILE) / 2, wbY = (MAP_H * TILE) / 2;
+    for (let i = 0; i < IRON_ORE_COUNT; i++) {
+      const p = this.getRandomPlaceablePosition();
+      if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) {
+        this.createResource(p.x, p.y, 'iron_ore', HARDNESS.iron_ore, `iron_ore_${i}`);
+      }
+    }
+    for (let i = 0; i < BRONZE_ORE_COUNT; i++) {
+      const p = this.getRandomPlaceablePosition();
+      if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) {
+        this.createResource(p.x, p.y, 'bronze_ore', HARDNESS.bronze_ore, `bronze_ore_${i}`);
+      }
+    }
+    for (let i = 0; i < GOLD_ORE_COUNT; i++) {
+      const p = this.getRandomPlaceablePosition();
+      if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) {
+        this.createResource(p.x, p.y, 'gold_ore', HARDNESS.gold_ore, `gold_ore_${i}`);
+      }
+    }
+  }
+
   private generateChickens() {
     const now = Date.now();
     for (let i = 0; i < CHICKEN_COUNT; i++) {
@@ -335,6 +361,9 @@ export class MainScene extends Phaser.Scene {
     else if (type === 'tree') key = 'tree_common';
     else if (type === 'dead_tree') key = 'tree_dry';
     else if (type === 'bush') { const variants = ['bush_41', 'bush_42', 'bush_45', 'bush_46']; key = variants[Math.floor(Math.random() * variants.length)]; }
+    else if (type === 'iron_ore') key = 'iron_ore_vein';
+    else if (type === 'bronze_ore') key = 'bronze_ore_vein';
+    else if (type === 'gold_ore') key = 'gold_ore_vein';
     const s = this.resourceGroup.create(x, y, key, frame) as ResourceObj;
     s.setPipeline('Light2D'); s.resourceType = type; s.resourceHp = shp ?? hp; s.maxHp = HARDNESS[type] || hp; s.resourceId = id;
     const body = s.body as Phaser.Physics.Arcade.StaticBody;
@@ -387,12 +416,12 @@ export class MainScene extends Phaser.Scene {
 
   private collectRabbit(r: RabbitNPC) { const s = gameStore.rabbitStates[r.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000); gameStore.addItem(ITEMS.rabbit_meat, 1); gameStore.addItem(ITEMS.pelt, 1); r.collect(); this.time.delayedCall(80, () => { if (r.sprite && r.sprite.active) r.destroy(); }); this.rabbits = this.rabbits.filter(rab => rab.id !== r.id); gameStore.save(); }
 
-  private harvestResource(res: ResourceObj) { if (!res || !res.active) return; let item, qty = 1; switch (res.resourceType) { case 'tree': item = ITEMS.wood; qty = Phaser.Math.Between(2, 4); break; case 'dead_tree': item = ITEMS.wood; qty = 1; gameStore.addItem(ITEMS.twig, Phaser.Math.Between(2, 4)); break; case 'rock': item = ITEMS.stone; qty = Phaser.Math.Between(1, 3); break; case 'small_rock': item = ITEMS.stone; qty = 1; break; case 'bush': item = Math.random() > 0.5 ? ITEMS.fiber : ITEMS.seed; qty = Phaser.Math.Between(1, 2); break; } if (item) { gameStore.addItem(item, qty); this.showFloatingText(res.x, res.y - 10, `+${qty} ${item.icon}`, '#ffff00'); } this.respawnCounter++; gameStore.respawnQueue.push({ x: res.x, y: res.y, type: res.resourceType, hp: res.maxHp, id: `${res.resourceType}_r${this.respawnCounter}_${Date.now()}`, respawnAt: Date.now() + Phaser.Math.Between(30000, 60000) }); this.resources = this.resources.filter(r => r !== res); delete gameStore.resourceStates[res.resourceId]; res.destroy(); gameStore.save(); }
+  private harvestResource(res: ResourceObj) { if (!res || !res.active) return; let item, qty = 1; switch (res.resourceType) { case 'tree': item = ITEMS.wood; qty = Phaser.Math.Between(2, 4); break; case 'dead_tree': item = ITEMS.wood; qty = 1; gameStore.addItem(ITEMS.twig, Phaser.Math.Between(2, 4)); break; case 'rock': item = ITEMS.stone; qty = Phaser.Math.Between(1, 3); break; case 'small_rock': item = ITEMS.stone; qty = 1; break; case 'bush': item = Math.random() > 0.5 ? ITEMS.fiber : ITEMS.seed; qty = Phaser.Math.Between(1, 2); break; case 'iron_ore': item = ITEMS.iron_ore; qty = Phaser.Math.Between(1, 2); break; case 'bronze_ore': item = ITEMS.bronze_ore; qty = Phaser.Math.Between(1, 2); break; case 'gold_ore': item = ITEMS.gold_ore; qty = 1; break; } if (item) { gameStore.addItem(item, qty); this.showFloatingText(res.x, res.y - 10, `+${qty} ${item.icon}`, '#ffff00'); } this.respawnCounter++; gameStore.respawnQueue.push({ x: res.x, y: res.y, type: res.resourceType, hp: res.maxHp, id: `${res.resourceType}_r${this.respawnCounter}_${Date.now()}`, respawnAt: Date.now() + Phaser.Math.Between(60000, 120000) }); this.resources = this.resources.filter(r => r !== res); delete gameStore.resourceStates[res.resourceId]; res.destroy(); gameStore.save(); }
 
   private processRespawns() {
     const now = Date.now();
     for (let i = gameStore.respawnQueue.length - 1; i >= 0; i--) { const e = gameStore.respawnQueue[i]; if (now >= e.respawnAt) { gameStore.respawnQueue.splice(i, 1); this.createResource(e.x, e.y, e.type as any, e.hp, e.id); } }
-    const configs = [{ s: gameStore.chickenStates, sp: (s: any) => this.spawnChicken(s) }, { s: gameStore.crabStates, sp: (s: any) => this.spawnCrab(s) }, { s: gameStore.bearStates, sp: (s: any) => this.spawnOrc(s) }, { s: gameStore.rabbitStates, sp: (s: any) => this.spawnRabbit(s) }];
+    const configs = [{ s: gameStore.chickenStates, sp: (s: any) => this.spawnChicken(s) }, { s: gameStore.crabStates, sp: (s: any) => this.spawnCrab(s) }, { s: gameStore.bearStates, sp: (s: any) => this.spawnBear(s) }, { s: gameStore.rabbitStates, sp: (s: any) => this.spawnRabbit(s) }];
     configs.forEach(cfg => { if (cfg.s) Object.values(cfg.s).forEach((s: any) => { if (!s.alive && s.respawnAt && now >= s.respawnAt) { s.alive = true; s.respawnAt = null; cfg.sp(s); } }); });
     gameStore.save();
   }

@@ -3,6 +3,7 @@ import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
 import { useIsMobile } from '../../hooks/use-mobile';
 import ItemIcon from './ItemIcon';
+import { ITEMS } from '../../game/types';
 
 const RESOURCE_IDS = ['wood', 'stone', 'fiber', 'iron_ore', 'bronze_ore', 'gold_ore'];
 const ICONS = [
@@ -20,6 +21,7 @@ export default function GameHUD() {
   const isMobile = useIsMobile();
   const [prevHp, setPrevHp] = useState(gameStore.hp);
   const [isHit, setIsHit] = useState(false);
+  const [hoveredResource, setHoveredResource] = useState<string | null>(null);
 
   useEffect(() => {
     if (gameStore.hp < prevHp) {
@@ -89,11 +91,17 @@ export default function GameHUD() {
           )}
         </div>
 
-        <div className="flex gap-1 items-start flex-wrap justify-end max-w-[180px] sm:max-w-[320px]">
+        <div className="relative flex gap-1 items-start flex-wrap justify-end max-w-[180px] sm:max-w-[320px]">
           {RESOURCE_IDS.map(id => {
             const count = trackedResources[id] || 0;
+            const item = ITEMS[id as keyof typeof ITEMS];
             return (
-              <div key={id} className={`px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border flex items-center gap-1 sm:gap-1.5 shadow-lg transition-opacity ${count > 0 ? 'bg-black/50 backdrop-blur-md border-white/10' : 'bg-black/30 border-white/5'}`}>
+              <div
+                key={id}
+                className={`px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border flex items-center gap-1 sm:gap-1.5 shadow-lg transition-opacity cursor-help ${count > 0 ? 'bg-black/50 backdrop-blur-md border-white/10' : 'bg-black/30 border-white/5'}`}
+                onMouseEnter={() => setHoveredResource(id)}
+                onMouseLeave={() => setHoveredResource(null)}
+              >
                 {ICONS.includes(id) ? (
                   <div className={`w-4 h-4 sm:w-5 sm:h-5 ${count === 0 ? 'opacity-40' : ''}`}>
                     <ItemIcon itemId={id} size={20} />
@@ -110,6 +118,26 @@ export default function GameHUD() {
             );
           })}
         </div>
+
+        {/* Tooltip para recursos */}
+        {hoveredResource && ITEMS[hoveredResource as keyof typeof ITEMS] && (
+          <div
+            className="absolute top-full right-0 mt-2 z-50 bg-black/90 backdrop-blur-md p-2 rounded-lg border border-white/20 shadow-xl min-w-[150px]"
+            style={{ pointerEvents: 'none' }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              {ICONS.includes(hoveredResource) ? (
+                <ItemIcon itemId={hoveredResource} size={24} />
+              ) : (
+                <span className="text-xl">{ITEMS[hoveredResource as keyof typeof ITEMS].icon}</span>
+              )}
+              <span className="text-xs font-bold text-white" style={{ fontFamily: "'Press Start 2P', monospace" }}>
+                {ITEMS[hoveredResource as keyof typeof ITEMS].name}
+              </span>
+            </div>
+            <p className="text-[9px] text-white/70 leading-tight">{ITEMS[hoveredResource as keyof typeof ITEMS].description}</p>
+          </div>
+        )}
       </div>
 
       <div className={`flex flex-col items-center gap-2 sm:gap-3 mb-0 sm:mb-1 ${isMobile ? 'mb-20' : ''}`}>

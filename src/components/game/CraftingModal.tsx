@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
-import { RECIPES, type CraftStation } from '../../game/types';
+import { RECIPES, type CraftStation, type InventorySlot } from '../../game/types';
 
 interface Props { 
   onClose: () => void;
@@ -9,7 +9,7 @@ interface Props {
 }
 
 export default function CraftingModal({ onClose, station = 'workbench' }: Props) {
-  useGameStore();
+  const store = useGameStore();
   const [lastCrafted, setLastCrafted] = useState<string | null>(null);
 
   const handleCraft = (recipeId: string) => {
@@ -46,6 +46,10 @@ export default function CraftingModal({ onClose, station = 'workbench' }: Props)
               const canCraft = gameStore.canCraft(recipe);
               const isJustCrafted = lastCrafted === recipe.id;
 
+              const countItem = (itemId: string) => {
+                return store.inventory.reduce((sum: number, s: InventorySlot) => s.item?.id === itemId ? sum + s.quantity : sum, 0);
+              };
+
               return (
                 <div key={recipe.id} className={`game-slot p-3 flex items-start gap-3 transition-all duration-300 bg-black/20 border-white/5 ${isJustCrafted ? 'border-primary ring-1 ring-primary/30 scale-[1.02]' : ''}`}>
                   <span className="text-2xl drop-shadow-md">{recipe.result.icon}</span>
@@ -58,7 +62,7 @@ export default function CraftingModal({ onClose, station = 'workbench' }: Props)
                     </div>
                     <div className="flex gap-2 flex-wrap">
                       {recipe.ingredients.map((ing, i) => {
-                        const has = gameStore.countItem(ing.item.id);
+                        const has = countItem(ing.item.id);
                         const enough = has >= ing.quantity;
                         return (
                           <span key={i} className="text-[9px] px-1.5 py-0.5 rounded border border-white/5"

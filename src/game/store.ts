@@ -14,6 +14,7 @@ class GameStore {
   equipment: Equipment = JSON.parse(JSON.stringify(DEFAULT_EQUIPMENT));
   playerX = 800;
   playerY = 800;
+  playerDir = 'down';
   hp = 100;
   maxHp = 100;
   showInventory = false;
@@ -316,7 +317,7 @@ class GameStore {
     this.notify();
   }
 
-  updatePlayerPos(x: number, y: number) { this.playerX = x; this.playerY = y; this.notify('world'); }
+  updatePlayerPos(x: number, y: number, dir: string = 'down') { this.playerX = x; this.playerY = y; this.playerDir = dir; this.notify('world'); }
 }
 
 export const gameStore = new GameStore();

@@ -13,7 +13,7 @@ const MINIMAP_H = Math.floor(MAP_PIXELS_H * MINIMAP_SCALE);
 
 export default function Minimap() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { playerX, playerY, worldTick } = useGameStore();
+  const { playerX, playerY, worldTick, playerDir } = useGameStore();
   const [position, setPosition] = useState({ x: 20, y: 200 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -97,15 +97,32 @@ export default function Minimap() {
         ctx.fill();
       });
 
-      // Draw player
+      // Draw player with direction indicator
       const px = playerX * MINIMAP_SCALE;
       const py = playerY * MINIMAP_SCALE;
       ctx.fillStyle = '#00FF00';
-      ctx.beginPath();
-      ctx.arc(px, py, 2, 0, Math.PI * 2);
-      ctx.fill();
       ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 1;
+
+      // Draw player body (circle)
+      ctx.beginPath();
+      ctx.arc(px, py, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Draw direction arrow
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      let arrowX = px, arrowY = py;
+      if (playerDir === 'up') arrowY -= 4;
+      else if (playerDir === 'down') arrowY += 4;
+      else if (playerDir === 'left') arrowX -= 4;
+      else if (playerDir === 'right') arrowX += 4;
+
+      ctx.moveTo(px, py);
+      ctx.lineTo(arrowX, arrowY);
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
       ctx.stroke();
     };
 
@@ -113,7 +130,7 @@ export default function Minimap() {
     const interval = setInterval(render, 100);
 
     return () => clearInterval(interval);
-  }, [playerX, playerY, worldTick]);
+  }, [playerX, playerY, worldTick, playerDir]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);

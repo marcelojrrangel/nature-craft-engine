@@ -16,6 +16,10 @@ function buildMainSnapshot() {
     showSkills: gameStore.showSkills,
     quickBar: gameStore.quickBar,
     selectedQuickBarIndex: gameStore.selectedQuickBarIndex,
+    playerX: gameStore.playerX,
+    playerY: gameStore.playerY,
+    playerDir: gameStore.playerDir,
+    worldTick: gameStore.worldTick,
   };
 }
 
@@ -34,6 +38,7 @@ function invalidateUI() { _uiSnapshot = buildUISnapshot(); }
 gameStore.subscribe('inventory', invalidateMain);
 gameStore.subscribe('equipment', invalidateMain);
 gameStore.subscribe('player', invalidateMain);
+gameStore.subscribe('world', invalidateMain);
 gameStore.subscribe('ui', invalidateUI);
 
 const subscribeMain = (cb: () => void) => {
@@ -41,6 +46,7 @@ const subscribeMain = (cb: () => void) => {
     gameStore.subscribe('inventory', cb),
     gameStore.subscribe('equipment', cb),
     gameStore.subscribe('player', cb),
+    gameStore.subscribe('world', cb),
   ];
   return () => unsubs.forEach(u => u());
 };

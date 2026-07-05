@@ -498,12 +498,13 @@ export class MainScene extends Phaser.Scene {
     if (vx !== 0 || vy !== 0) { const len = Math.sqrt(vx * vx + vy * vy); body.setVelocity((vx / len) * 160 * stats.moveSpeed, (vy / len) * 160 * stats.moveSpeed); const animKey = this.facingDir === 'left' || this.facingDir === 'right' ? 'run_side' : `run_${this.facingDir}`; this.player.setFlipX(this.facingDir === 'left').play(animKey, true); this.dustParticles.emitParticleAt(this.player.x, this.player.y + 16, 1); }
     else { if (body) body.setVelocity(0, 0); const animKey = this.facingDir === 'left' || this.facingDir === 'right' ? 'idle_side' : `idle_${this.facingDir}`; this.player.setFlipX(this.facingDir === 'left').play(animKey, true); }
     gameStore.updatePlayerPos(this.player.x, this.player.y);
+    gameStore.worldTick++;
     this.nearWorkbench = distToWB < 50;
     if (this.nearWorkbench) this.updateInteractUI(true, '[C] BANCADA', wbX, wbY - 35);
     else if (this.nearCampfire) { const closestCF = this.campfireSprites.find(cf => cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50); if (closestCF) this.updateInteractUI(true, '[C] COZINHAR', closestCF.x, closestCF.y - 35); else this.updateInteractUI(false); }
     else this.updateInteractUI(false);
     this.player.setDepth(this.player.y); this.resources.forEach(r => r.setDepth(r.y));
-    this.chickens.forEach(c => { c.sprite.setDepth(c.sprite.y); const cb = c.sprite.body as Phaser.Physics.Arcade.Body; if (cb && (Math.abs(cb.velocity.x) > 10 || Math.abs(cb.velocity.y) > 10)) this.dustParticles.emitParticleAt(c.sprite.x, c.sprite.y + 8, 1); }); 
+    this.chickens.forEach(c => { c.sprite.setDepth(c.sprite.y); const cb = c.sprite.body as Phaser.Physics.Arcade.Body; if (cb && (Math.abs(cb.velocity.x) > 10 || Math.abs(cb.velocity.y) > 10)) this.dustParticles.emitParticleAt(c.sprite.x, c.sprite.y + 8, 1); });
     this.crabs.forEach(c => c.sprite.setDepth(c.sprite.y));
   }
 }

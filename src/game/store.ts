@@ -39,6 +39,7 @@ class GameStore {
   crabs: Phaser.GameObjects.Sprite[] = [];
   bears: Phaser.GameObjects.Sprite[] = [];
   rabbits: Phaser.GameObjects.Sprite[] = [];
+  worldTick = 0;
 
   constructor() {
     this.load();
@@ -315,7 +316,7 @@ class GameStore {
     this.notify();
   }
 
-  updatePlayerPos(x: number, y: number) { this.playerX = x; this.playerY = y; this.notify('player'); }
+  updatePlayerPos(x: number, y: number) { this.playerX = x; this.playerY = y; this.notify('world'); }
 }
 
 export const gameStore = new GameStore();

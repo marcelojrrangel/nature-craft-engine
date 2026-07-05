@@ -13,7 +13,7 @@ const MINIMAP_H = Math.floor(MAP_PIXELS_H * MINIMAP_SCALE);
 
 export default function Minimap() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { playerX, playerY } = useGameStore();
+  const { playerX, playerY, worldTick } = useGameStore();
   const [position, setPosition] = useState({ x: 20, y: 200 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -70,14 +70,14 @@ export default function Minimap() {
         ...(gameStore.rabbits || []),
       ];
       npcs.forEach(npc => {
-        if (!npc.active) return;
-        const x = npc.x * MINIMAP_SCALE;
-        const y = npc.y * MINIMAP_SCALE;
+        if (!npc.sprite || !npc.sprite.active) return;
+        const x = npc.sprite.x * MINIMAP_SCALE;
+        const y = npc.sprite.y * MINIMAP_SCALE;
         let color = '#FFA500';
-        if (npc.texture?.includes('bear')) color = '#FF4500';
-        else if (npc.texture?.includes('rabbit')) color = '#F5F5DC';
-        else if (npc.texture?.includes('chicken')) color = '#FFFFFF';
-        else if (npc.texture?.includes('crab')) color = '#FF6347';
+        if (npc.id?.includes('bear')) color = '#FF4500';
+        else if (npc.id?.includes('rabbit')) color = '#F5F5DC';
+        else if (npc.id?.includes('chicken')) color = '#FFFFFF';
+        else if (npc.id?.includes('crab')) color = '#FF6347';
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(x, y, 1.5, 0, Math.PI * 2);
@@ -113,7 +113,7 @@ export default function Minimap() {
     const interval = setInterval(render, 100);
 
     return () => clearInterval(interval);
-  }, [playerX, playerY]);
+  }, [playerX, playerY, worldTick]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);

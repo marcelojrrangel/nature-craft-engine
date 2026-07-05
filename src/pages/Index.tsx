@@ -37,7 +37,7 @@ const Index = () => {
         <ErrorBoundary label="CraftingModal">
           <CraftingModal 
             onClose={() => gameStore.toggleCrafting()} 
-            station={(gameStore as any).currentStation || 'workbench'} 
+            station={gameStore.currentStation} 
           />
         </ErrorBoundary>
       )}

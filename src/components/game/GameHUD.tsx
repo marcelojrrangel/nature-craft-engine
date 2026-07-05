@@ -16,7 +16,7 @@ export default function GameHUD() {
     } else {
       setPrevHp(gameStore.hp);
     }
-  }, [gameStore.hp, prevHp]);
+  }, [prevHp]);
 
   const hpPercent = (gameStore.hp / stats.maxHp) * 100;
   const hpColor = hpPercent < 30 ? 'bg-destructive' : hpPercent < 60 ? 'bg-yellow-500' : 'bg-green-500';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import Phaser from 'phaser';
 import { gameStore } from '../store';
 import { ITEMS, HARDNESS, TOOL_DAMAGE, BASE_DAMAGE, DROP_BONUS_CHANCE, TOOL_REQUIREMENTS, type ChickenState, type CrabState, type BearState, type RabbitState } from '../types';
@@ -326,9 +327,9 @@ export class MainScene extends Phaser.Scene {
     return null;
   }
 
-  private createResource(x: number, y: number, type: any, hp: number, id: string) {
+  private createResource(x: number, y: number, type: string, hp: number, id: string) {
     const shp = gameStore.resourceStates[id]; if (shp !== undefined && shp <= 0) return;
-    let key = type, frame = undefined;
+    let key = type; const frame = undefined;
     if (type === 'rock') key = Math.random() > 0.5 ? 'rock_medium' : 'rock_large';
     else if (type === 'small_rock') key = 'rock_small';
     else if (type === 'tree') key = 'tree_common';
@@ -359,7 +360,7 @@ export class MainScene extends Phaser.Scene {
     this.keyI = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I); this.keyQ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q); this.keyC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C); this.keyK = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K); this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E); this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE); this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
     const keys = [Phaser.Input.Keyboard.KeyCodes.ONE, Phaser.Input.Keyboard.KeyCodes.TWO, Phaser.Input.Keyboard.KeyCodes.THREE, Phaser.Input.Keyboard.KeyCodes.FOUR, Phaser.Input.Keyboard.KeyCodes.FIVE];
     this.keyNumbers = keys.map((k, i) => { const key = this.input.keyboard.addKey(k); key.on('down', () => { if (this.sys && this.sys.isActive()) gameStore.selectQuickBar(i); }); return key; });
-    this.keyI.on('down', () => { if (this.sys && this.sys.isActive()) gameStore.toggleInventory(); }); this.keyQ.on('down', () => { if (this.sys && this.sys.isActive()) gameStore.toggleEquipment(); }); this.keyC.on('down', () => { if (this.sys && this.sys.isActive()) { if (this.nearWorkbench || this.nearCampfire) { (gameStore as any).currentStation = this.nearWorkbench ? 'workbench' : 'campfire'; gameStore.toggleCrafting(); } } });
+    this.keyI.on('down', () => { if (this.sys && this.sys.isActive()) gameStore.toggleInventory(); }); this.keyQ.on('down', () => { if (this.sys && this.sys.isActive()) gameStore.toggleEquipment(); }); this.keyC.on('down', () => { if (this.sys && this.sys.isActive()) { if (this.nearWorkbench || this.nearCampfire) { gameStore.currentStation = this.nearWorkbench ? 'workbench' : 'campfire'; gameStore.toggleCrafting(); } } });
     this.keyK.on('down', () => { if (this.sys && this.sys.isActive()) gameStore.toggleSkills(); }); this.keyE.on('down', () => { if (this.sys && this.sys.isActive()) this.doInteract(); }); this.keySpace.on('down', () => { if (this.sys && this.sys.isActive()) this.doAttack(); }); this.keyEsc.on('down', () => { if (this.sys && this.sys.isActive()) gameStore.closeAll(); });
     this.moveKeys = this.input.keyboard.addKeys('W,A,S,D,UP,LEFT,DOWN,RIGHT') as any;
   }
@@ -396,7 +397,7 @@ export class MainScene extends Phaser.Scene {
     gameStore.save();
   }
 
-  private doInteract() { if (this.nearWorkbench) { (gameStore as any).currentStation = 'workbench'; gameStore.toggleCrafting(); } else if (this.nearCampfire) { (gameStore as any).currentStation = 'campfire'; gameStore.toggleCrafting(); } }
+  private doInteract() { if (this.nearWorkbench) { gameStore.currentStation = 'workbench'; gameStore.toggleCrafting(); } else if (this.nearCampfire) { gameStore.currentStation = 'campfire'; gameStore.toggleCrafting(); } }
 
   private drawResourceHpBars() { if (!this.resourceHpGraphics) return; this.resourceHpGraphics.clear(); this.resources.forEach(res => { if (res.active && res.resourceHp < res.maxHp) { const x = res.x - 12, y = res.y - 20, p = res.resourceHp / res.maxHp; this.resourceHpGraphics.fillStyle(0x000000, 0.7).fillRect(x, y, 24, 3).fillStyle(p < 0.3 ? 0xe74c3c : p < 0.6 ? 0xf1c40f : 0x2ecc71, 1).fillRect(x, y, 24 * p, 3); } }); }
 
@@ -414,7 +415,7 @@ export class MainScene extends Phaser.Scene {
     const targets = [...this.chickens, ...this.crabs, ...this.orcs, ...this.rabbits];
     targets.forEach((npc: any) => {
       if (npc.isInRange && npc.isInRange(this.player.x, this.player.y, 42)) {
-        let type = npc instanceof CrabNPC ? 'crab' : npc instanceof OrcNPC ? 'bear' : npc instanceof RabbitNPC ? 'rabbit' : 'chicken';
+        const type = npc instanceof CrabNPC ? 'crab' : npc instanceof OrcNPC ? 'bear' : npc instanceof RabbitNPC ? 'rabbit' : 'chicken';
         if (this.canDamageTarget(type)) { gameStore.useTool(t?.type === 'knife' ? 'knife' : 'sword'); this.applyDamageToNPC(npc, type, stats.attackDamage); }
       }
     });

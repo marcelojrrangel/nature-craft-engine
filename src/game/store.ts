@@ -28,6 +28,7 @@ class GameStore {
   placedItems: PlacedItem[] = [];
   skills: Record<string, Skill> = {};
   showSkills = false;
+  currentStation: 'workbench' | 'campfire' = 'workbench';
   respawnQueue: { x: number; y: number; type: string; hp: number; id: string; respawnAt: number }[] = [];
   private saveInterval: number | null = null;
 

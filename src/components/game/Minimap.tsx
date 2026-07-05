@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
 
@@ -14,6 +14,9 @@ const MINIMAP_H = Math.floor(MAP_PIXELS_H * MINIMAP_SCALE);
 export default function Minimap() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { playerX, playerY } = useGameStore();
+  const [position, setPosition] = useState({ x: 20, y: 200 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -42,6 +45,58 @@ export default function Minimap() {
       ctx.fillStyle = '#8B4513';
       ctx.fillRect(safeZoneX - 2, safeZoneY - 2, 4, 4);
 
+      // Draw resources
+      const resources = gameStore.resources || [];
+      resources.forEach(res => {
+        if (!res.active) return;
+        const x = res.x * MINIMAP_SCALE;
+        const y = res.y * MINIMAP_SCALE;
+        let color = '#888888';
+        if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') color = '#228B22';
+        else if (res.resourceType === 'bush') color = '#32CD32';
+        else if (res.resourceType === 'rock' || res.resourceType === 'small_rock') color = '#808080';
+        else if (res.resourceType === 'iron_ore') color = '#8B7355';
+        else if (res.resourceType === 'bronze_ore') color = '#CD853F';
+        else if (res.resourceType === 'gold_ore') color = '#FFD700';
+        ctx.fillStyle = color;
+        ctx.fillRect(x - 1, y - 1, 2, 2);
+      });
+
+      // Draw NPCs
+      const npcs = [
+        ...(gameStore.chickens || []),
+        ...(gameStore.crabs || []),
+        ...(gameStore.bears || []),
+        ...(gameStore.rabbits || []),
+      ];
+      npcs.forEach(npc => {
+        if (!npc.active) return;
+        const x = npc.x * MINIMAP_SCALE;
+        const y = npc.y * MINIMAP_SCALE;
+        let color = '#FFA500';
+        if (npc.texture?.includes('bear')) color = '#FF4500';
+        else if (npc.texture?.includes('rabbit')) color = '#F5F5DC';
+        else if (npc.texture?.includes('chicken')) color = '#FFFFFF';
+        else if (npc.texture?.includes('crab')) color = '#FF6347';
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Draw placed items (campfires, etc)
+      const placedItems = gameStore.placedItems || [];
+      placedItems.forEach(item => {
+        const x = item.x * MINIMAP_SCALE;
+        const y = item.y * MINIMAP_SCALE;
+        let color = '#FF4500';
+        if (item.type === 'campfire') color = '#FF4500';
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
       // Draw player
       const px = playerX * MINIMAP_SCALE;
       const py = playerY * MINIMAP_SCALE;
@@ -60,17 +115,53 @@ export default function Minimap() {
     return () => clearInterval(interval);
   }, [playerX, playerY]);
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragOffset({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    });
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragOffset.x,
+      y: e.clientY - dragOffset.y,
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
   return (
-    <div className="relative bg-black/50 backdrop-blur-md rounded-lg border border-white/10 shadow-lg">
+    <div
+      className="fixed bg-black/50 backdrop-blur-md rounded-lg border border-white/10 shadow-lg cursor-move select-none"
+      style={{
+        left: position.x,
+        top: position.y,
+        zIndex: 50,
+      }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
+      <div className="flex items-center justify-between px-2 py-1 border-b border-white/10 bg-black/30">
+        <span className="text-[8px] text-white/70" style={{ fontFamily: '"Press Start 2P", monospace' }}>
+          MAPA
+        </span>
+        <span className="text-[6px] text-white/50" style={{ fontFamily: '"Press Start 2P", monospace' }}>
+          {MAP_W}x{MAP_H}
+        </span>
+      </div>
       <canvas
         ref={canvasRef}
         width={MINIMAP_W}
         height={MINIMAP_H}
-        className="rounded-lg"
+        className="rounded-b-lg"
       />
-      <div className="absolute bottom-1 right-1 text-[6px] text-white/50" style={{ fontFamily: '"Press Start 2P", monospace' }}>
-        {MAP_W}x{MAP_H}
-      </div>
     </div>
   );
 }

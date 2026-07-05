@@ -6,6 +6,7 @@ import CraftingModal from '../components/game/CraftingModal';
 import SkillsModal from '../components/game/SkillsModal';
 import Joystick from '../components/game/Joystick';
 import MobileControls from '../components/game/MobileControls';
+import Minimap from '../components/game/Minimap';
 import { ErrorBoundary } from '../components/ui/error-boundary';
 import { useIsMobile } from '../hooks/use-mobile';
 import { gameStore } from '../game/store';
@@ -26,6 +27,9 @@ const Index = () => {
       </ErrorBoundary>
       <ErrorBoundary label="GameHUD">
         <GameHUD />
+      </ErrorBoundary>
+      <ErrorBoundary label="Minimap">
+        <Minimap />
       </ErrorBoundary>
       {isMobile && (
         <>

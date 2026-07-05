@@ -4,7 +4,6 @@ import { useGameStore } from '../../hooks/useGameStore';
 import { useIsMobile } from '../../hooks/use-mobile';
 import ItemIcon from './ItemIcon';
 import { ITEMS } from '../../game/types';
-import Minimap from './Minimap';
 
 const RESOURCE_IDS = ['wood', 'stone', 'fiber', 'iron_ore', 'bronze_ore', 'gold_ore'];
 const ICONS = [
@@ -139,11 +138,6 @@ export default function GameHUD() {
             <p className="text-[9px] text-white/70 leading-tight">{ITEMS[hoveredResource as keyof typeof ITEMS].description}</p>
           </div>
         )}
-      </div>
-
-      {/* Minimap - canto superior direito */}
-      <div className="absolute top-4 right-4 z-10">
-        <Minimap />
       </div>
 
       <div className={`flex flex-col items-center gap-2 sm:gap-3 mb-0 sm:mb-1 ${isMobile ? 'mb-20' : ''}`}>

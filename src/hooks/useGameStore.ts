@@ -1,8 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { gameStore } from '../game/store';
 
-// Module-level cached snapshots to satisfy useSyncExternalStore's referential equality requirement
-
 let _mainSnapshot = buildMainSnapshot();
 let _uiSnapshot = buildUISnapshot();
 
@@ -30,18 +28,29 @@ function buildUISnapshot() {
   };
 }
 
-// Invalidate on store change
-gameStore.subscribe(() => {
-  _mainSnapshot = buildMainSnapshot();
-  _uiSnapshot = buildUISnapshot();
-});
+function invalidateMain() { _mainSnapshot = buildMainSnapshot(); }
+function invalidateUI() { _uiSnapshot = buildUISnapshot(); }
 
-const subscribe = (cb: () => void) => gameStore.subscribe(cb);
+gameStore.subscribe('inventory', invalidateMain);
+gameStore.subscribe('equipment', invalidateMain);
+gameStore.subscribe('player', invalidateMain);
+gameStore.subscribe('ui', invalidateUI);
+
+const subscribeMain = (cb: () => void) => {
+  const unsubs = [
+    gameStore.subscribe('inventory', cb),
+    gameStore.subscribe('equipment', cb),
+    gameStore.subscribe('player', cb),
+  ];
+  return () => unsubs.forEach(u => u());
+};
+
+const subscribeUI = (cb: () => void) => gameStore.subscribe('ui', cb);
 
 export function useGameStore() {
-  return useSyncExternalStore(subscribe, () => _mainSnapshot);
+  return useSyncExternalStore(subscribeMain, () => _mainSnapshot);
 }
 
 export function useGameUI() {
-  return useSyncExternalStore(subscribe, () => _uiSnapshot);
+  return useSyncExternalStore(subscribeUI, () => _uiSnapshot);
 }

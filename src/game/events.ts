@@ -17,14 +17,12 @@ class TypedEventBus {
   };
 
   on<K extends GameEventName>(event: K, listener: Listener<K>) {
-    if (!this.listeners[event]) return () => {};
-    this.listeners[event].add(listener as Listener<any>);
+    this.listeners[event].add(listener);
     return () => this.off(event, listener);
   }
 
   off<K extends GameEventName>(event: K, listener: Listener<K>) {
-    if (!this.listeners[event]) return;
-    this.listeners[event].delete(listener as Listener<any>);
+    this.listeners[event].delete(listener);
   }
 
   emit<K extends GameEventName>(event: K, payload: GameEventMap[K]) {

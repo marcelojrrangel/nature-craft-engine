@@ -1,15 +1,20 @@
 // Reactive game store for shared state between Phaser & React
+import Phaser from 'phaser';
 import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL, TOOL_DAMAGE, BASE_DAMAGE, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState, type CrabState, type BearState, type RabbitState, type Skill, type PlacedItem } from './types';
+import { saveToIndexedDB, loadFromIndexedDB, deleteFromIndexedDB } from './persistence';
 
 type Listener = () => void;
+type SliceKey = 'inventory' | 'equipment' | 'player' | 'ui' | 'world' | 'skills';
 
 class GameStore {
-  private listeners: Set<Listener> = new Set();
+  private allListeners: Set<Listener> = new Set();
+  private sliceListeners = new Map<SliceKey, Set<Listener>>();
 
   inventory: InventorySlot[] = Array.from({ length: 20 }, () => ({ item: null, quantity: 0 }));
   equipment: Equipment = JSON.parse(JSON.stringify(DEFAULT_EQUIPMENT));
   playerX = 800;
   playerY = 800;
+  playerDir = 'down';
   hp = 100;
   maxHp = 100;
   showInventory = false;
@@ -25,8 +30,17 @@ class GameStore {
   placedItems: PlacedItem[] = [];
   skills: Record<string, Skill> = {};
   showSkills = false;
+  currentStation: 'workbench' | 'campfire' = 'workbench';
   respawnQueue: { x: number; y: number; type: string; hp: number; id: string; respawnAt: number }[] = [];
   private saveInterval: number | null = null;
+
+  // Exposed for minimap (read-only references managed by MainScene)
+  resources: Phaser.GameObjects.Sprite[] = [];
+  chickens: Phaser.GameObjects.Sprite[] = [];
+  crabs: Phaser.GameObjects.Sprite[] = [];
+  bears: Phaser.GameObjects.Sprite[] = [];
+  rabbits: Phaser.GameObjects.Sprite[] = [];
+  worldTick = 0;
 
   constructor() {
     this.load();
@@ -35,7 +49,7 @@ class GameStore {
 
   receiveDamage(amount: number) {
     this.hp = Math.max(0, this.hp - amount);
-    this.notify();
+    this.notify('player');
     if (this.hp <= 0) { this.gameOver(); }
   }
 
@@ -45,8 +59,26 @@ class GameStore {
     window.location.reload();
   }
 
-  subscribe(fn: Listener) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
-  private notify() { this.listeners.forEach(fn => fn()); }
+  subscribe(sliceOrFn: SliceKey | Listener, fn?: Listener): () => void {
+    if (typeof sliceOrFn === 'function') {
+      this.allListeners.add(sliceOrFn);
+      return () => this.allListeners.delete(sliceOrFn);
+    }
+    if (!this.sliceListeners.has(sliceOrFn)) {
+      this.sliceListeners.set(sliceOrFn, new Set());
+    }
+    this.sliceListeners.get(sliceOrFn)!.add(fn!);
+    return () => this.sliceListeners.get(sliceOrFn)?.delete(fn!);
+  }
+
+  private notify(slice?: SliceKey) {
+    if (slice) {
+      this.sliceListeners.get(slice)?.forEach(fn => fn());
+    } else {
+      this.sliceListeners.forEach(set => set.forEach(fn => fn()));
+    }
+    this.allListeners.forEach(fn => fn());
+  }
 
   addItem(item: Item, qty = 1): boolean {
     if (item.stackable) {
@@ -54,17 +86,17 @@ class GameStore {
         if (slot.item?.id === item.id && slot.quantity < item.maxStack) {
           const canAdd = Math.min(qty, item.maxStack - slot.quantity);
           slot.quantity += canAdd; qty -= canAdd;
-          if (qty <= 0) { this.notify(); this.save(); return true; }
+          if (qty <= 0) { this.notify('inventory'); this.save(); return true; }
         }
       }
     }
     while (qty > 0) {
       const empty = this.inventory.find(s => !s.item);
-      if (!empty) { this.notify(); return false; }
+      if (!empty) { this.notify('inventory'); return false; }
       const toAdd = item.stackable ? Math.min(qty, item.maxStack) : 1;
       empty.item = item; empty.quantity = toAdd; qty -= toAdd;
     }
-    this.notify(); this.save(); return true;
+    this.notify('inventory'); this.save(); return true;
   }
 
   removeItem(itemId: string, qty = 1): boolean {
@@ -76,7 +108,7 @@ class GameStore {
         if (slot.quantity <= 0) { slot.item = null; slot.quantity = 0; }
       }
     }
-    this.validateQuickBarReferences(); this.notify(); this.save(); return remaining <= 0;
+    this.validateQuickBarReferences(); this.notify('inventory'); this.save(); return remaining <= 0;
   }
 
   countItem(itemId: string): number {
@@ -94,7 +126,7 @@ class GameStore {
       const bonusHp = slot.item.bonus?.hp || 20;
       this.hp = Math.min(this.maxHp, this.hp + bonusHp);
       this.removeItem(slot.item.id, 1);
-      this.notify();
+      this.notify('player');
     } else if (slot.item.id === 'campfire') {
       import('./events').then(m => { m.gameEvents.emit('placeItem', { type: 'campfire', inventoryIndex: index }); });
     } else if (slot.item.type === 'armor') {
@@ -107,7 +139,7 @@ class GameStore {
   placeItem(type: string, x: number, y: number, inventoryIndex: number) {
     this.placedItems.push({ id: `${type}_${Date.now()}`, type, x, y });
     this.removeItem(this.inventory[inventoryIndex].item!.id, 1);
-    this.notify(); this.save();
+    this.notify('world'); this.save();
   }
 
   equip(slot: EquipSlot, inventoryIndex: number) {
@@ -117,14 +149,14 @@ class GameStore {
     this.equipment[slot] = { item: invSlot.item, quantity: 1 };
     if (current.item) { this.inventory[inventoryIndex] = { item: current.item, quantity: 1 }; }
     else { this.inventory[inventoryIndex] = { item: null, quantity: 0 }; }
-    this.notify();
+    this.notify('equipment');
   }
 
   unequip(slot: EquipSlot) {
     const current = this.equipment[slot];
     if (!current.item) return;
     if (this.addItem(current.item, 1)) { this.equipment[slot] = { item: null, quantity: 0 }; }
-    this.notify();
+    this.notify('equipment');
   }
 
   getEquippedTool(): Item | null {
@@ -153,11 +185,11 @@ class GameStore {
     if (!this.inventory[inventoryIndex].item) return;
     for (let i = 0; i < 5; i++) { if (this.quickBar[i] === inventoryIndex) { this.quickBar[i] = null; } }
     this.quickBar[quickBarIndex] = inventoryIndex;
-    this.notify();
+    this.notify('inventory');
   }
 
-  removeFromQuickBar(quickBarIndex: number) { this.quickBar[quickBarIndex] = null; this.notify(); }
-  selectQuickBar(index: number) { this.selectedQuickBarIndex = index; this.notify(); }
+  removeFromQuickBar(quickBarIndex: number) { this.quickBar[quickBarIndex] = null; this.notify('inventory'); }
+  selectQuickBar(index: number) { this.selectedQuickBarIndex = index; this.notify('inventory'); }
 
   private validateQuickBarReferences() {
     for (let i = 0; i < 5; i++) {
@@ -171,7 +203,7 @@ class GameStore {
     if (!this.canCraft(recipe)) return false;
     recipe.ingredients.forEach(ing => this.removeItem(ing.item.id, ing.quantity));
     this.addItem(recipe.result, recipe.resultQty);
-    this.notify(); return true;
+    this.notify('inventory'); return true;
   }
 
   getStats() {
@@ -219,42 +251,65 @@ class GameStore {
       skill.level++;
       needed = this.getXPForLevel(skill.level);
     }
-    this.notify();
+    this.notify('skills');
   }
 
   getSkill(toolType: string): Skill | null { return this.skills[toolType] || null; }
-  unlearnSkill(toolType: string) { if (this.skills[toolType]) { this.skills[toolType] = { toolType, xp: 0, level: 0 }; this.notify(); this.save(); } }
+  unlearnSkill(toolType: string) { if (this.skills[toolType]) { this.skills[toolType] = { toolType, xp: 0, level: 0 }; this.notify('skills'); this.save(); } }
 
-  toggleInventory() { this.showInventory = !this.showInventory; this.notify(); }
-  toggleCrafting() { this.showCrafting = !this.showCrafting; if (!this.showCrafting) this.save(); this.notify(); }
-  toggleEquipment() { this.showEquipment = !this.showEquipment; this.notify(); }
-  toggleSkills() { this.showSkills = !this.showSkills; this.notify(); }
-  closeAll() { this.showInventory = false; this.showCrafting = false; this.showEquipment = false; this.showSkills = false; this.notify(); }
+  toggleInventory() { this.showInventory = !this.showInventory; this.notify('ui'); }
+  toggleCrafting() { this.showCrafting = !this.showCrafting; if (!this.showCrafting) this.save(); this.notify('ui'); }
+  toggleEquipment() { this.showEquipment = !this.showEquipment; this.notify('ui'); }
+  toggleSkills() { this.showSkills = !this.showSkills; this.notify('ui'); }
+  closeAll() { this.showInventory = false; this.showCrafting = false; this.showEquipment = false; this.showSkills = false; this.notify('ui'); }
 
-  save() {
-    const data: GameSaveData = {
+  private buildSaveData(): GameSaveData {
+    return {
       playerX: this.playerX, playerY: this.playerY, inventory: this.inventory, equipment: this.equipment, timestamp: Date.now(),
       resourceStates: this.resourceStates, chickenStates: this.chickenStates, crabStates: this.crabStates, bearStates: this.bearStates, rabbitStates: this.rabbitStates,
       placedItems: this.placedItems, quickBar: this.quickBar, selectedQuickBarIndex: this.selectedQuickBarIndex, skills: this.skills, respawnQueue: this.respawnQueue,
     };
+  }
+
+  private applySaveData(data: GameSaveData) {
+    this.playerX = data.playerX; this.playerY = data.playerY; this.inventory = data.inventory; this.equipment = data.equipment;
+    this.resourceStates = data.resourceStates || {}; this.chickenStates = data.chickenStates || {}; this.crabStates = data.crabStates || {};
+    this.bearStates = data.bearStates || {}; this.rabbitStates = data.rabbitStates || {}; this.placedItems = data.placedItems || [];
+    this.quickBar = data.quickBar || [null, null, null, null, null]; this.selectedQuickBarIndex = data.selectedQuickBarIndex || 0;
+    this.skills = data.skills || {}; this.respawnQueue = data.respawnQueue || [];
+    this.validateQuickBarReferences();
+  }
+
+  save() {
+    const data = this.buildSaveData();
     localStorage.setItem('naturequest_save', JSON.stringify(data));
+    saveToIndexedDB(data);
   }
 
   load() {
     try {
-      const raw = localStorage.getItem('naturequest_save'); if (!raw) return;
-      const data: GameSaveData = JSON.parse(raw);
-      this.playerX = data.playerX; this.playerY = data.playerY; this.inventory = data.inventory; this.equipment = data.equipment;
-      this.resourceStates = data.resourceStates || {}; this.chickenStates = data.chickenStates || {}; this.crabStates = data.crabStates || {};
-      this.bearStates = data.bearStates || {}; this.rabbitStates = data.rabbitStates || {}; this.placedItems = data.placedItems || [];
-      this.quickBar = data.quickBar || [null, null, null, null, null]; this.selectedQuickBarIndex = data.selectedQuickBarIndex || 0;
-      this.skills = data.skills || {}; this.respawnQueue = data.respawnQueue || [];
-      this.validateQuickBarReferences();
-    } catch { /* ignore saves */ }
+      const raw = localStorage.getItem('naturequest_save');
+      if (raw) {
+        const data: GameSaveData = JSON.parse(raw);
+        this.applySaveData(data);
+      }
+    } catch { /* ignore corrupt saves */ }
+
+    loadFromIndexedDB().then(idbData => {
+      if (!idbData) return;
+      const localTimestamp = localStorage.getItem('naturequest_save')
+        ? (JSON.parse(localStorage.getItem('naturequest_save')!) as GameSaveData).timestamp
+        : 0;
+      if (!localTimestamp || idbData.timestamp > localTimestamp) {
+        this.applySaveData(idbData);
+        this.notify();
+      }
+    });
   }
 
   resetSave() {
     localStorage.removeItem('naturequest_save');
+    deleteFromIndexedDB();
     this.inventory = Array.from({ length: 20 }, () => ({ item: null, quantity: 0 }));
     this.equipment = JSON.parse(JSON.stringify(DEFAULT_EQUIPMENT)); this.playerX = 800; this.playerY = 800; this.hp = 100;
     this.resourceStates = {}; this.chickenStates = {}; this.crabStates = {}; this.bearStates = {}; this.rabbitStates = {}; this.placedItems = [];
@@ -262,7 +317,7 @@ class GameStore {
     this.notify();
   }
 
-  updatePlayerPos(x: number, y: number) { this.playerX = x; this.playerY = y; }
+  updatePlayerPos(x: number, y: number, dir: string = 'down') { this.playerX = x; this.playerY = y; this.playerDir = dir; this.notify('world'); }
 }
 
 export const gameStore = new GameStore();

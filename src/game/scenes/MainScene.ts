@@ -5,7 +5,7 @@ import { ITEMS, HARDNESS, TOOL_DAMAGE, BASE_DAMAGE, DROP_BONUS_CHANCE, TOOL_REQU
 import { gameEvents } from '../events';
 import { ChickenNPC } from '../entities/ChickenNPC';
 import { CrabNPC } from '../entities/CrabNPC';
-import { OrcNPC } from '../entities/OrcNPC';
+import { BearNPC } from '../entities/BearNPC';
 import { RabbitNPC } from '../entities/RabbitNPC';
 
 const MAP_W = 100;
@@ -34,14 +34,14 @@ export class MainScene extends Phaser.Scene {
   private resources: ResourceObj[] = [];
   private chickens: ChickenNPC[] = [];
   private crabs: CrabNPC[] = [];
-  private orcs: OrcNPC[] = [];
+  private bears: BearNPC[] = [];
   private rabbits: RabbitNPC[] = [];
   private campfireSprites: Phaser.GameObjects.Sprite[] = [];
   
   private resourceGroup!: Phaser.Physics.Arcade.StaticGroup;
   private chickenGroup!: Phaser.Physics.Arcade.Group;
   private crabGroup!: Phaser.Physics.Arcade.Group;
-  private bearGroup!: Phaser.Physics.Arcade.Group; // Grupo físico para Orcs
+  private bearGroup!: Phaser.Physics.Arcade.Group;
   private rabbitGroup!: Phaser.Physics.Arcade.Group;
   private projectileGroup!: Phaser.Physics.Arcade.Group;
 
@@ -105,7 +105,7 @@ export class MainScene extends Phaser.Scene {
     this.resources = [];
     this.chickens = [];
     this.crabs = [];
-    this.orcs = [];
+    this.bears = [];
     this.rabbits = [];
 
     this.resourceGroup = this.physics.add.staticGroup();
@@ -132,7 +132,7 @@ export class MainScene extends Phaser.Scene {
     this.generateResources();
     this.generateChickens();
     this.generateCrabs();
-    this.generateBears(); // Agora gera Orcs internamente
+    this.generateBears();
     this.generateRabbits();
     this.setupInput();
     this.setupCamera();
@@ -192,7 +192,7 @@ export class MainScene extends Phaser.Scene {
       const resource = res as ResourceObj;
       if (this.canDamageTarget(resource.resourceType, false)) { this.applyDamageToResource(resource, gameStore.getStats().attackDamage); arrow.destroy(); }
     });
-    const configs = [{ g: this.chickenGroup, l: this.chickens, t: 'chicken' }, { g: this.crabGroup, l: this.crabs, t: 'crab' }, { g: this.bearGroup, l: this.orcs, t: 'bear' }, { g: this.rabbitGroup, l: this.rabbits, t: 'rabbit' }];
+    const configs = [{ g: this.chickenGroup, l: this.chickens, t: 'chicken' }, { g: this.crabGroup, l: this.crabs, t: 'crab' }, { g: this.bearGroup, l: this.bears, t: 'bear' }, { g: this.rabbitGroup, l: this.rabbits, t: 'rabbit' }];
     configs.forEach(cfg => {
       this.physics.add.overlap(this.projectileGroup, cfg.g, (arrow, sprite) => {
         if (!arrow.active) return;
@@ -272,7 +272,7 @@ export class MainScene extends Phaser.Scene {
       if (!s) { const p = this.getRandomBearPosition(); if (!p) continue; s = { id, x: p.x, y: p.y, alive: true, respawnAt: null, hp: HARDNESS.bear }; gameStore.bearStates[id] = s; }
       if (s.respawnAt && now < s.respawnAt) continue;
       if (!s.alive || s.respawnAt !== null) { s.alive = true; s.respawnAt = null; s.hp = HARDNESS.bear; }
-      this.spawnOrc(s);
+      this.spawnBear(s);
     }
   }
 
@@ -301,10 +301,10 @@ export class MainScene extends Phaser.Scene {
     c.sprite.setPipeline('Light2D'); this.crabs.push(c); this.crabGroup.add(c.sprite); this.physics.add.collider(this.player, c.sprite);
   }
 
-  private spawnOrc(s: BearState) {
-    if (this.orcs.some(b => b.id === s.id)) return;
-    const b = new OrcNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 150 }, s.hp);
-    b.sprite.setPipeline('Light2D'); this.orcs.push(b); this.bearGroup.add(b.sprite); this.physics.add.collider(this.player, b.sprite);
+  private spawnBear(s: BearState) {
+    if (this.bears.some(b => b.id === s.id)) return;
+    const b = new BearNPC(this, { id: s.id, x: s.x, y: s.y, wanderRadius: 150 }, s.hp);
+    b.sprite.setPipeline('Light2D'); this.bears.push(b); this.bearGroup.add(b.sprite); this.physics.add.collider(this.player, b.sprite);
   }
 
   private spawnRabbit(s: RabbitState) {
@@ -367,7 +367,7 @@ export class MainScene extends Phaser.Scene {
 
   private setupCamera() { this.cameras.main.startFollow(this.player, true, 0.08, 0.08); this.cameras.main.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE).setZoom(2.5); }
 
-  shutdown() { this.unsubscribeList.forEach(unsub => unsub()); this.unsubscribeList = []; this.chickens.forEach(c => c.destroy()); this.crabs.forEach(c => c.destroy()); this.orcs.forEach(b => b.destroy()); this.rabbits.forEach(r => r.destroy()); }
+  shutdown() { this.unsubscribeList.forEach(unsub => unsub()); this.unsubscribeList = []; this.chickens.forEach(c => c.destroy()); this.crabs.forEach(c => c.destroy()); this.bears.forEach(b => b.destroy()); this.rabbits.forEach(r => r.destroy()); }
 
   private showFloatingText(x: number, y: number, text: string, color: string) { if (!this.sys || !this.sys.isActive()) return; const f = this.add.text(x, y, text, { fontSize: '12px', color, fontStyle: 'bold', backgroundColor: '#00000066', padding: { x: 4, y: 2 } }).setDepth(3500); this.tweens.add({ targets: f, y: y - 24, alpha: 0, duration: 850, onComplete: () => f.destroy() }); }
 
@@ -377,13 +377,13 @@ export class MainScene extends Phaser.Scene {
 
   private applyDamageToResource(res: ResourceObj, dmg: number) { if (!res || !res.active) return; res.resourceHp -= dmg; gameStore.resourceStates[res.resourceId] = res.resourceHp; res.setTint(0xffffff); this.time.delayedCall(100, () => { if (res && res.active) res.clearTint(); }); if (res.resourceType === 'rock' || res.resourceType === 'small_rock') this.stoneParticles.emitParticleAt(res.x, res.y, 5); else if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') this.woodParticles.emitParticleAt(res.x, res.y, 5); const t = this.add.text(res.x, res.y - 20, `-${dmg.toFixed(0)}`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: res.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (res.resourceHp <= 0) this.harvestResource(res); }
 
-  private applyDamageToNPC(npc: any, type: string, dmg: number) { const sMap = type === 'chicken' ? gameStore.chickenStates : type === 'crab' ? gameStore.crabStates : type === 'bear' ? gameStore.bearStates : gameStore.rabbitStates; if (!sMap) return; const s = sMap[npc.id]; if (!s) return; const hp = npc.takeDamage(dmg); s.hp = hp; this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8); const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (hp <= 0) { if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc); else if (type === 'bear') this.collectOrc(npc); else if (type === 'rabbit') this.collectRabbit(npc); } }
+  private applyDamageToNPC(npc: any, type: string, dmg: number) { const sMap = type === 'chicken' ? gameStore.chickenStates : type === 'crab' ? gameStore.crabStates : type === 'bear' ? gameStore.bearStates : gameStore.rabbitStates; if (!sMap) return; const s = sMap[npc.id]; if (!s) return; const hp = npc.takeDamage(dmg); s.hp = hp; this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8); const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (hp <= 0) { if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc);       else if (type === 'bear') this.collectBear(npc); else if (type === 'rabbit') this.collectRabbit(npc); } }
 
   private collectChicken(c: ChickenNPC) { const s = gameStore.chickenStates[c.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000); gameStore.addItem(ITEMS.chicken_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.feather, 1); c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); }); this.chickens = this.chickens.filter(chi => chi.id !== c.id); gameStore.save(); }
 
   private collectCrab(c: CrabNPC) { const s = gameStore.crabStates[c.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000); gameStore.addItem(ITEMS.crab_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.crab_shell, 1); c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); }); this.crabs = this.crabs.filter(cra => cra.id !== c.id); gameStore.save(); }
 
-  private collectOrc(b: OrcNPC) { const s = gameStore.bearStates[b.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(60000, 120000); gameStore.addItem(ITEMS.pelt, Phaser.Math.Between(2, 4)); gameStore.addItem(ITEMS.food, 3); b.collect(); this.time.delayedCall(80, () => { if (b.sprite && b.sprite.active) b.destroy(); }); this.orcs = this.orcs.filter(orc => orc.id !== b.id); gameStore.save(); }
+  private collectBear(b: BearNPC) { const s = gameStore.bearStates[b.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(60000, 120000); gameStore.addItem(ITEMS.pelt, Phaser.Math.Between(2, 4)); gameStore.addItem(ITEMS.food, 3); b.collect(); this.time.delayedCall(80, () => { if (b.sprite && b.sprite.active) b.destroy(); }); this.bears = this.bears.filter(br => br.id !== b.id); gameStore.save(); }
 
   private collectRabbit(r: RabbitNPC) { const s = gameStore.rabbitStates[r.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000); gameStore.addItem(ITEMS.rabbit_meat, 1); gameStore.addItem(ITEMS.pelt, 1); r.collect(); this.time.delayedCall(80, () => { if (r.sprite && r.sprite.active) r.destroy(); }); this.rabbits = this.rabbits.filter(rab => rab.id !== r.id); gameStore.save(); }
 
@@ -412,10 +412,10 @@ export class MainScene extends Phaser.Scene {
 
   private doMeleeAttack() {
     const stats = gameStore.getStats(), t = gameStore.getEquippedTool();
-    const targets = [...this.chickens, ...this.crabs, ...this.orcs, ...this.rabbits];
+    const targets = [...this.chickens, ...this.crabs, ...this.bears, ...this.rabbits];
     targets.forEach((npc: any) => {
       if (npc.isInRange && npc.isInRange(this.player.x, this.player.y, 42)) {
-        const type = npc instanceof CrabNPC ? 'crab' : npc instanceof OrcNPC ? 'bear' : npc instanceof RabbitNPC ? 'rabbit' : 'chicken';
+        const type = npc instanceof CrabNPC ? 'crab' : npc instanceof BearNPC ? 'bear' : npc instanceof RabbitNPC ? 'rabbit' : 'chicken';
         if (this.canDamageTarget(type)) { gameStore.useTool(t?.type === 'knife' ? 'knife' : 'sword'); this.applyDamageToNPC(npc, type, stats.attackDamage); }
       }
     });
@@ -451,7 +451,7 @@ export class MainScene extends Phaser.Scene {
     const wbX = (MAP_W * TILE) / 2, wbY = (MAP_H * TILE) / 2, distToWB = Phaser.Math.Distance.Between(this.player.x, this.player.y, wbX, wbY);
     if (distToWB < SAFE_ZONE_RADIUS) this.inSafeZone = true;
     this.campfireSprites.forEach(cf => { if (cf && cf.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, cf.x, cf.y) < 50) this.nearCampfire = true; });
-    this.orcs.forEach(b => { b.update(delta, this.player.x, this.player.y, { x: wbX, y: wbY, radius: SAFE_ZONE_RADIUS }, this.inSafeZone); const bBody = b.sprite.body as Phaser.Physics.Arcade.Body; if (bBody && (Math.abs(bBody.velocity.x) > 10 || Math.abs(bBody.velocity.y) > 10)) this.dustParticles.emitParticleAt(b.sprite.x, b.sprite.y + 10, 1); });
+    this.bears.forEach(b => { b.update(delta, this.player.x, this.player.y, { x: wbX, y: wbY, radius: SAFE_ZONE_RADIUS }, this.inSafeZone); const bBody = b.sprite.body as Phaser.Physics.Arcade.Body; if (bBody && (Math.abs(bBody.velocity.x) > 10 || Math.abs(bBody.velocity.y) > 10)) this.dustParticles.emitParticleAt(b.sprite.x, b.sprite.y + 10, 1); });
     this.drawResourceHpBars();
     if (this.isAttacking) return;
     const body = this.player.body as Phaser.Physics.Arcade.Body; let vx = 0, vy = 0;

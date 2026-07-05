@@ -3,16 +3,16 @@ import { gameStore } from '../store';
 import { HealthComponent } from '../components/HealthComponent';
 import { HealthBarRenderer } from '../components/HealthBarRenderer';
 
-export type OrcVisualState = 'idle' | 'chasing' | 'attacking' | 'dead';
+export type BearVisualState = 'idle' | 'chasing' | 'attacking' | 'dead';
 
-interface OrcNPCConfig {
+interface BearNPCConfig {
   id: string;
   x: number;
   y: number;
   wanderRadius?: number;
 }
 
-export class OrcNPC {
+export class BearNPC {
   readonly id: string;
   readonly sprite: Phaser.Physics.Arcade.Sprite;
   readonly homeX: number;
@@ -21,32 +21,31 @@ export class OrcNPC {
   public health: HealthComponent;
   private hpBar: HealthBarRenderer;
 
-  private state: OrcVisualState = 'idle';
+  private state: BearVisualState = 'idle';
   private stateTimer = 0;
   private targetPos: { x: number; y: number } | null = null;
   private readonly wanderRadius: number;
   private readonly walkSpeed = 40;
-  private readonly runSpeed = 110; // Um pouco mais rápido que o urso
+  private readonly runSpeed = 110;
   private readonly detectionRange = 140;
   private readonly attackRange = 45;
   private attackCooldown = 0;
 
-  constructor(scene: Phaser.Scene, config: OrcNPCConfig, initialHp: number = 40) {
+  constructor(scene: Phaser.Scene, config: BearNPCConfig, initialHp: number = 40) {
     this.id = config.id;
     this.homeX = config.x;
     this.homeY = config.y;
     this.wanderRadius = config.wanderRadius ?? 150;
 
-    const maxHp = 40; // Orc é mais resistente
+    const maxHp = 40;
     this.health = new HealthComponent(initialHp > 0 ? initialHp : maxHp, maxHp);
 
-    this.sprite = scene.physics.add.sprite(config.x, config.y, 'orc_idle', 0);
+    this.sprite = scene.physics.add.sprite(config.x, config.y, 'bear_idle', 0);
     this.sprite.setDepth(config.y);
     
-    // Ajustar corpo físico (Humanóide)
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
     body.setCollideWorldBounds(true);
-    body.setSize(16, 24).setOffset(8, 8);
+    body.setSize(20, 16).setOffset(6, 12);
 
     this.createAnimations(scene);
     this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 28, true);
@@ -56,26 +55,34 @@ export class OrcNPC {
   }
 
   private createAnimations(scene: Phaser.Scene) {
-    if (!scene.anims.exists('orc_idle_anim')) {
+    if (!scene.anims.exists('bear_idle_anim')) {
       scene.anims.create({
-        key: 'orc_idle_anim',
-        frames: scene.anims.generateFrameNumbers('orc_idle', { start: 0, end: 3 }),
+        key: 'bear_idle_anim',
+        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 0, end: 3 }),
         frameRate: 6,
         repeat: -1
       });
     }
-    if (!scene.anims.exists('orc_run_anim')) {
+    if (!scene.anims.exists('bear_run_anim')) {
       scene.anims.create({
-        key: 'orc_run_anim',
-        frames: scene.anims.generateFrameNumbers('orc_run', { start: 0, end: 5 }),
+        key: 'bear_run_anim',
+        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 4, end: 9 }),
         frameRate: 10,
         repeat: -1
       });
     }
-    if (!scene.anims.exists('orc_death_anim')) {
+    if (!scene.anims.exists('bear_attack_anim')) {
       scene.anims.create({
-        key: 'orc_death_anim',
-        frames: scene.anims.generateFrameNumbers('orc_death', { start: 0, end: 5 }),
+        key: 'bear_attack_anim',
+        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 10, end: 13 }),
+        frameRate: 8,
+        repeat: 0
+      });
+    }
+    if (!scene.anims.exists('bear_death_anim')) {
+      scene.anims.create({
+        key: 'bear_death_anim',
+        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 14, end: 17 }),
         frameRate: 8,
         repeat: 0
       });
@@ -138,21 +145,21 @@ export class OrcNPC {
       if (this.targetPos) {
         if (Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y) < 5) {
           body.setVelocity(0, 0); this.targetPos = null;
-          this.sprite.play('orc_idle_anim', true);
+          this.sprite.play('bear_idle_anim', true);
         } else {
           const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y);
           body.setVelocity(Math.cos(angle) * this.walkSpeed, Math.sin(angle) * this.walkSpeed);
-          this.sprite.play('orc_run_anim', true); // Usa animação de corrida lenta
+          this.sprite.play('bear_run_anim', true);
           this.sprite.setFlipX(body.velocity.x < 0);
         }
       } else {
         body.setVelocity(0, 0);
-        this.sprite.play('orc_idle_anim', true);
+        this.sprite.play('bear_idle_anim', true);
       }
     } else if (this.state === 'chasing' && this.targetPos) {
       const angle = Phaser.Math.Angle.Between(this.sprite.x, this.sprite.y, this.targetPos.x, this.targetPos.y);
       body.setVelocity(Math.cos(angle) * this.runSpeed, Math.sin(angle) * this.runSpeed);
-      this.sprite.play('orc_run_anim', true);
+      this.sprite.play('bear_run_anim', true);
       this.sprite.setFlipX(body.velocity.x < 0);
     }
   }
@@ -160,9 +167,8 @@ export class OrcNPC {
   private attackPlayer() {
     this.setState('attacking');
     this.attackCooldown = 1500;
-    gameStore.receiveDamage(25); // Orc dá mais dano
+    gameStore.receiveDamage(25);
     
-    // Feedback visual de ataque (Flash vermelho no jogador)
     this.sprite.scene.cameras.main.flash(100, 255, 0, 0, false);
     
     this.sprite.scene.time.delayedCall(400, () => {
@@ -187,7 +193,7 @@ export class OrcNPC {
       body.enable = false;
       this.sprite.disableBody(true, false);
     }
-    this.sprite.play('orc_death_anim', true);
+    this.sprite.play('bear_death_anim', true);
     this.sprite.setDepth(this.sprite.y - 10);
     this.hpBar.update();
   }
@@ -197,7 +203,7 @@ export class OrcNPC {
     this.sprite.destroy();
   }
 
-  private setState(next: OrcVisualState) {
+  private setState(next: BearVisualState) {
     if (this.state === next && next !== 'dead') return;
     this.state = next;
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
@@ -210,5 +216,10 @@ export class OrcNPC {
     const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
     const radius = Phaser.Math.FloatBetween(30, this.wanderRadius);
     return { x: this.homeX + Math.cos(angle) * radius, y: this.homeY + Math.sin(angle) * radius };
+  }
+
+  isInRange(x: number, y: number, distance: number) {
+    if (!this.health.isAlive) return false;
+    return Phaser.Math.Distance.Between(this.sprite.x, this.sprite.y, x, y) <= distance;
   }
 }

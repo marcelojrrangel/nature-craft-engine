@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
 import { useIsMobile } from '../../hooks/use-mobile';
+import ItemIcon from './ItemIcon';
 
-const RESOURCE_IDS = ['wood', 'stone', 'iron', 'bronze', 'gold'];
+const RESOURCE_IDS = ['wood', 'stone', 'iron_ore', 'bronze_ore', 'gold_ore'];
+const ICONS = ['wood', 'stone', 'fiber', 'iron_ore', 'bronze_ore', 'gold_ore', 'axe', 'pickaxe', 'sword', 'bow'];
 
 export default function GameHUD() {
   const stats = useGameStore();
@@ -84,9 +86,15 @@ export default function GameHUD() {
             const count = trackedResources[id] || 0;
             return (
               <div key={id} className={`px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-lg border flex items-center gap-1 sm:gap-1.5 shadow-lg transition-opacity ${count > 0 ? 'bg-black/50 backdrop-blur-md border-white/10' : 'bg-black/30 border-white/5'}`}>
-                <span className={`text-xs sm:text-sm ${count === 0 ? 'opacity-40' : ''}`}>
-                  {id === 'wood' ? '🪵' : id === 'stone' ? '🪨' : id === 'iron' ? '⛓️' : id === 'bronze' ? '🥉' : '📀'}
-                </span>
+                {ICONS.includes(id) ? (
+                  <div className={`w-4 h-4 sm:w-5 sm:h-5 ${count === 0 ? 'opacity-40' : ''}`}>
+                    <ItemIcon itemId={id} size={20} />
+                  </div>
+                ) : (
+                  <span className={`text-xs sm:text-sm ${count === 0 ? 'opacity-40' : ''}`}>
+                    {id === 'wood' ? '🪵' : id === 'stone' ? '🪨' : id === 'iron' ? '⛓️' : id === 'bronze' ? '🥉' : '📀'}
+                  </span>
+                )}
                 <span className={`text-[8px] sm:text-[10px] font-bold ${count > 0 ? 'text-white' : 'text-white/30'}`} style={{ fontFamily: "'Press Start 2P', monospace" }}>
                   {count}
                 </span>
@@ -116,7 +124,11 @@ export default function GameHUD() {
                 </span>
                 {slot?.item ? (
                   <>
-                    <span className="text-xl sm:text-2xl drop-shadow-xl">{slot.item.icon}</span>
+                    {ICONS.includes(slot.item.id) ? (
+                      <ItemIcon itemId={slot.item.id} size={32} />
+                    ) : (
+                      <span className="text-xl sm:text-2xl drop-shadow-xl">{slot.item.icon}</span>
+                    )}
                     {slot.item.stackable && slot.quantity > 1 && (
                       <span className="absolute -bottom-0.5 -right-0.5 sm:-bottom-1 sm:-right-1 text-[6px] sm:text-[8px] text-white/80 bg-black/60 px-0.5 sm:px-1 rounded" style={{ fontFamily: "'Press Start 2P', monospace" }}>
                         {slot.quantity}

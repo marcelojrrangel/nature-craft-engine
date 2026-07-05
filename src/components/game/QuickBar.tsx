@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
+import ItemIcon from './ItemIcon';
+
+const ICONS = ['wood', 'stone', 'fiber', 'iron_ore', 'bronze_ore', 'gold_ore', 'axe', 'pickaxe', 'sword', 'bow'];
 
 export default function QuickBar() {
   const { quickBar, selectedQuickBarIndex: selectedIndex } = useGameStore();
@@ -54,9 +57,15 @@ export default function QuickBar() {
 
             {slot?.item && (
               <>
-                <span className="text-xl absolute inset-0 flex items-center justify-center">
-                  {slot.item.icon}
-                </span>
+                {ICONS.includes(slot.item.id) ? (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <ItemIcon itemId={slot.item.id} size={28} />
+                  </div>
+                ) : (
+                  <span className="text-xl absolute inset-0 flex items-center justify-center">
+                    {slot.item.icon}
+                  </span>
+                )}
                 {slot.quantity > 1 && (
                   <span
                     className="absolute bottom-0 right-0.5 text-[10px] game-pixel-text"

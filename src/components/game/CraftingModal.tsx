@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
 import { RECIPES, type CraftStation, type InventorySlot } from '../../game/types';
+import ItemIcon from './ItemIcon';
+
+const ICONS = ['wood', 'stone', 'fiber', 'iron_ore', 'bronze_ore', 'gold_ore', 'axe', 'pickaxe', 'sword', 'bow'];
 
 interface Props { 
   onClose: () => void;
@@ -52,7 +55,11 @@ export default function CraftingModal({ onClose, station = 'workbench' }: Props)
 
               return (
                 <div key={recipe.id} className={`game-slot p-3 flex items-start gap-3 transition-all duration-300 bg-black/20 border-white/5 ${isJustCrafted ? 'border-primary ring-1 ring-primary/30 scale-[1.02]' : ''}`}>
-                  <span className="text-2xl drop-shadow-md">{recipe.result.icon}</span>
+                  {ICONS.includes(recipe.result.id) ? (
+                    <ItemIcon itemId={recipe.result.id} size={32} />
+                  ) : (
+                    <span className="text-2xl drop-shadow-md">{recipe.result.icon}</span>
+                  )}
                   <div className="flex-1">
                     <div className="game-body-text font-bold text-sm" style={{ color: 'hsl(var(--foreground))' }}>
                       {recipe.name}

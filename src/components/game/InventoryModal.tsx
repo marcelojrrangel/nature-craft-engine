@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
 import { type Item } from '../../game/types';
+import ItemIcon from './ItemIcon';
+
+const ICONS = ['wood', 'stone', 'fiber', 'iron_ore', 'bronze_ore', 'gold_ore', 'axe', 'pickaxe', 'sword', 'bow'];
 
 interface Props { onClose: () => void }
 
@@ -55,7 +58,11 @@ export default function InventoryModal({ onClose }: Props) {
             >
               {slot.item && (
                 <>
-                  <span className="text-2xl drop-shadow-md">{slot.item.icon}</span>
+                  {ICONS.includes(slot.item.id) ? (
+                    <ItemIcon itemId={slot.item.id} size={32} />
+                  ) : (
+                    <span className="text-2xl drop-shadow-md">{slot.item.icon}</span>
+                  )}
                   {slot.quantity > 1 && (
                     <span className="absolute bottom-0 right-1 text-[10px] font-bold game-pixel-text text-white">
                       {slot.quantity}

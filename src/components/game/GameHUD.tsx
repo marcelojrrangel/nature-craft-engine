@@ -4,8 +4,16 @@ import { useGameStore } from '../../hooks/useGameStore';
 import { useIsMobile } from '../../hooks/use-mobile';
 import ItemIcon from './ItemIcon';
 
-const RESOURCE_IDS = ['wood', 'stone', 'iron_ore', 'bronze_ore', 'gold_ore'];
-const ICONS = ['wood', 'stone', 'fiber', 'iron_ore', 'bronze_ore', 'gold_ore', 'axe', 'pickaxe', 'sword', 'bow'];
+const RESOURCE_IDS = ['wood', 'stone', 'fiber', 'iron_ore', 'bronze_ore', 'gold_ore'];
+const ICONS = [
+  'wood', 'twig', 'stone', 'fiber', 'seed', 'feather', 'pelt', 'crab_shell', 'arrow', 'campfire', 'food',
+  'iron_ore', 'bronze_ore', 'gold_ore',
+  'axe', 'pickaxe', 'shovel', 'knife', 'sword', 'bow',
+  'iron_sword', 'iron_pickaxe', 'iron_axe', 'iron_bow',
+  'helmet_rustic', 'gloves_rustic', 'boots_rustic',
+  'iron_helmet', 'iron_chestplate', 'iron_boots',
+  'bronze_helmet', 'bronze_chestplate', 'bronze_boots',
+];
 
 export default function GameHUD() {
   const stats = useGameStore();

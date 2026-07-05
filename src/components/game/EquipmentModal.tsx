@@ -20,7 +20,7 @@ export default function EquipmentModal({ onClose }: Props) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'hsl(var(--background) / 0.7)' }}
       onClick={onClose}>
-      <div className="game-modal w-72" onClick={e => e.stopPropagation()}>
+      <div className="game-modal w-72 max-w-[calc(100vw-32px)] mx-4" onClick={e => e.stopPropagation()}>
         <div className="flex justify-between items-center mb-3">
           <h2 className="game-pixel-text text-sm" style={{ color: 'hsl(var(--primary))' }}>🛡️ Equipamento</h2>
           <button className="game-btn game-btn-secondary text-sm" onClick={onClose}>✕</button>

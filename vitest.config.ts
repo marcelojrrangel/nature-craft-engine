@@ -9,6 +9,18 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     include: ["src/**/*.{test,spec}.{ts,tsx}"],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        '.aiox-core/',
+        'src/test/',
+        '*.config.ts',
+        '*.config.js',
+        'src/components/ui/',
+      ],
+    },
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

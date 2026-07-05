@@ -51,7 +51,16 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('bonfire_base', e + 'bonfire/Bonfire_02-Sheet.png', { frameWidth: 32, frameHeight: 32 });
     this.load.spritesheet('fire_anim', e + 'bonfire/Fire_01-Sheet.png', { frameWidth: 32, frameHeight: 48 });
 
-    // Workbench (Bancada) Assets
+    // Orc Assets (Varying frame sizes)
+    const orc = 'assets/env/enemies/orc/';
+    this.load.spritesheet('orc_idle', orc + 'Idle-Sheet.png', { frameWidth: 32, frameHeight: 32 });
+    this.load.spritesheet('orc_run', orc + 'Run-Sheet.png', { frameWidth: 64, frameHeight: 64 });
+    this.load.spritesheet('orc_death', orc + 'Death-Sheet.png', { frameWidth: 96, frameHeight: 80 });
+
+    // Rabbit Spritesheet (48x48 frames)
+    this.load.spritesheet('rabbit_prof', e + 'rabbit/rabbit.png', { frameWidth: 48, frameHeight: 48 });
+
+    // RESTORING WORKBENCH ASSETS
     const b = 'assets/env/bancada/';
     this.load.image('workbench_lv1', b + 'rocha_01.png');
     this.load.image('workbench_lv2', b + 'rocha_02.png');
@@ -145,16 +154,6 @@ export class BootScene extends Phaser.Scene {
     g.fillCircle(12, 14, 7);
     g.fillCircle(20, 16, 6);
     g.generateTexture('bush', 32, 32);
-
-    // Workbench
-    g.clear();
-    g.fillStyle(0x8B5E3C);
-    g.fillRect(2, 16, 28, 14);
-    g.fillStyle(0xa0714a);
-    g.fillRect(4, 12, 24, 6);
-    g.fillStyle(0x666666);
-    g.fillRect(20, 14, 6, 4);
-    g.generateTexture('workbench', 32, 32);
 
     // Campfire Base
     g.clear();

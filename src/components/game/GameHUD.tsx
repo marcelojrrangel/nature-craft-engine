@@ -73,7 +73,7 @@ export default function GameHUD() {
                 {currentTool.name}
               </span>
               <span className="text-[9px] text-primary/80 ml-1" style={{ fontFamily: "'Press Start 2P', monospace" }}>
-                {stats.attackDamage.toFixed(0)} DMG
+                {gameStore.getStats().attackDamage.toFixed(0)} DMG
               </span>
             </div>
           )}

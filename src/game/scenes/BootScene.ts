@@ -98,6 +98,9 @@ export class BootScene extends Phaser.Scene {
     this.load.audio('sfx_footstep_03', s + 'impact/Audio/footstep_grass_003.ogg');
     this.load.audio('sfx_footstep_04', s + 'impact/Audio/footstep_grass_004.ogg');
     this.load.audio('sfx_campfire', s + 'rpg-sfx/spell_fire_01.ogg');
+    this.load.audio('sfx_thunder_01', s + 'impact/Audio/impactMetal_heavy_000.ogg');
+    this.load.audio('sfx_thunder_02', s + 'impact/Audio/impactMetal_heavy_001.ogg');
+    this.load.audio('sfx_thunder_03', s + 'impact/Audio/impactMetal_heavy_002.ogg');
   }
 
   create() {
@@ -233,6 +236,12 @@ export class BootScene extends Phaser.Scene {
     g.fillStyle(0x8B5E3C, 0.5);
     g.fillCircle(4, 4, 4);
     g.generateTexture('p_dust', 8, 8);
+
+    // Rain drop
+    g.clear();
+    g.fillStyle(0xaaccff, 0.6);
+    g.fillRect(0, 0, 2, 6);
+    g.generateTexture('p_rain', 2, 6);
 
     // Light Mask Texture (Radial Gradient for torch)
     g.clear();

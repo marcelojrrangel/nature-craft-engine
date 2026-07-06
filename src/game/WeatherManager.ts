@@ -113,11 +113,43 @@ export class WeatherManager {
     const strikeX = camX + Math.random() * camW
     const strikeY = camY + Math.random() * camH
 
+    this.showLightningWarning(strikeX, strikeY)
+  }
+
+  private showLightningWarning(x: number, y: number) {
+    const indicator = this.scene.add.circle(x, y, 36, 0x000000, 0.35).setDepth(4999)
+    const ring = this.scene.add.circle(x, y, 40, 0x000000, 0)
+      .setStrokeStyle(1.5, 0xff4444, 0.4).setDepth(4999)
+
+    this.scene.tweens.add({
+      targets: [indicator, ring],
+      alpha: { from: 1, to: 0.5 },
+      scale: { from: 1, to: 1.12 },
+      duration: 400,
+      yoyo: true,
+      repeat: 2,
+      onComplete: () => {
+        this.scene.tweens.add({
+          targets: [indicator, ring],
+          alpha: 0, scale: 1.3, duration: 300,
+          onComplete: () => {
+            indicator.destroy()
+            ring.destroy()
+            this.executeLightningStrike(x, y)
+          },
+        })
+      },
+    })
+  }
+
+  private executeLightningStrike(x: number, y: number) {
+    const cam = this.scene.cameras.main
+
     cam.flash(150, 255, 255, 255, true)
     cam.shake(400, 0.015)
     playRandomSound(['sfx_thunder_01', 'sfx_thunder_02', 'sfx_thunder_03'], { volume: 0.7, detune: Phaser.Math.Between(-100, 100) })
 
-    const glow = this.scene.add.image(strikeX, strikeY, 'p_white')
+    const glow = this.scene.add.image(x, y, 'p_white')
       .setScale(3).setAlpha(1).setDepth(6000).setTint(0xffffcc)
     this.scene.tweens.add({
       targets: glow, alpha: 0, scale: 8, duration: 250,
@@ -125,7 +157,7 @@ export class WeatherManager {
     })
 
     this.scene.time.delayedCall(200, () => {
-      if (this.onLightningStrike) this.onLightningStrike(strikeX, strikeY)
+      if (this.onLightningStrike) this.onLightningStrike(x, y)
     })
 
     if (Math.random() < 0.3) {
@@ -137,6 +169,18 @@ export class WeatherManager {
 
   getState(): WeatherState { return this.state }
   getAmbientDim(): number { return this.ambientDim }
+
+  forceState(newState: WeatherState) {
+    this.state = newState
+    this.targetState = newState
+    this.transitionTimer = 0
+    this.nextTransitionAt = Phaser.Math.Between(30000, 60000)
+    this.updateEmitter()
+  }
+
+  forceLightning() {
+    this.triggerLightning()
+  }
 
   destroy() {
     if (this.rainEmitter) this.rainEmitter.destroy()

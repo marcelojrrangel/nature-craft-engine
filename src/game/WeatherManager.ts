@@ -108,11 +108,15 @@ export class WeatherManager {
   }
 
   private triggerLightning() {
-    const cam = this.scene.cameras.main
-    const camX = cam.scrollX, camY = cam.scrollY
-    const camW = cam.width * cam.zoom, camH = cam.height * cam.zoom
-    const strikeX = camX + Math.random() * camW
-    const strikeY = camY + Math.random() * camH
+    const view = this.scene.cameras.main.worldView
+    const GRASS_MIN = 80
+    const GRASS_MAX = 1520
+    const strikeX = Phaser.Math.Clamp(
+      view.x + Math.random() * view.width, GRASS_MIN, GRASS_MAX,
+    )
+    const strikeY = Phaser.Math.Clamp(
+      view.y + Math.random() * view.height, GRASS_MIN, GRASS_MAX,
+    )
 
     this.showLightningWarning(strikeX, strikeY)
   }

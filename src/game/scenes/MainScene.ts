@@ -78,6 +78,7 @@ export class MainScene extends Phaser.Scene {
   private keyE!: Phaser.Input.Keyboard.Key;
   private keySpace!: Phaser.Input.Keyboard.Key;
   private keyEsc!: Phaser.Input.Keyboard.Key;
+  private keyBacktick!: Phaser.Input.Keyboard.Key;
   private keyNumbers!: Phaser.Input.Keyboard.Key[];
   private moveKeys!: { W: Phaser.Input.Keyboard.Key, A: Phaser.Input.Keyboard.Key, S: Phaser.Input.Keyboard.Key, D: Phaser.Input.Keyboard.Key, UP: Phaser.Input.Keyboard.Key, LEFT: Phaser.Input.Keyboard.Key, DOWN: Phaser.Input.Keyboard.Key, RIGHT: Phaser.Input.Keyboard.Key };
 
@@ -410,6 +411,8 @@ export class MainScene extends Phaser.Scene {
 
   private setupInput() {
     this.keyI = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.I); this.keyQ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q); this.keyC = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C); this.keyK = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.K); this.keyE = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E); this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE); this.keyEsc = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.keyBacktick = this.input.keyboard.addKey(192);
+    this.keyBacktick.on('down', () => { if (this.sys && this.sys.isActive() && import.meta.env.DEV) gameStore.toggleCheatPanel(); });
     const keys = [Phaser.Input.Keyboard.KeyCodes.ONE, Phaser.Input.Keyboard.KeyCodes.TWO, Phaser.Input.Keyboard.KeyCodes.THREE, Phaser.Input.Keyboard.KeyCodes.FOUR, Phaser.Input.Keyboard.KeyCodes.FIVE];
     this.keyNumbers = keys.map((k, i) => { const key = this.input.keyboard.addKey(k); key.on('down', () => { if (this.sys && this.sys.isActive()) gameStore.selectQuickBar(i); }); return key; });
     this.keyI.on('down', () => { if (this.sys && this.sys.isActive()) { const wasOpen = gameStore.showInventory; gameStore.toggleInventory(); playSound(wasOpen ? 'sfx_inv_close' : 'sfx_inv_open', { volume: 0.4 }); } });

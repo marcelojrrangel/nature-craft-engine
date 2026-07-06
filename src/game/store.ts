@@ -30,6 +30,8 @@ class GameStore {
   placedItems: PlacedItem[] = [];
   skills: Record<string, Skill> = {};
   showSkills = false;
+  showCheatPanel = false;
+  godMode = false;
   currentStation: 'workbench' | 'campfire' = 'workbench';
   respawnQueue: { x: number; y: number; type: string; hp: number; id: string; respawnAt: number }[] = [];
   private saveInterval: number | null = null;
@@ -48,6 +50,7 @@ class GameStore {
   }
 
   receiveDamage(amount: number) {
+    if (this.godMode) return;
     this.hp = Math.max(0, this.hp - amount);
     this.notify('player');
     if (this.hp <= 0) { this.gameOver(); }
@@ -261,7 +264,35 @@ class GameStore {
   toggleCrafting() { this.showCrafting = !this.showCrafting; if (!this.showCrafting) this.save(); this.notify('ui'); }
   toggleEquipment() { this.showEquipment = !this.showEquipment; this.notify('ui'); }
   toggleSkills() { this.showSkills = !this.showSkills; this.notify('ui'); }
-  closeAll() { this.showInventory = false; this.showCrafting = false; this.showEquipment = false; this.showSkills = false; this.notify('ui'); }
+  toggleCheatPanel() { this.showCheatPanel = !this.showCheatPanel; this.notify('ui'); }
+  toggleGodMode() { this.godMode = !this.godMode; this.notify('player'); }
+  cheatAddItem(itemId: string, qty = 64) {
+    const item = ITEMS[itemId as keyof typeof ITEMS];
+    if (item) this.addItem(item, qty);
+  }
+  cheatSetHp(value: number) {
+    this.hp = Math.min(this.maxHp, Math.max(0, value));
+    this.notify('player');
+  }
+  cheatSetSkill(skillId: string, level: number) {
+    if (!SKILLS_CONFIG[skillId]) return;
+    level = Math.min(MAX_SKILL_LEVEL, Math.max(0, level));
+    let skill = this.skills[skillId];
+    if (!skill) { skill = { toolType: skillId, xp: 0, level: 0 }; this.skills[skillId] = skill; }
+    skill.level = level;
+    skill.xp = 0;
+    this.notify('skills');
+  }
+  cheatClearInventory() {
+    this.inventory = Array.from({ length: 20 }, () => ({ item: null, quantity: 0 }));
+    this.quickBar = [null, null, null, null, null];
+    this.notify('inventory');
+  }
+  cheatGiveAll() {
+    Object.values(ITEMS).forEach(item => { if (item.stackable) this.addItem(item, item.maxStack); else this.addItem(item, 1); });
+    this.notify('inventory');
+  }
+  closeAll() { this.showInventory = false; this.showCrafting = false; this.showEquipment = false; this.showSkills = false; this.showCheatPanel = false; this.notify('ui'); }
 
   private buildSaveData(): GameSaveData {
     return {

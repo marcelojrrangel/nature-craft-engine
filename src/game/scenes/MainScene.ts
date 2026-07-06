@@ -380,6 +380,7 @@ export class MainScene extends Phaser.Scene {
     else if (key === 'tree_common') body.setSize(16, 12).setOffset(8, 48);
     else if (key === 'tree_dry') body.setSize(14, 10).setOffset(6, 35);
     else if (key.startsWith('bush')) { if (key === 'bush_41' || key === 'bush_42') body.setSize(24, 16).setOffset(10, 24); else body.setSize(16, 12).setOffset(6, 12); }
+    else if (key === 'iron_ore_vein' || key === 'bronze_ore_vein' || key === 'gold_ore_vein') body.setSize(20, 16).setOffset(6, 12);
     s.setDepth(y); this.resources.push(s); this.physics.add.collider(this.player, s);
   }
 

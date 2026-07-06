@@ -40,7 +40,7 @@ export class BearNPC {
     const maxHp = 40;
     this.health = new HealthComponent(initialHp > 0 ? initialHp : maxHp, maxHp);
 
-    this.sprite = scene.physics.add.sprite(config.x, config.y, 'bear_idle', 0);
+    this.sprite = scene.physics.add.sprite(config.x, config.y, 'bear_sheet', 0);
     this.sprite.setDepth(config.y);
     
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;

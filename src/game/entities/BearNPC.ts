@@ -45,10 +45,10 @@ export class BearNPC {
     
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
     body.setCollideWorldBounds(true);
-    body.setSize(20, 16).setOffset(6, 12);
+    body.setSize(36, 28).setOffset(14, 18);
 
     this.createAnimations(scene);
-    this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 28, true);
+    this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 52, true);
     this.health.onDeath(() => this.die());
 
     this.setState('idle');
@@ -58,15 +58,15 @@ export class BearNPC {
     if (!scene.anims.exists('bear_idle_anim')) {
       scene.anims.create({
         key: 'bear_idle_anim',
-        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 0, end: 3 }),
-        frameRate: 6,
+        frames: [{ key: 'bear_sheet', frame: 0 }],
+        frameRate: 1,
         repeat: -1
       });
     }
     if (!scene.anims.exists('bear_run_anim')) {
       scene.anims.create({
         key: 'bear_run_anim',
-        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 4, end: 9 }),
+        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 1, end: 5 }),
         frameRate: 10,
         repeat: -1
       });
@@ -74,7 +74,7 @@ export class BearNPC {
     if (!scene.anims.exists('bear_attack_anim')) {
       scene.anims.create({
         key: 'bear_attack_anim',
-        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 10, end: 13 }),
+        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 6, end: 8 }),
         frameRate: 8,
         repeat: 0
       });
@@ -82,7 +82,7 @@ export class BearNPC {
     if (!scene.anims.exists('bear_death_anim')) {
       scene.anims.create({
         key: 'bear_death_anim',
-        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 14, end: 17 }),
+        frames: scene.anims.generateFrameNumbers('bear_sheet', { start: 9, end: 12 }),
         frameRate: 8,
         repeat: 0
       });

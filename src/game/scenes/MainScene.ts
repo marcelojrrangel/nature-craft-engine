@@ -13,7 +13,7 @@ const MAP_H = 100;
 const TILE = 16;
 const CHICKEN_COUNT = 8;
 const CRAB_COUNT = 8;
-const BEAR_COUNT = 2; // Representa a contagem de Orcs agora
+const BEAR_COUNT = 2;
 const RABBIT_COUNT = 6;
 const SAFE_ZONE_RADIUS = 100;
 const IRON_ORE_COUNT = 8;
@@ -50,6 +50,9 @@ export class MainScene extends Phaser.Scene {
 
   private woodParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
   private stoneParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private ironParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private bronzeParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private goldParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
   private whiteParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
   private dustParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
 
@@ -167,6 +170,9 @@ export class MainScene extends Phaser.Scene {
   private setupParticles() {
     this.woodParticles = this.add.particles(0, 0, 'p_wood', { speed: { min: 60, max: 120 }, gravityY: 400, scale: { start: 1.2, end: 0 }, lifespan: 500, emitting: false }).setDepth(1500);
     this.stoneParticles = this.add.particles(0, 0, 'p_stone', { speed: { min: 80, max: 180 }, gravityY: 500, scale: { start: 1, end: 0 }, lifespan: 400, emitting: false }).setDepth(1500);
+    this.ironParticles = this.add.particles(0, 0, 'p_stone', { speed: { min: 80, max: 180 }, gravityY: 500, scale: { start: 1, end: 0 }, lifespan: 400, tint: 0xb8a08a, emitting: false }).setDepth(1500);
+    this.bronzeParticles = this.add.particles(0, 0, 'p_stone', { speed: { min: 80, max: 180 }, gravityY: 500, scale: { start: 1, end: 0 }, lifespan: 400, tint: 0xcd853f, emitting: false }).setDepth(1500);
+    this.goldParticles = this.add.particles(0, 0, 'p_stone', { speed: { min: 80, max: 180 }, gravityY: 500, scale: { start: 1, end: 0 }, lifespan: 400, tint: 0xffd700, emitting: false }).setDepth(1500);
     this.whiteParticles = this.add.particles(0, 0, 'p_white', { speed: { min: 30, max: 100 }, scale: { start: 0.5, end: 0 }, lifespan: 600, emitting: false }).setDepth(1500);
     this.dustParticles = this.add.particles(0, 0, 'p_dust', { speed: { min: 10, max: 20 }, alpha: { start: 0.4, end: 0 }, scale: { start: 0.5, end: 0.2 }, lifespan: 400, emitting: false }).setDepth(5);
   }
@@ -256,24 +262,28 @@ export class MainScene extends Phaser.Scene {
 
   private generateOreVeins() {
     const wbX = (MAP_W * TILE) / 2, wbY = (MAP_H * TILE) / 2;
-    for (let i = 0; i < IRON_ORE_COUNT; i++) {
-      const p = this.getRandomPlaceablePosition();
-      if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) {
-        this.createResource(p.x, p.y, 'iron_ore', HARDNESS.iron_ore, `iron_ore_${i}`);
+
+    const spawnCluster = (type: string, count: number, hp: number) => {
+      let placed = 0;
+      while (placed < count) {
+        const p = this.getRandomPlaceablePosition();
+        if (!p || Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) <= SAFE_ZONE_RADIUS) continue;
+        const clusterSize = Phaser.Math.Between(2, 4);
+        for (let j = 0; j < clusterSize && placed < count; j++) {
+          const ox = Phaser.Math.Between(-30, 30);
+          const oy = Phaser.Math.Between(-30, 30);
+          const cx = p.x + ox, cy = p.y + oy;
+          if (Phaser.Math.Distance.Between(cx, cy, wbX, wbY) > SAFE_ZONE_RADIUS) {
+            this.createResource(cx, cy, type, hp, `${type}_${placed}`);
+            placed++;
+          }
+        }
       }
-    }
-    for (let i = 0; i < BRONZE_ORE_COUNT; i++) {
-      const p = this.getRandomPlaceablePosition();
-      if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) {
-        this.createResource(p.x, p.y, 'bronze_ore', HARDNESS.bronze_ore, `bronze_ore_${i}`);
-      }
-    }
-    for (let i = 0; i < GOLD_ORE_COUNT; i++) {
-      const p = this.getRandomPlaceablePosition();
-      if (p && Phaser.Math.Distance.Between(p.x, p.y, wbX, wbY) > SAFE_ZONE_RADIUS) {
-        this.createResource(p.x, p.y, 'gold_ore', HARDNESS.gold_ore, `gold_ore_${i}`);
-      }
-    }
+    };
+
+    spawnCluster('iron_ore', IRON_ORE_COUNT, HARDNESS.iron_ore);
+    spawnCluster('bronze_ore', BRONZE_ORE_COUNT, HARDNESS.bronze_ore);
+    spawnCluster('gold_ore', GOLD_ORE_COUNT, HARDNESS.gold_ore);
   }
 
   private generateChickens() {
@@ -380,6 +390,7 @@ export class MainScene extends Phaser.Scene {
     else if (key === 'tree_common') body.setSize(16, 12).setOffset(8, 48);
     else if (key === 'tree_dry') body.setSize(14, 10).setOffset(6, 35);
     else if (key.startsWith('bush')) { if (key === 'bush_41' || key === 'bush_42') body.setSize(24, 16).setOffset(10, 24); else body.setSize(16, 12).setOffset(6, 12); }
+    else if (key === 'iron_ore_vein' || key === 'bronze_ore_vein' || key === 'gold_ore_vein') body.setSize(20, 16).setOffset(6, 12);
     s.setDepth(y); this.resources.push(s); this.physics.add.collider(this.player, s);
   }
 
@@ -411,9 +422,9 @@ export class MainScene extends Phaser.Scene {
 
   private fireArrow() { if (!gameStore.hasAmmo()) { this.showFloatingText(this.player.x, this.player.y - 40, 'Sem flechas! 🥢', '#ff4444'); return; } gameStore.consumeAmmo(); gameStore.useTool('bow'); let vx = 0, vy = 0, rot = 0; if (this.facingDir === 'up') { vy = -400; rot = -Math.PI / 2; } else if (this.facingDir === 'down') { vy = 400; rot = Math.PI / 2; } else if (this.facingDir === 'left') { vx = -400; rot = Math.PI; } else { vx = 400; rot = 0; } const arrow = this.physics.add.sprite(this.player.x, this.player.y, 'arrow_projectile').setDepth(15).setPipeline('Light2D'); arrow.setRotation(rot); this.projectileGroup.add(arrow); (arrow.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setVelocity(vx, vy); this.time.delayedCall(1500, () => { if (arrow && arrow.active) arrow.destroy(); }); }
 
-  private applyDamageToResource(res: ResourceObj, dmg: number) { if (!res || !res.active) return; res.resourceHp -= dmg; gameStore.resourceStates[res.resourceId] = res.resourceHp; res.setTint(0xffffff); this.time.delayedCall(100, () => { if (res && res.active) res.clearTint(); }); if (res.resourceType === 'rock' || res.resourceType === 'small_rock') this.stoneParticles.emitParticleAt(res.x, res.y, 5); else if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') this.woodParticles.emitParticleAt(res.x, res.y, 5); const t = this.add.text(res.x, res.y - 20, `-${dmg.toFixed(0)}`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: res.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (res.resourceHp <= 0) this.harvestResource(res); }
+  private applyDamageToResource(res: ResourceObj, dmg: number) { if (!res || !res.active) return; res.resourceHp -= dmg; gameStore.resourceStates[res.resourceId] = res.resourceHp; res.setTint(0xffffff); this.time.delayedCall(100, () => { if (res && res.active) res.clearTint(); }); if (res.resourceType === 'rock' || res.resourceType === 'small_rock') this.stoneParticles.emitParticleAt(res.x, res.y, 5); else if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') this.woodParticles.emitParticleAt(res.x, res.y, 5); else if (res.resourceType === 'iron_ore') this.ironParticles.emitParticleAt(res.x, res.y, 6); else if (res.resourceType === 'bronze_ore') this.bronzeParticles.emitParticleAt(res.x, res.y, 6); else if (res.resourceType === 'gold_ore') this.goldParticles.emitParticleAt(res.x, res.y, 6); const t = this.add.text(res.x, res.y - 20, `-${dmg.toFixed(0)}`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: res.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (res.resourceHp <= 0) this.harvestResource(res); }
 
-  private applyDamageToNPC(npc: any, type: string, dmg: number) { const sMap = type === 'chicken' ? gameStore.chickenStates : type === 'crab' ? gameStore.crabStates : type === 'bear' ? gameStore.bearStates : gameStore.rabbitStates; if (!sMap) return; const s = sMap[npc.id]; if (!s) return; const hp = npc.takeDamage(dmg); s.hp = hp; this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8); const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (hp <= 0) { if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc);       else if (type === 'bear') this.collectBear(npc); else if (type === 'rabbit') this.collectRabbit(npc); } }
+  private applyDamageToNPC(npc: any, type: string, dmg: number) { const sMap = type === 'chicken' ? gameStore.chickenStates : type === 'crab' ? gameStore.crabStates : type === 'bear' ? gameStore.bearStates : gameStore.rabbitStates; if (!sMap) return; const s = sMap[npc.id]; if (!s) return; const hp = npc.takeDamage(dmg); s.hp = hp; this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8); this.cameras.main.shake(80, 0.004); npc.sprite.setTint(0xffffff); this.time.delayedCall(80, () => { if (npc.sprite && npc.sprite.active) npc.sprite.clearTint(); }); const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (hp <= 0) { if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc);       else if (type === 'bear') this.collectBear(npc); else if (type === 'rabbit') this.collectRabbit(npc); } }
 
   private collectChicken(c: ChickenNPC) { const s = gameStore.chickenStates[c.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000); gameStore.addItem(ITEMS.chicken_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.feather, 1); c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); }); this.chickens = this.chickens.filter(chi => chi.id !== c.id); gameStore.save(); }
 
@@ -448,6 +459,9 @@ export class MainScene extends Phaser.Scene {
 
   private doMeleeAttack() {
     const stats = gameStore.getStats(), t = gameStore.getEquippedTool();
+    const slash = this.add.image(this.player.x, this.player.y - 8, 'slash_effect').setDepth(2000).setAlpha(0.8);
+    this.tweens.add({ targets: slash, alpha: 0, scale: 1.5, duration: 200, onComplete: () => slash.destroy() });
+    this.cameras.main.shake(60, 0.003);
     const targets = [...this.chickens, ...this.crabs, ...this.bears, ...this.rabbits];
     targets.forEach((npc: any) => {
       if (npc.isInRange && npc.isInRange(this.player.x, this.player.y, 42)) {
@@ -460,6 +474,7 @@ export class MainScene extends Phaser.Scene {
         let dmg = stats.attackDamage;
         if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') { dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.choppingSpeed; gameStore.useTool('axe'); }
         else if (res.resourceType === 'rock' || res.resourceType === 'small_rock') { dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.miningSpeed; gameStore.useTool('pickaxe'); }
+        else if (res.resourceType === 'iron_ore' || res.resourceType === 'bronze_ore' || res.resourceType === 'gold_ore') { dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.miningSpeed; gameStore.useTool('pickaxe'); }
         else dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType];
         this.applyDamageToResource(res, dmg);
       }

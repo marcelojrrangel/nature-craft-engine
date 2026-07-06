@@ -8,9 +8,14 @@ const ICONS = [
   'iron_ore', 'bronze_ore', 'gold_ore',
   'axe', 'pickaxe', 'shovel', 'knife', 'sword', 'bow',
   'iron_sword', 'iron_pickaxe', 'iron_axe', 'iron_bow',
+  'bronze_sword', 'bronze_pickaxe', 'bronze_axe', 'bronze_bow',
+  'gold_sword', 'gold_pickaxe', 'gold_axe', 'gold_bow',
   'helmet_rustic', 'gloves_rustic', 'boots_rustic',
   'iron_helmet', 'iron_chestplate', 'iron_boots',
   'bronze_helmet', 'bronze_chestplate', 'bronze_boots',
+  'gold_helmet', 'gold_chestplate', 'gold_boots',
+  'chicken_meat', 'rabbit_meat', 'crab_meat',
+  'cooked_chicken', 'cooked_rabbit', 'cooked_crab',
 ];
 
 export default function QuickBar() {

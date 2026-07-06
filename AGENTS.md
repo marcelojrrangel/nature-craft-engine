@@ -202,7 +202,34 @@ Cada NPC é uma classe que estende `Phaser.Physics.Arcade.Sprite` com:
 - **NPCs:** Galinhas 3 cores, caranguejo, orc, coelho
 - **Formato:** Spritesheet PNG, tiles 16x16
 
+## Procedimento — Substituir NPC procedural por Spritesheet Profissional
+
+Quando um NPC usa textura gerada por Canvas2D (`this.make.graphics` ou `this.textures.createCanvas`), siga estes passos:
+
+1. **Encontrar asset substituto** no OpenGameArt.org (filtro: LPC, CC-BY/CC0, pixel art, tamanho compatível)
+2. **Extrair frames** necessários com Python/Pillow:
+   - Abrir a spritesheet fonte, converter paleta → RGBA
+   - Tornar magenta (255,0,220) transparente
+   - Extrair as linhas/colunas de animação desejadas (ex: east-facing para usar flipX)
+   - Montar strip vertical única: idle(1) + walk(N) + attack(N) + die(N)
+   - Salvar em `public/assets/<npc>_sheet.png`
+3. **Atualizar BootScene.ts**:
+   - NO preload: `this.load.spritesheet('<npc>_sheet', 'assets/<npc>_sheet.png', { frameWidth: W, frameHeight: H })`
+   - NO create: remover o bloco procedural correspondente, substituir por comentário
+4. **Atualizar <Npc>NPC.ts**:
+   - Ajustar `body.setSize(w, h).setOffset(x, y)` para o novo frame size
+   - Ajustar `new HealthBarRenderer(..., width, ...)` (≈ frameWidth - 12)
+   - Ajustar índices das animações: idle(0), walk(1..N), attack(N+1..M), die(M+1..K)
+5. **Build & verificar**: `npm run build` sem erros; `npm run dev` e testar no navegador
+6. **Commit**: mensagem descritiva em português
+
+Exemplo real (urso):
+- Fonte: https://opengameart.org/content/lpc-bears-deer-lions-and-more (CC-BY 4.0)
+- Individual: `bear, grizzly.png` (320×768, 5×12 grid, frames 64×64)
+- Usou east-facing (row 2 walk, row 6 attack, row 10 die) + frame 0 como idle
+- Hitbox: 36×28, offset(14,18) num sprite 64×64
+
 ## Próximos Passos (do PROJECT_CONTEXT.md)
-1. Substituir assets do Urso e Coelho por versões profissionais
-2. Implementar mineração de minérios (Ferro, Bronze, Ouro)
-3. Melhorar os ícones de itens na UI para combinar com o estilo Pixel Crawler
+1. ~~Substituir assets do Urso~~ e Coelho por versões profissionais ✅ Concluído
+2. ~~Implementar mineração de minérios (Ferro, Bronze, Ouro)~~ ✅ Concluído
+3. ~~Melhorar os ícones de itens na UI para combinar com o estilo Pixel Crawler~~ ✅ Concluído

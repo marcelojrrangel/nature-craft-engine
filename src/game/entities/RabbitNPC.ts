@@ -40,8 +40,7 @@ export class RabbitNPC {
     
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
     body.setCollideWorldBounds(true);
-    // Ajuste de colisão mais centralizado para evitar "sumiço" por offset
-    body.setSize(16, 12).setOffset(16, 28);
+    body.setSize(16, 14).setOffset(16, 26);
 
     this.createAnimations(scene);
     this.hpBar = new HealthBarRenderer(scene, this.health, this.sprite, 10);
@@ -54,24 +53,24 @@ export class RabbitNPC {
     if (!scene.anims.exists('rabbit_idle_anim')) {
       scene.anims.create({
         key: 'rabbit_idle_anim',
-        frames: scene.anims.generateFrameNumbers('rabbit_prof', { start: 0, end: 3 }), // Reduzi de 5 para 3 para segurança
-        frameRate: 6,
+        frames: scene.anims.generateFrameNumbers('rabbit_prof', { start: 0, end: 3 }),
+        frameRate: 5,
         repeat: -1
       });
     }
     if (!scene.anims.exists('rabbit_move_anim')) {
       scene.anims.create({
         key: 'rabbit_move_anim',
-        frames: scene.anims.generateFrameNumbers('rabbit_prof', { start: 6, end: 10 }), // Evitando o frame 11 que pode estar vazio
-        frameRate: 12,
+        frames: scene.anims.generateFrameNumbers('rabbit_prof', { start: 4, end: 7 }),
+        frameRate: 10,
         repeat: -1
       });
     }
     if (!scene.anims.exists('rabbit_dead_anim')) {
       scene.anims.create({
         key: 'rabbit_dead_anim',
-        frames: scene.anims.generateFrameNumbers('rabbit_prof', { start: 42, end: 45 }),
-        frameRate: 8,
+        frames: scene.anims.generateFrameNumbers('rabbit_prof', { start: 8, end: 9 }),
+        frameRate: 4,
         repeat: 0
       });
     }

@@ -269,6 +269,100 @@ const ICONS: Record<string, React.ReactNode> = {
       <rect x="7" y="7" width="2" height="1" fill="#2F4F4F" />
     </svg>
   ),
+  bronze_sword: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="7" y="2" width="2" height="10" fill="#A0522D" />
+      <rect x="8" y="3" width="1" height="8" fill="#CD853F" />
+      <rect x="6" y="4" width="4" height="2" fill="#8B4513" />
+      <rect x="6" y="8" width="4" height="2" fill="#8B4513" />
+      <rect x="7" y="12" width="2" height="2" fill="#8B4513" />
+      <rect x="8" y="13" width="1" height="1" fill="#A0522D" />
+      <rect x="8" y="5" width="1" height="1" fill="#DEB887" />
+      <rect x="7" y="9" width="1" height="1" fill="#DEB887" />
+    </svg>
+  ),
+  bronze_pickaxe: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="6" y="4" width="4" height="8" fill="#8B4513" />
+      <rect x="7" y="5" width="2" height="6" fill="#A0522D" />
+      <polygon points="2,2 6,8 2,14" fill="#A0522D" />
+      <polygon points="14,2 10,8 14,14" fill="#A0522D" />
+      <polygon points="3,3 5,8 3,13" fill="#CD853F" />
+      <polygon points="13,3 11,8 13,13" fill="#CD853F" />
+      <rect x="8" y="6" width="1" height="1" fill="#DEB887" />
+      <rect x="4" y="7" width="1" height="1" fill="#DEB887" />
+      <rect x="11" y="7" width="1" height="1" fill="#DEB887" />
+    </svg>
+  ),
+  bronze_axe: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="6" y="3" width="4" height="10" fill="#8B4513" />
+      <rect x="7" y="4" width="2" height="8" fill="#A0522D" />
+      <rect x="10" y="4" width="5" height="4" fill="#A0522D" />
+      <rect x="11" y="5" width="3" height="2" fill="#CD853F" />
+      <rect x="12" y="6" width="1" height="1" fill="#DEB887" />
+      <rect x="8" y="5" width="1" height="1" fill="#DEB887" />
+      <rect x="10" y="5" width="1" height="1" fill="#8B4513" />
+    </svg>
+  ),
+  bronze_bow: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="8" rx="2" ry="6" fill="#A0522D" />
+      <ellipse cx="8" cy="8" rx="1" ry="5" fill="#CD853F" />
+      <rect x="6" y="2" width="1" height="12" fill="#DEB887" />
+      <rect x="9" y="2" width="1" height="12" fill="#DEB887" />
+      <line x1="6" y1="2" x2="6" y2="14" stroke="#F5DEB3" strokeWidth="1" />
+      <line x1="10" y1="2" x2="10" y2="14" stroke="#F5DEB3" strokeWidth="1" />
+      <rect x="7" y="7" width="2" height="1" fill="#8B4513" />
+    </svg>
+  ),
+  gold_sword: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="7" y="2" width="2" height="10" fill="#DAA520" />
+      <rect x="8" y="3" width="1" height="8" fill="#FFD700" />
+      <rect x="6" y="4" width="4" height="2" fill="#B8860B" />
+      <rect x="6" y="8" width="4" height="2" fill="#B8860B" />
+      <rect x="7" y="12" width="2" height="2" fill="#8B4513" />
+      <rect x="8" y="13" width="1" height="1" fill="#A0522D" />
+      <rect x="8" y="5" width="1" height="1" fill="#FFF8DC" />
+      <rect x="7" y="9" width="1" height="1" fill="#FFF8DC" />
+    </svg>
+  ),
+  gold_pickaxe: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="6" y="4" width="4" height="8" fill="#8B4513" />
+      <rect x="7" y="5" width="2" height="6" fill="#A0522D" />
+      <polygon points="2,2 6,8 2,14" fill="#DAA520" />
+      <polygon points="14,2 10,8 14,14" fill="#DAA520" />
+      <polygon points="3,3 5,8 3,13" fill="#FFD700" />
+      <polygon points="13,3 11,8 13,13" fill="#FFD700" />
+      <rect x="8" y="6" width="1" height="1" fill="#FFF8DC" />
+      <rect x="4" y="7" width="1" height="1" fill="#FFF8DC" />
+      <rect x="11" y="7" width="1" height="1" fill="#FFF8DC" />
+    </svg>
+  ),
+  gold_axe: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="6" y="3" width="4" height="10" fill="#8B4513" />
+      <rect x="7" y="4" width="2" height="8" fill="#A0522D" />
+      <rect x="10" y="4" width="5" height="4" fill="#DAA520" />
+      <rect x="11" y="5" width="3" height="2" fill="#FFD700" />
+      <rect x="12" y="6" width="1" height="1" fill="#FFF8DC" />
+      <rect x="8" y="5" width="1" height="1" fill="#FFF8DC" />
+      <rect x="10" y="5" width="1" height="1" fill="#B8860B" />
+    </svg>
+  ),
+  gold_bow: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="8" rx="2" ry="6" fill="#DAA520" />
+      <ellipse cx="8" cy="8" rx="1" ry="5" fill="#FFD700" />
+      <rect x="6" y="2" width="1" height="12" fill="#FFF8DC" />
+      <rect x="9" y="2" width="1" height="12" fill="#FFF8DC" />
+      <line x1="6" y1="2" x2="6" y2="14" stroke="#FFFACD" strokeWidth="1" />
+      <line x1="10" y1="2" x2="10" y2="14" stroke="#FFFACD" strokeWidth="1" />
+      <rect x="7" y="7" width="2" height="1" fill="#B8860B" />
+    </svg>
+  ),
 
   // Rustic Armor
   helmet_rustic: (
@@ -369,6 +463,94 @@ const ICONS: Record<string, React.ReactNode> = {
       <rect x="5" y="6" width="6" height="3" fill="#CD853F" />
       <rect x="6" y="7" width="4" height="1" fill="#DEB887" />
       <rect x="7" y="8" width="1" height="1" fill="#FFD700" />
+    </svg>
+  ),
+  gold_helmet: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="9" rx="6" ry="5" fill="#B8860B" />
+      <ellipse cx="8" cy="9" rx="4" ry="3" fill="#DAA520" />
+      <rect x="6" y="4" width="4" height="5" fill="#FFD700" />
+      <rect x="7" y="5" width="2" height="3" fill="#FFF8DC" />
+      <rect x="5" y="8" width="6" height="2" fill="#FFF8DC" />
+      <rect x="6" y="5" width="1" height="1" fill="#FFFACD" />
+    </svg>
+  ),
+  gold_chestplate: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="3" y="4" width="10" height="10" fill="#B8860B" />
+      <rect x="4" y="5" width="8" height="8" fill="#DAA520" />
+      <rect x="5" y="6" width="6" height="4" fill="#FFD700" />
+      <rect x="6" y="5" width="4" height="8" fill="#FFF8DC" />
+      <rect x="7" y="6" width="2" height="6" fill="#FFFACD" />
+      <rect x="5" y="5" width="1" height="1" fill="#FFD700" />
+    </svg>
+  ),
+  gold_boots: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="3" y="8" width="5" height="6" fill="#B8860B" />
+      <rect x="8" y="8" width="5" height="6" fill="#B8860B" />
+      <rect x="4" y="9" width="4" height="4" fill="#DAA520" />
+      <rect x="9" y="9" width="4" height="4" fill="#DAA520" />
+      <rect x="5" y="6" width="6" height="3" fill="#FFD700" />
+      <rect x="6" y="7" width="4" height="1" fill="#FFF8DC" />
+      <rect x="7" y="8" width="1" height="1" fill="#FFFACD" />
+    </svg>
+  ),
+
+  // Food Items
+  chicken_meat: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="9" rx="4" ry="6" fill="#F5C6A0" />
+      <ellipse cx="8" cy="9" rx="3" ry="5" fill="#FAD6B5" />
+      <ellipse cx="8" cy="5" rx="2" ry="1.5" fill="#E8A87C" />
+      <rect x="7" y="1" width="2" height="3" fill="#D4956B" />
+      <rect x="7" y="11" width="2" height="4" fill="#DEB887" />
+    </svg>
+  ),
+  rabbit_meat: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="9" rx="3" ry="5" fill="#D4956B" />
+      <ellipse cx="8" cy="9" rx="2" ry="4" fill="#E8A87C" />
+      <rect x="7" y="1" width="2" height="3" fill="#C4845B" />
+      <circle cx="8" cy="13" r="2" fill="#F5C6A0" />
+    </svg>
+  ),
+  crab_meat: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="9" rx="3" ry="4" fill="#FF9999" />
+      <ellipse cx="8" cy="9" rx="2" ry="3" fill="#FFB3B3" />
+      <rect x="3" y="9" width="3" height="1.5" fill="#FF6666" />
+      <rect x="10" y="9" width="3" height="1.5" fill="#FF6666" />
+      <rect x="7" y="12" width="2" height="3" fill="#FFCCCC" />
+    </svg>
+  ),
+  cooked_chicken: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="9" rx="4" ry="5" fill="#CD853F" />
+      <ellipse cx="8" cy="9" rx="3" ry="4" fill="#DEB887" />
+      <ellipse cx="8" cy="6" rx="2" ry="1.5" fill="#8B5E3C" />
+      <rect x="7" y="1" width="2" height="3" fill="#A0522D" />
+      <rect x="7" y="12" width="2" height="3" fill="#8B5E3C" />
+      <circle cx="10" cy="4" r="0.8" fill="#FF6347" />
+    </svg>
+  ),
+  cooked_rabbit: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="9" rx="3" ry="4" fill="#B8860B" />
+      <ellipse cx="8" cy="9" rx="2" ry="3" fill="#DAA520" />
+      <rect x="7" y="1" width="2" height="3" fill="#8B6914" />
+      <circle cx="8" cy="13" r="2" fill="#B8860B" />
+      <circle cx="11" cy="5" r="0.8" fill="#FF4500" />
+    </svg>
+  ),
+  cooked_crab: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="9" rx="3" ry="3.5" fill="#DC143C" />
+      <ellipse cx="8" cy="9" rx="2" ry="2.5" fill="#FF4500" />
+      <rect x="3" y="9" width="3" height="1.5" fill="#B22222" />
+      <rect x="10" y="9" width="3" height="1.5" fill="#B22222" />
+      <rect x="7" y="11" width="2" height="2.5" fill="#FF6347" />
+      <circle cx="5" cy="7" r="0.6" fill="#FFD700" />
     </svg>
   ),
 };

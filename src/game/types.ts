@@ -1,7 +1,7 @@
 // Game type definitions
 
 export type ItemType = 'wood' | 'stone' | 'fiber' | 'seed' | 'food' | 'feather' | 'chicken_meat' | 'crab_shell' | 'crab_meat' | 'arrow' | 'campfire' | 'pelt' | 'rabbit_meat' | 'cooked_chicken' | 'cooked_rabbit' | 'cooked_crab' | 'armor' | 'iron_ore' | 'bronze_ore' | 'gold_ore';
-export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife' | 'bow' | 'iron_axe' | 'iron_pickaxe' | 'iron_sword' | 'iron_bow';
+export type ToolType = 'axe' | 'pickaxe' | 'shovel' | 'hoe' | 'sword' | 'knife' | 'bow' | 'iron_axe' | 'iron_pickaxe' | 'iron_sword' | 'iron_bow' | 'bronze_axe' | 'bronze_pickaxe' | 'bronze_sword' | 'bronze_bow' | 'gold_axe' | 'gold_pickaxe' | 'gold_sword' | 'gold_bow';
 export type EquipSlot = 'head' | 'hands' | 'legs' | 'accessory' | 'mainHand';
 export type CraftStation = 'none' | 'workbench' | 'campfire';
 
@@ -69,6 +69,14 @@ export const SKILLS_CONFIG: Record<string, { name: string; icon: string; bonusPe
   iron_pickaxe: { name: 'Mineração Avançada', icon: '⛏️', bonusPerLevel: 0.15, description: 'Aumenta velocidade de mineração' },
   iron_sword: { name: 'Espada Avançada', icon: '⚔️', bonusPerLevel: 0.15, description: 'Aumenta dano de ataque' },
   iron_bow: { name: 'Arco Avançado', icon: '🏹', bonusPerLevel: 0.15, description: 'Aumenta dano à distância' },
+  bronze_axe: { name: 'Corte Superior', icon: '🪓', bonusPerLevel: 0.2, description: 'Aumenta velocidade de corte de árvores' },
+  bronze_pickaxe: { name: 'Mineração Superior', icon: '⛏️', bonusPerLevel: 0.2, description: 'Aumenta velocidade de mineração' },
+  bronze_sword: { name: 'Espada Superior', icon: '⚔️', bonusPerLevel: 0.2, description: 'Aumenta dano de ataque' },
+  bronze_bow: { name: 'Arco Superior', icon: '🏹', bonusPerLevel: 0.2, description: 'Aumenta dano à distância' },
+  gold_axe: { name: 'Corte Lendário', icon: '🪓', bonusPerLevel: 0.25, description: 'Aumenta velocidade de corte de árvores' },
+  gold_pickaxe: { name: 'Mineração Lendária', icon: '⛏️', bonusPerLevel: 0.25, description: 'Aumenta velocidade de mineração' },
+  gold_sword: { name: 'Espada Lendária', icon: '⚔️', bonusPerLevel: 0.25, description: 'Aumenta dano de ataque' },
+  gold_bow: { name: 'Arco Lendário', icon: '🏹', bonusPerLevel: 0.25, description: 'Aumenta dano à distância' },
 };
 
 export const HARDNESS: Record<string, number> = {
@@ -100,25 +108,33 @@ export const TOOL_DAMAGE: Record<string, number> = {
   iron_pickaxe: 2.5,
   iron_sword: 2.0,
   iron_bow: 1.5,
+  bronze_axe: 3.5,
+  bronze_pickaxe: 3.5,
+  bronze_sword: 3.0,
+  bronze_bow: 2.0,
+  gold_axe: 5.0,
+  gold_pickaxe: 5.0,
+  gold_sword: 4.5,
+  gold_bow: 3.0,
 };
 
 export const BASE_DAMAGE = 1;
 export const DROP_BONUS_CHANCE = 0.5;
 
 export const TOOL_REQUIREMENTS: Record<string, (ToolType | 'hands')[]> = {
-  tree: ['axe', 'iron_axe'],
-  dead_tree: ['axe', 'iron_axe', 'hands'],
-  rock: ['pickaxe', 'iron_pickaxe', 'hands'],
-  small_rock: ['hands', 'pickaxe', 'iron_pickaxe'],
-  bush: ['hands', 'axe', 'iron_axe', 'pickaxe', 'iron_pickaxe', 'sword', 'iron_sword', 'knife', 'shovel', 'hoe'],
-  workbench: ['axe', 'iron_axe', 'pickaxe', 'iron_pickaxe'],
-  chicken: ['sword', 'iron_sword', 'knife', 'bow', 'iron_bow'],
-  crab: ['sword', 'iron_sword', 'knife', 'pickaxe', 'iron_pickaxe', 'bow', 'iron_bow'],
-  bear: ['sword', 'iron_sword', 'knife', 'bow', 'iron_bow', 'axe', 'iron_axe'],
-  rabbit: ['sword', 'iron_sword', 'knife', 'bow', 'iron_bow'],
-  iron_ore: ['pickaxe', 'iron_pickaxe'],
-  bronze_ore: ['pickaxe', 'iron_pickaxe'],
-  gold_ore: ['pickaxe', 'iron_pickaxe'],
+  tree: ['axe', 'iron_axe', 'bronze_axe', 'gold_axe'],
+  dead_tree: ['axe', 'iron_axe', 'bronze_axe', 'gold_axe', 'hands'],
+  rock: ['pickaxe', 'iron_pickaxe', 'bronze_pickaxe', 'gold_pickaxe', 'hands'],
+  small_rock: ['hands', 'pickaxe', 'iron_pickaxe', 'bronze_pickaxe', 'gold_pickaxe'],
+  bush: ['hands', 'axe', 'iron_axe', 'bronze_axe', 'gold_axe', 'pickaxe', 'iron_pickaxe', 'bronze_pickaxe', 'gold_pickaxe', 'sword', 'iron_sword', 'bronze_sword', 'gold_sword', 'knife', 'shovel', 'hoe'],
+  workbench: ['axe', 'iron_axe', 'bronze_axe', 'gold_axe', 'pickaxe', 'iron_pickaxe', 'bronze_pickaxe', 'gold_pickaxe'],
+  chicken: ['sword', 'iron_sword', 'bronze_sword', 'gold_sword', 'knife', 'bow', 'iron_bow', 'bronze_bow', 'gold_bow'],
+  crab: ['sword', 'iron_sword', 'bronze_sword', 'gold_sword', 'knife', 'pickaxe', 'iron_pickaxe', 'bronze_pickaxe', 'gold_pickaxe', 'bow', 'iron_bow', 'bronze_bow', 'gold_bow'],
+  bear: ['sword', 'iron_sword', 'bronze_sword', 'gold_sword', 'knife', 'bow', 'iron_bow', 'bronze_bow', 'gold_bow', 'axe', 'iron_axe', 'bronze_axe', 'gold_axe'],
+  rabbit: ['sword', 'iron_sword', 'bronze_sword', 'gold_sword', 'knife', 'bow', 'iron_bow', 'bronze_bow', 'gold_bow'],
+  iron_ore: ['pickaxe', 'iron_pickaxe', 'bronze_pickaxe', 'gold_pickaxe'],
+  bronze_ore: ['pickaxe', 'iron_pickaxe', 'bronze_pickaxe', 'gold_pickaxe'],
+  gold_ore: ['pickaxe', 'iron_pickaxe', 'bronze_pickaxe', 'gold_pickaxe'],
 };
 
 export interface GameSaveData {
@@ -202,6 +218,19 @@ export const ITEMS: Record<string, Item> = {
   iron_pickaxe: { id: 'iron_pickaxe', name: 'Picareta de Ferro', type: 'pickaxe', icon: '⛏️', stackable: false, maxStack: 1, description: '+100% velocidade de mineração' },
   iron_axe: { id: 'iron_axe', name: 'Machado de Ferro', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+100% velocidade de corte' },
   iron_bow: { id: 'iron_bow', name: 'Arco de Ferro', type: 'bow', icon: '🏹', stackable: false, maxStack: 1, description: 'Arma de longo alcance reforçada' },
+  bronze_sword: { id: 'bronze_sword', name: 'Espada de Bronze', type: 'sword', icon: '⚔️', stackable: false, maxStack: 1, description: '+200% dano de ataque' },
+  bronze_pickaxe: { id: 'bronze_pickaxe', name: 'Picareta de Bronze', type: 'pickaxe', icon: '⛏️', stackable: false, maxStack: 1, description: '+150% velocidade de mineração' },
+  bronze_axe: { id: 'bronze_axe', name: 'Machado de Bronze', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+150% velocidade de corte' },
+  bronze_bow: { id: 'bronze_bow', name: 'Arco de Bronze', type: 'bow', icon: '🏹', stackable: false, maxStack: 1, description: 'Arco de longo alcance superior' },
+  gold_sword: { id: 'gold_sword', name: 'Espada de Ouro', type: 'sword', icon: '⚔️', stackable: false, maxStack: 1, description: '+350% dano de ataque' },
+  gold_pickaxe: { id: 'gold_pickaxe', name: 'Picareta de Ouro', type: 'pickaxe', icon: '⛏️', stackable: false, maxStack: 1, description: '+250% velocidade de mineração' },
+  gold_axe: { id: 'gold_axe', name: 'Machado de Ouro', type: 'axe', icon: '🪓', stackable: false, maxStack: 1, description: '+250% velocidade de corte' },
+  gold_bow: { id: 'gold_bow', name: 'Arco de Ouro', type: 'bow', icon: '🏹', stackable: false, maxStack: 1, description: 'Arco de longo alcance lendário' },
+
+  // Gold Armor
+  gold_helmet: { id: 'gold_helmet', name: 'Capacete de Ouro', type: 'armor', icon: '🪖', stackable: false, maxStack: 1, description: '+50 Max HP', bonus: { hp: 50 } },
+  gold_chestplate: { id: 'gold_chestplate', name: 'Peitoral de Ouro', type: 'armor', icon: '🦺', stackable: false, maxStack: 1, description: '+45% Dano', bonus: { dmg: 0.45 } },
+  gold_boots: { id: 'gold_boots', name: 'Botas de Ouro', type: 'armor', icon: '👞', stackable: false, maxStack: 1, description: '+50% Velocidade', bonus: { moveSpeed: 0.5 } },
 };
 
 export const RECIPES: CraftingRecipe[] = [
@@ -228,6 +257,17 @@ export const RECIPES: CraftingRecipe[] = [
   { id: 'iron_pickaxe', name: 'Picareta de Ferro', result: ITEMS.iron_pickaxe, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 5 }, { item: ITEMS.wood, quantity: 2 }], description: '+100% mineração', station: 'workbench' },
   { id: 'iron_axe', name: 'Machado de Ferro', result: ITEMS.iron_axe, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 5 }, { item: ITEMS.wood, quantity: 2 }], description: '+100% corte', station: 'workbench' },
   { id: 'iron_bow', name: 'Arco de Ferro', result: ITEMS.iron_bow, resultQty: 1, ingredients: [{ item: ITEMS.iron_ore, quantity: 4 }, { item: ITEMS.wood, quantity: 3 }, { item: ITEMS.fiber, quantity: 5 }], description: 'Arco reforçado', station: 'workbench' },
+  { id: 'bronze_sword', name: 'Espada de Bronze', result: ITEMS.bronze_sword, resultQty: 1, ingredients: [{ item: ITEMS.bronze_ore, quantity: 6 }, { item: ITEMS.iron_ore, quantity: 3 }], description: '+200% dano', station: 'workbench' },
+  { id: 'bronze_pickaxe', name: 'Picareta de Bronze', result: ITEMS.bronze_pickaxe, resultQty: 1, ingredients: [{ item: ITEMS.bronze_ore, quantity: 5 }, { item: ITEMS.iron_ore, quantity: 2 }], description: '+150% mineração', station: 'workbench' },
+  { id: 'bronze_axe', name: 'Machado de Bronze', result: ITEMS.bronze_axe, resultQty: 1, ingredients: [{ item: ITEMS.bronze_ore, quantity: 5 }, { item: ITEMS.iron_ore, quantity: 2 }], description: '+150% corte', station: 'workbench' },
+  { id: 'bronze_bow', name: 'Arco de Bronze', result: ITEMS.bronze_bow, resultQty: 1, ingredients: [{ item: ITEMS.bronze_ore, quantity: 5 }, { item: ITEMS.iron_ore, quantity: 3 }, { item: ITEMS.fiber, quantity: 5 }], description: 'Arco superior', station: 'workbench' },
+  { id: 'gold_sword', name: 'Espada de Ouro', result: ITEMS.gold_sword, resultQty: 1, ingredients: [{ item: ITEMS.gold_ore, quantity: 8 }, { item: ITEMS.bronze_ore, quantity: 4 }], description: '+350% dano', station: 'workbench' },
+  { id: 'gold_pickaxe', name: 'Picareta de Ouro', result: ITEMS.gold_pickaxe, resultQty: 1, ingredients: [{ item: ITEMS.gold_ore, quantity: 6 }, { item: ITEMS.bronze_ore, quantity: 3 }], description: '+250% mineração', station: 'workbench' },
+  { id: 'gold_axe', name: 'Machado de Ouro', result: ITEMS.gold_axe, resultQty: 1, ingredients: [{ item: ITEMS.gold_ore, quantity: 6 }, { item: ITEMS.bronze_ore, quantity: 3 }], description: '+250% corte', station: 'workbench' },
+  { id: 'gold_bow', name: 'Arco de Ouro', result: ITEMS.gold_bow, resultQty: 1, ingredients: [{ item: ITEMS.gold_ore, quantity: 6 }, { item: ITEMS.bronze_ore, quantity: 3 }, { item: ITEMS.fiber, quantity: 5 }], description: 'Arco lendário', station: 'workbench' },
+  { id: 'gold_helmet', name: 'Capacete de Ouro', result: ITEMS.gold_helmet, resultQty: 1, ingredients: [{ item: ITEMS.gold_ore, quantity: 8 }, { item: ITEMS.bronze_ore, quantity: 3 }], description: '+50 HP Máximo', station: 'workbench' },
+  { id: 'gold_chestplate', name: 'Peitoral de Ouro', result: ITEMS.gold_chestplate, resultQty: 1, ingredients: [{ item: ITEMS.gold_ore, quantity: 12 }, { item: ITEMS.bronze_ore, quantity: 5 }], description: '+45% Dano', station: 'workbench' },
+  { id: 'gold_boots', name: 'Botas de Ouro', result: ITEMS.gold_boots, resultQty: 1, ingredients: [{ item: ITEMS.gold_ore, quantity: 8 }, { item: ITEMS.bronze_ore, quantity: 3 }], description: '+50% Velocidade', station: 'workbench' },
 
   // Basics
   { id: 'campfire', name: 'Fogueira', result: ITEMS.campfire, resultQty: 1, ingredients: [{ item: ITEMS.twig, quantity: 8 }], description: 'Cozinhe e ilumine', station: 'workbench' },

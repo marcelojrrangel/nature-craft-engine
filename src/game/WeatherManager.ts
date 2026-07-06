@@ -1,4 +1,5 @@
 import Phaser from 'phaser'
+import { gameStore } from './store'
 import { playRandomSound } from './sound'
 
 type WeatherState = 'clear' | 'cloudy' | 'rainy' | 'stormy'
@@ -117,6 +118,9 @@ export class WeatherManager {
   }
 
   private showLightningWarning(x: number, y: number) {
+    gameStore.lightningWarning = { x, y }
+    gameStore.notify('world')
+
     const indicator = this.scene.add.circle(x, y, 36, 0x000000, 0.35).setDepth(4999)
     const ring = this.scene.add.circle(x, y, 40, 0x000000, 0)
       .setStrokeStyle(1.5, 0xff4444, 0.4).setDepth(4999)
@@ -143,8 +147,12 @@ export class WeatherManager {
   }
 
   private executeLightningStrike(x: number, y: number) {
-    const cam = this.scene.cameras.main
+    gameStore.lightningWarning = null
+    gameStore.notify('world')
 
+    this.drawLightningBolt(x, y)
+
+    const cam = this.scene.cameras.main
     cam.flash(150, 255, 255, 255, true)
     cam.shake(400, 0.015)
     playRandomSound(['sfx_thunder_01', 'sfx_thunder_02', 'sfx_thunder_03'], { volume: 0.7, detune: Phaser.Math.Between(-100, 100) })
@@ -165,6 +173,68 @@ export class WeatherManager {
         this.scene.cameras.main.flash(80, 255, 255, 255, true)
       })
     }
+  }
+
+  private drawLightningBolt(x: number, y: number) {
+    const cam = this.scene.cameras.main
+    const startY = cam.scrollY - 60
+    const segments = Phaser.Math.Between(9, 14)
+    const segLength = (y - startY) / segments
+    const maxOffset = 50
+
+    const gfx = this.scene.add.graphics().setDepth(6001)
+
+    const drawZigzag = (
+      g: Phaser.GameObjects.Graphics,
+      sx: number, sy: number,
+      ex: number, ey: number,
+      segs: number, offset: number,
+      width: number, color: number, alpha: number,
+    ) => {
+      g.lineStyle(width, color, alpha)
+      g.beginPath()
+      g.moveTo(sx, sy)
+      const segLen = (ey - sy) / segs
+      let cx = sx, cy = sy
+      for (let i = 0; i < segs; i++) {
+        cy += segLen
+        cx = sx + Phaser.Math.Between(-offset, offset)
+        g.lineTo(cx, cy)
+      }
+      g.strokePath()
+    }
+
+    // Main bolt
+    drawZigzag(gfx, x, startY, x, y, segments, maxOffset, 3, 0xffffff, 1)
+
+    // Branch 1
+    if (Math.random() < 0.6) {
+      const splitAt = Phaser.Math.Between(3, segments - 2)
+      const by = startY + splitAt * segLength
+      const bx = x + Phaser.Math.Between(-maxOffset, maxOffset)
+      const branchSegs = Phaser.Math.Between(2, 4)
+      const branchEndX = bx + Phaser.Math.Between(-40, 40)
+      const branchEndY = by + branchSegs * segLength * 0.6
+      drawZigzag(gfx, bx, by, branchEndX, branchEndY, branchSegs, 25, 1.5, 0xaaaaff, 0.5)
+    }
+
+    // Branch 2 (shorter)
+    if (Math.random() < 0.35) {
+      const splitAt = Phaser.Math.Between(4, segments - 3)
+      const by = startY + splitAt * segLength
+      const bx = x + Phaser.Math.Between(-maxOffset, maxOffset)
+      const branchSegs = Phaser.Math.Between(1, 3)
+      const branchEndX = bx + Phaser.Math.Between(-30, 30)
+      const branchEndY = by + branchSegs * segLength * 0.5
+      drawZigzag(gfx, bx, by, branchEndX, branchEndY, branchSegs, 18, 1, 0xaaaaff, 0.35)
+    }
+
+    this.scene.tweens.add({
+      targets: gfx,
+      alpha: 0,
+      duration: 200,
+      onComplete: () => gfx.destroy(),
+    })
   }
 
   getState(): WeatherState { return this.state }

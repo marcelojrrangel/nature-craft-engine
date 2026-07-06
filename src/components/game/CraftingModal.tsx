@@ -3,6 +3,7 @@ import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
 import { RECIPES, type CraftStation, type InventorySlot } from '../../game/types';
 import ItemIcon from './ItemIcon';
+import { playRandomSound } from '../../game/sound';
 
 const ICONS = [
   'wood', 'twig', 'stone', 'fiber', 'seed', 'feather', 'pelt', 'crab_shell', 'arrow', 'campfire', 'food',
@@ -33,6 +34,7 @@ export default function CraftingModal({ onClose, station = 'workbench' }: Props)
     if (!recipe) return;
     if (gameStore.craft(recipe)) {
       setLastCrafted(recipeId);
+      playRandomSound(['sfx_craft_01', 'sfx_craft_02', 'sfx_craft_03'], { volume: 0.5 });
       setTimeout(() => setLastCrafted(null), 300);
     }
   };

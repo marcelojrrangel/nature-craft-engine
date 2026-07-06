@@ -62,6 +62,42 @@ export class BootScene extends Phaser.Scene {
     this.load.image('workbench_lv1', b + 'rocha_01.png');
     this.load.image('workbench_lv2', b + 'rocha_02.png');
     this.load.image('workbench_lv3', b + 'rocha_03.png');
+
+    // Sound Effects
+    const s = 'assets/sounds/';
+    this.load.audio('sfx_swing_01', s + 'rpg-sfx/blade_01.ogg');
+    this.load.audio('sfx_swing_02', s + 'rpg-sfx/blade_02.ogg');
+    this.load.audio('sfx_swing_03', s + 'rpg-sfx/blade_03.ogg');
+    this.load.audio('sfx_bow_01', s + 'rpg-sfx/spell_01.ogg');
+    this.load.audio('sfx_bow_02', s + 'rpg-sfx/spell_02.ogg');
+    this.load.audio('sfx_npc_hurt_01', s + 'rpg-sfx/creature_hurt_01.ogg');
+    this.load.audio('sfx_npc_hurt_02', s + 'rpg-sfx/creature_hurt_02.ogg');
+    this.load.audio('sfx_npc_die', s + 'rpg-sfx/creature_die_01.ogg');
+    this.load.audio('sfx_roar_01', s + 'rpg-sfx/creature_roar_01.ogg');
+    this.load.audio('sfx_roar_02', s + 'rpg-sfx/creature_roar_02.ogg');
+    this.load.audio('sfx_roar_03', s + 'rpg-sfx/creature_roar_03.ogg');
+    this.load.audio('sfx_wood_hit_01', s + 'rpg-sfx/wood_01.ogg');
+    this.load.audio('sfx_wood_hit_02', s + 'rpg-sfx/wood_02.ogg');
+    this.load.audio('sfx_wood_hit_03', s + 'rpg-sfx/wood_03.ogg');
+    this.load.audio('sfx_stone_hit_01', s + 'rpg-sfx/stones_01.ogg');
+    this.load.audio('sfx_stone_hit_02', s + 'rpg-sfx/stones_02.ogg');
+    this.load.audio('sfx_stone_hit_03', s + 'rpg-sfx/stones_03.ogg');
+    this.load.audio('sfx_pickup_01', s + 'rpg-sfx/item_coins_01.ogg');
+    this.load.audio('sfx_pickup_02', s + 'rpg-sfx/item_coins_02.ogg');
+    this.load.audio('sfx_pickup_03', s + 'rpg-sfx/item_coins_03.ogg');
+    this.load.audio('sfx_craft_01', s + 'rpg-sfx/metal_01.ogg');
+    this.load.audio('sfx_craft_02', s + 'rpg-sfx/metal_02.ogg');
+    this.load.audio('sfx_craft_03', s + 'rpg-sfx/item_misc_01.ogg');
+    this.load.audio('sfx_inv_open', s + 'rpg-sfx/book_01.ogg');
+    this.load.audio('sfx_inv_close', s + 'rpg-sfx/book_02.ogg');
+    this.load.audio('sfx_equip', s + 'rpg-sfx/lock_01.ogg');
+    this.load.audio('sfx_player_hurt', s + 'rpg-sfx/creature_hurt_01.ogg');
+    this.load.audio('sfx_footstep', s + 'impact/Audio/footstep_grass_000.ogg');
+    this.load.audio('sfx_footstep_01', s + 'impact/Audio/footstep_grass_001.ogg');
+    this.load.audio('sfx_footstep_02', s + 'impact/Audio/footstep_grass_002.ogg');
+    this.load.audio('sfx_footstep_03', s + 'impact/Audio/footstep_grass_003.ogg');
+    this.load.audio('sfx_footstep_04', s + 'impact/Audio/footstep_grass_004.ogg');
+    this.load.audio('sfx_campfire', s + 'rpg-sfx/spell_fire_01.ogg');
   }
 
   create() {

@@ -55,7 +55,7 @@ export class BootScene extends Phaser.Scene {
     this.load.spritesheet('bear_sheet', 'assets/bear_sheet.png', { frameWidth: 64, frameHeight: 64 });
 
     // Rabbit Spritesheet (48x48 frames)
-    this.load.spritesheet('rabbit_prof', e + 'rabbit/rabbit.png', { frameWidth: 48, frameHeight: 48 });
+    this.load.spritesheet('rabbit_prof', e + 'rabbit/rabbit_sheet.png', { frameWidth: 48, frameHeight: 48 });
 
     // RESTORING WORKBENCH ASSETS
     const b = 'assets/env/bancada/';

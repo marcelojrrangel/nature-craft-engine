@@ -2,6 +2,8 @@
 import Phaser from 'phaser';
 import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL, TOOL_DAMAGE, BASE_DAMAGE, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState, type CrabState, type BearState, type RabbitState, type Skill, type PlacedItem } from './types';
 import { saveToIndexedDB, loadFromIndexedDB, deleteFromIndexedDB } from './persistence';
+import type { TimeCycleManager } from './TimeCycleManager';
+import type { WeatherManager } from './WeatherManager';
 
 type Listener = () => void;
 type SliceKey = 'inventory' | 'equipment' | 'player' | 'ui' | 'world' | 'skills';
@@ -43,6 +45,13 @@ class GameStore {
   bears: Phaser.GameObjects.Sprite[] = [];
   rabbits: Phaser.GameObjects.Sprite[] = [];
   worldTick = 0;
+
+  // Exposed by MainScene for cheat panel
+  timeCycle: TimeCycleManager | null = null;
+  weather: WeatherManager | null = null;
+
+  // Lightning warning position for minimap
+  lightningWarning: { x: number; y: number } | null = null;
 
   constructor() {
     this.load();

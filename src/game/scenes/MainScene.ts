@@ -8,6 +8,8 @@ import { CrabNPC } from '../entities/CrabNPC';
 import { BearNPC } from '../entities/BearNPC';
 import { RabbitNPC } from '../entities/RabbitNPC';
 import { initSoundManager, playSound, playRandomSound } from '../sound';
+import { TimeCycleManager } from '../TimeCycleManager';
+import { WeatherManager } from '../WeatherManager';
 
 const MAP_W = 100;
 const MAP_H = 100;
@@ -82,6 +84,8 @@ export class MainScene extends Phaser.Scene {
   private keyNumbers!: Phaser.Input.Keyboard.Key[];
   private moveKeys!: { W: Phaser.Input.Keyboard.Key, A: Phaser.Input.Keyboard.Key, S: Phaser.Input.Keyboard.Key, D: Phaser.Input.Keyboard.Key, UP: Phaser.Input.Keyboard.Key, LEFT: Phaser.Input.Keyboard.Key, DOWN: Phaser.Input.Keyboard.Key, RIGHT: Phaser.Input.Keyboard.Key };
 
+  private timeCycle!: TimeCycleManager;
+  private weather!: WeatherManager;
   private unsubscribeList: (() => void)[] = [];
 
   constructor() { super({ key: 'MainScene' }); }
@@ -108,7 +112,13 @@ export class MainScene extends Phaser.Scene {
     this.sound.setVolume(0.5);
 
     this.lights.enable();
-    this.lights.setAmbientColor(0x333333);
+
+    this.timeCycle = new TimeCycleManager(180000);
+    this.weather = new WeatherManager(this);
+    this.weather.init();
+    this.weather.onLightningStrike = (x, y) => this.handleLightningDamage(x, y);
+    gameStore.timeCycle = this.timeCycle;
+    gameStore.weather = this.weather;
 
     this.isAttacking = false;
     this.attackCooldown = 0;
@@ -424,9 +434,16 @@ export class MainScene extends Phaser.Scene {
 
   private setupCamera() { this.cameras.main.startFollow(this.player, true, 0.08, 0.08); this.cameras.main.setBounds(0, 0, MAP_W * TILE, MAP_H * TILE).setZoom(2.5); }
 
-  shutdown() { this.unsubscribeList.forEach(unsub => unsub()); this.unsubscribeList = []; this.chickens.forEach(c => c.destroy()); this.crabs.forEach(c => c.destroy()); this.bears.forEach(b => b.destroy()); this.rabbits.forEach(r => r.destroy()); }
+  shutdown() { this.unsubscribeList.forEach(unsub => unsub()); this.unsubscribeList = []; this.chickens.forEach(c => c.destroy()); this.crabs.forEach(c => c.destroy()); this.bears.forEach(b => b.destroy()); this.rabbits.forEach(r => r.destroy()); if (this.weather) this.weather.destroy(); }
 
   private showFloatingText(x: number, y: number, text: string, color: string) { if (!this.sys || !this.sys.isActive()) return; const f = this.add.text(x, y, text, { fontSize: '12px', color, fontStyle: 'bold', backgroundColor: '#00000066', padding: { x: 4, y: 2 } }).setDepth(3500); this.tweens.add({ targets: f, y: y - 24, alpha: 0, duration: 850, onComplete: () => f.destroy() }); }
+
+  private dimColor(color: number, factor: number): number {
+    const r = Math.round(((color >> 16) & 0xff) * factor)
+    const g = Math.round(((color >> 8) & 0xff) * factor)
+    const b = Math.round((color & 0xff) * factor)
+    return (r << 16) | (g << 8) | b
+  }
 
   private canDamageTarget(type: string, show = true): boolean { const t = gameStore.getEquippedTool()?.type || 'hands', r = TOOL_REQUIREMENTS[type]; if (!r || r.includes(t as any)) return true; if (t === 'hands' && (type === 'small_rock' || type === 'dead_tree' || type === 'bush')) return true; if (show) { this.showFloatingText(this.player.x, this.player.y - 40, 'Ferramenta incorreta', '#ffcc66'); } return false; }
 
@@ -505,10 +522,55 @@ export class MainScene extends Phaser.Scene {
     this.interactUI.setPosition(x, y);
   }
 
+  private handleLightningDamage(strikeX: number, strikeY: number) {
+    const radius = 60
+    const dmg = Phaser.Math.Between(15, 25)
+
+    const allEntities = [
+      ...this.chickens.map(c => ({ sprite: c.sprite, id: c.id, type: 'chicken' as const })),
+      ...this.crabs.map(c => ({ sprite: c.sprite, id: c.id, type: 'crab' as const })),
+      ...this.bears.map(c => ({ sprite: c.sprite, id: c.id, type: 'bear' as const })),
+      ...this.rabbits.map(c => ({ sprite: c.sprite, id: c.id, type: 'rabbit' as const })),
+    ]
+
+    allEntities.forEach(entity => {
+      if (!entity.sprite.active) return
+      const dist = Phaser.Math.Distance.Between(strikeX, strikeY, entity.sprite.x, entity.sprite.y)
+      if (dist <= radius) {
+        const npc = entity.type === 'chicken' ? this.chickens.find(c => c.id === entity.id)
+          : entity.type === 'crab' ? this.crabs.find(c => c.id === entity.id)
+          : entity.type === 'bear' ? this.bears.find(b => b.id === entity.id)
+          : this.rabbits.find(r => r.id === entity.id)
+        if (npc) this.applyDamageToNPC(npc, entity.type, dmg)
+      }
+    })
+
+    const playerDist = Phaser.Math.Distance.Between(strikeX, strikeY, this.player.x, this.player.y)
+    if (playerDist <= radius) {
+      gameStore.receiveDamage(dmg)
+      playSound('sfx_player_hurt', { volume: 0.5 })
+      this.showFloatingText(this.player.x, this.player.y - 30, `-${dmg} Raio!`, '#ff4444')
+    }
+  }
+
   update(_t: number, delta: number) {
     if (this.attackCooldown > 0) this.attackCooldown -= delta; this.processRespawns();
     this.chickens.forEach(c => c.update(delta)); this.crabs.forEach(c => c.update(delta)); this.rabbits.forEach(r => r.update(delta));
-    if (this.playerLight) { this.playerLight.x = this.player.x; this.playerLight.y = this.player.y; }
+
+    this.timeCycle.update(delta);
+    this.weather.update(delta);
+    const ambientDim = this.weather.getAmbientDim();
+    const baseColor = this.timeCycle.getAmbientColor();
+    const dimmed = this.dimColor(baseColor, 1 - ambientDim);
+    this.lights.setAmbientColor(dimmed);
+    const plCfg = this.timeCycle.getPlayerLightConfig();
+    if (this.playerLight) {
+      this.playerLight.x = this.player.x;
+      this.playerLight.y = this.player.y;
+      this.playerLight.setColor(plCfg.color);
+      this.playerLight.setRadius(plCfg.radius);
+      this.playerLight.setIntensity(plCfg.intensity);
+    }
     this.inSafeZone = false; this.nearCampfire = false;
     const wbX = (MAP_W * TILE) / 2, wbY = (MAP_H * TILE) / 2, distToWB = Phaser.Math.Distance.Between(this.player.x, this.player.y, wbX, wbY);
     if (distToWB < SAFE_ZONE_RADIUS) this.inSafeZone = true;

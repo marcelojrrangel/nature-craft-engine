@@ -84,6 +84,23 @@ export default function Minimap() {
         ctx.fill();
       });
 
+      // Draw lightning warning
+      const lw = gameStore.lightningWarning;
+      if (lw) {
+        const lx = lw.x * MINIMAP_SCALE;
+        const ly = lw.y * MINIMAP_SCALE;
+        const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 200);
+        ctx.strokeStyle = `rgba(255, 50, 50, ${0.4 + 0.4 * pulse})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(lx, ly, 5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(255, 200, 50, ${0.2 + 0.3 * pulse})`;
+        ctx.beginPath();
+        ctx.arc(lx, ly, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
       // Draw placed items (campfires, etc)
       const placedItems = gameStore.placedItems || [];
       placedItems.forEach(item => {

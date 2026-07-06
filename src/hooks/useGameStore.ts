@@ -29,6 +29,7 @@ function buildUISnapshot() {
     showCrafting: gameStore.showCrafting,
     showEquipment: gameStore.showEquipment,
     showSkills: gameStore.showSkills,
+    showCheatPanel: gameStore.showCheatPanel,
   };
 }
 

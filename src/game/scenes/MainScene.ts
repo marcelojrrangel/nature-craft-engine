@@ -117,6 +117,8 @@ export class MainScene extends Phaser.Scene {
     this.weather = new WeatherManager(this);
     this.weather.init();
     this.weather.onLightningStrike = (x, y) => this.handleLightningDamage(x, y);
+    gameStore.timeCycle = this.timeCycle;
+    gameStore.weather = this.weather;
 
     this.isAttacking = false;
     this.attackCooldown = 0;

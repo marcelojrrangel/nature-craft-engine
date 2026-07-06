@@ -21,7 +21,7 @@ const ICONS_LIST = [
   'cooked_chicken', 'cooked_rabbit', 'cooked_crab',
 ];
 
-type Tab = 'items' | 'stats' | 'skills' | 'world';
+type Tab = 'items' | 'stats' | 'skills' | 'world' | 'ciclo';
 
 export default function CheatPanel({ onClose }: { onClose: () => void }) {
   useGameStore();
@@ -79,6 +79,7 @@ export default function CheatPanel({ onClose }: { onClose: () => void }) {
           <button className={tabClass('stats')} onClick={() => setTab('stats')}>STATS</button>
           <button className={tabClass('skills')} onClick={() => setTab('skills')}>SKILLS</button>
           <button className={tabClass('world')} onClick={() => setTab('world')}>MUNDO</button>
+          <button className={tabClass('ciclo')} onClick={() => setTab('ciclo')}>CICLO</button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 min-h-[200px]">
@@ -235,6 +236,70 @@ export default function CheatPanel({ onClose }: { onClose: () => void }) {
                 <button onClick={() => { gameStore.load(); window.location.reload(); }} className="px-3 py-1.5 bg-blue-600/30 border border-blue-600/50 rounded-lg text-[9px] text-blue-400 hover:bg-blue-600/50 text-left">CARREGAR JOGO</button>
                 <button onClick={() => { if (confirm('Resetar todo o progresso?')) { gameStore.resetSave(); window.location.reload(); } }} className="px-3 py-1.5 bg-red-600/30 border border-red-600/50 rounded-lg text-[9px] text-red-400 hover:bg-red-600/50 text-left">RESETAR JOGO</button>
                 <button onClick={handleResetWorld} className="px-3 py-1.5 bg-orange-600/30 border border-orange-600/50 rounded-lg text-[9px] text-orange-400 hover:bg-orange-600/50 text-left">RESETAR MUNDO (recursos + NPCs)</button>
+              </div>
+            </div>
+          )}
+
+          {tab === 'ciclo' && (
+            <div className="flex flex-col gap-4 p-2">
+              <div className="flex items-center gap-3">
+                <span className="text-[9px] text-white/70 w-24">Horário</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={gameStore.timeCycle?.timeOfDay ?? 0.25}
+                  onChange={e => { gameStore.timeCycle?.setTime(Number(e.target.value)); gameStore.notify('world'); }}
+                  className="flex-1 accent-primary"
+                />
+                <span className="text-[8px] text-white w-16 text-right">
+                  {(() => {
+                    const t = gameStore.timeCycle?.timeOfDay ?? 0.25;
+                    if (t < 0.2) return '🌙 Noite';
+                    if (t < 0.35) return '🌅 Amanhecer';
+                    if (t < 0.65) return '☀️ Dia';
+                    if (t < 0.8) return '🌅 Entardecer';
+                    return '🌙 Noite';
+                  })()}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-[9px] text-white/70 w-24">Pausar ciclo</span>
+                <button
+                  onClick={() => { gameStore.timeCycle?.togglePause(); gameStore.notify('world'); }}
+                  className={`px-3 py-1.5 rounded-lg border text-[9px] transition-all ${gameStore.timeCycle?.paused ? 'bg-yellow-600/40 border-yellow-500 text-yellow-400' : 'bg-green-600/30 border-green-600/50 text-green-400'}`}
+                >
+                  {gameStore.timeCycle?.paused ? 'PAUSADO' : 'RODANDO'}
+                </button>
+              </div>
+
+              <div className="border-t border-white/10 my-1" />
+
+              <div className="flex items-center gap-3">
+                <span className="text-[9px] text-white/70 w-24">Clima</span>
+                <div className="flex gap-1.5 flex-1 flex-wrap">
+                  {(['clear', 'cloudy', 'rainy', 'stormy'] as const).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => { gameStore.weather?.forceState(s); gameStore.notify('world'); }}
+                      className={`px-2 py-1 rounded-lg border text-[8px] transition-all ${gameStore.weather?.getState() === s ? 'bg-primary/30 border-primary text-primary' : 'bg-black/40 border-white/10 text-white/60 hover:border-white/30'}`}
+                    >
+                      {s === 'clear' ? '☀️ Limpo' : s === 'cloudy' ? '☁️ Nublado' : s === 'rainy' ? '🌧️ Chuva' : '⛈️ Tempestade'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="text-[9px] text-white/70 w-24">Raio</span>
+                <button
+                  onClick={() => { gameStore.weather?.forceLightning(); gameStore.notify('world'); }}
+                  className="px-3 py-1.5 bg-yellow-600/30 border border-yellow-600/50 rounded-lg text-[9px] text-yellow-400 hover:bg-yellow-600/50"
+                >
+                  ⚡ CAIR RAIO
+                </button>
               </div>
             </div>
           )}

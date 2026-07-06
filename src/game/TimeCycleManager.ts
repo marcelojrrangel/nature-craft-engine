@@ -1,6 +1,7 @@
 export class TimeCycleManager {
   timeOfDay = 0.25
   dayLength: number
+  paused = false
   private elapsed = 0
 
   constructor(dayLength = 180000) {
@@ -8,9 +9,17 @@ export class TimeCycleManager {
   }
 
   update(delta: number) {
+    if (this.paused) return
     this.elapsed += delta
     this.timeOfDay = (this.elapsed % this.dayLength) / this.dayLength
   }
+
+  setTime(value: number) {
+    this.timeOfDay = Math.max(0, Math.min(1, value))
+    this.elapsed = this.timeOfDay * this.dayLength
+  }
+
+  togglePause() { this.paused = !this.paused }
 
   get isNight(): boolean {
     return this.timeOfDay < 0.2 || this.timeOfDay > 0.8

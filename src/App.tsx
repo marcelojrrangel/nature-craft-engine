@@ -10,7 +10,7 @@ const App = () => (
   <TooltipProvider>
     <Toaster />
     <Sonner />
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <ErrorBoundary label="AppRoot">
         <Routes>
           <Route path="/" element={<Index />} />

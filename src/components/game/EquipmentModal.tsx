@@ -1,5 +1,6 @@
 import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
+import ItemIcon from './ItemIcon';
 import type { EquipSlot } from '../../game/types';
 
 interface Props { onClose: () => void }
@@ -35,8 +36,9 @@ export default function EquipmentModal({ onClose }: Props) {
                 <div className="flex-1">
                   <div className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>{meta.label}</div>
                   {equipped.item ? (
-                    <div className="game-body-text" style={{ color: 'hsl(var(--foreground))' }}>
-                      {equipped.item.icon} {equipped.item.name}
+                    <div className="flex items-center gap-2 game-body-text" style={{ color: 'hsl(var(--foreground))' }}>
+                      <ItemIcon itemId={equipped.item.id} size={24} />
+                      {equipped.item.name}
                     </div>
                   ) : (
                     <div className="text-sm" style={{ color: 'hsl(var(--muted-foreground))' }}>Vazio</div>

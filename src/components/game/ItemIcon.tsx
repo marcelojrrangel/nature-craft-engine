@@ -465,6 +465,37 @@ const ICONS: Record<string, React.ReactNode> = {
       <rect x="7" y="8" width="1" height="1" fill="#FFD700" />
     </svg>
   ),
+  gold_helmet: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <ellipse cx="8" cy="9" rx="6" ry="5" fill="#B8860B" />
+      <ellipse cx="8" cy="9" rx="4" ry="3" fill="#DAA520" />
+      <rect x="6" y="4" width="4" height="5" fill="#FFD700" />
+      <rect x="7" y="5" width="2" height="3" fill="#FFF8DC" />
+      <rect x="5" y="8" width="6" height="2" fill="#FFF8DC" />
+      <rect x="6" y="5" width="1" height="1" fill="#FFFACD" />
+    </svg>
+  ),
+  gold_chestplate: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="3" y="4" width="10" height="10" fill="#B8860B" />
+      <rect x="4" y="5" width="8" height="8" fill="#DAA520" />
+      <rect x="5" y="6" width="6" height="4" fill="#FFD700" />
+      <rect x="6" y="5" width="4" height="8" fill="#FFF8DC" />
+      <rect x="7" y="6" width="2" height="6" fill="#FFFACD" />
+      <rect x="5" y="5" width="1" height="1" fill="#FFD700" />
+    </svg>
+  ),
+  gold_boots: (
+    <svg viewBox="0 0 16 16" className="w-full h-full">
+      <rect x="3" y="8" width="5" height="6" fill="#B8860B" />
+      <rect x="8" y="8" width="5" height="6" fill="#B8860B" />
+      <rect x="4" y="9" width="4" height="4" fill="#DAA520" />
+      <rect x="9" y="9" width="4" height="4" fill="#DAA520" />
+      <rect x="5" y="6" width="6" height="3" fill="#FFD700" />
+      <rect x="6" y="7" width="4" height="1" fill="#FFF8DC" />
+      <rect x="7" y="8" width="1" height="1" fill="#FFFACD" />
+    </svg>
+  ),
 
   // Food Items
   chicken_meat: (

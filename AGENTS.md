@@ -232,4 +232,4 @@ Exemplo real (urso):
 ## Próximos Passos (do PROJECT_CONTEXT.md)
 1. ~~Substituir assets do Urso~~ e Coelho por versões profissionais ✅ Concluído
 2. ~~Implementar mineração de minérios (Ferro, Bronze, Ouro)~~ ✅ Concluído
-3. Melhorar os ícones de itens na UI para combinar com o estilo Pixel Crawler
+3. ~~Melhorar os ícones de itens na UI para combinar com o estilo Pixel Crawler~~ ✅ Concluído

@@ -2,6 +2,7 @@ import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
 import ItemIcon from './ItemIcon';
 import type { EquipSlot } from '../../game/types';
+import { playSound } from '../../game/sound';
 
 interface Props { onClose: () => void }
 
@@ -31,7 +32,7 @@ export default function EquipmentModal({ onClose }: Props) {
             const equipped = equip[slot];
             return (
               <div key={slot} className="game-slot h-14 px-3 flex items-center gap-3 cursor-pointer"
-                onClick={() => equipped.item && gameStore.unequip(slot)}>
+                onClick={() => { if (equipped.item) { gameStore.unequip(slot); playSound('sfx_equip', { volume: 0.5 }); } }}>
                 <span className="text-xl w-8 text-center">{meta.icon}</span>
                 <div className="flex-1">
                   <div className="text-xs" style={{ color: 'hsl(var(--muted-foreground))' }}>{meta.label}</div>

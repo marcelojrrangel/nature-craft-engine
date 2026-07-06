@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { gameStore } from '../store';
 import { HealthComponent } from '../components/HealthComponent';
 import { HealthBarRenderer } from '../components/HealthBarRenderer';
+import { playSound, playRandomSound } from '../sound';
 
 export type BearVisualState = 'idle' | 'chasing' | 'attacking' | 'dead';
 
@@ -126,6 +127,7 @@ export class BearNPC {
       if (dist < this.attackRange && this.attackCooldown <= 0) {
         this.attackPlayer();
       } else if (dist < this.detectionRange) {
+        if (this.state !== 'chasing') playRandomSound(['sfx_roar_01', 'sfx_roar_02', 'sfx_roar_03'], { volume: 0.5 });
         this.setState('chasing');
         this.targetPos = { x: playerX, y: playerY };
       } else if (this.state === 'chasing') {
@@ -168,6 +170,7 @@ export class BearNPC {
     this.setState('attacking');
     this.attackCooldown = 1500;
     gameStore.receiveDamage(25);
+    playSound('sfx_player_hurt', { volume: 0.6 });
     
     this.sprite.scene.cameras.main.flash(100, 255, 0, 0, false);
     

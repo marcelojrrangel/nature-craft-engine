@@ -3,6 +3,7 @@ import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
 import { type Item } from '../../game/types';
 import ItemIcon from './ItemIcon';
+import { playSound, playRandomSound } from '../../game/sound';
 
 const ICONS = [
   'wood', 'twig', 'stone', 'fiber', 'seed', 'feather', 'pelt', 'crab_shell', 'arrow', 'campfire', 'food',
@@ -28,7 +29,12 @@ export default function InventoryModal({ onClose }: Props) {
 
   const handleSlotClick = (index: number) => {
     setContextMenu(null);
+    const slot = gameStore.inventory[index];
+    if (!slot.item) return;
+    const item = slot.item;
     gameStore.useItem(index);
+    if (item.type === 'food') playRandomSound(['sfx_pickup_01', 'sfx_pickup_02'], { volume: 0.4 });
+    else if (item.type === 'weapon' || item.type === 'armor') playSound('sfx_equip', { volume: 0.5 });
   };
 
   const handleRightClick = (e: React.MouseEvent, index: number) => {

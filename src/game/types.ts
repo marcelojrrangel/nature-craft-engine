@@ -155,6 +155,7 @@ export interface GameSaveData {
   selectedQuickBarIndex?: number;
   skills?: Record<string, Skill>;
   respawnQueue?: { x: number; y: number; type: string; hp: number; id: string; respawnAt: number }[];
+  quests?: Record<string, QuestState>;
 }
 
 export interface PlacedItem {
@@ -289,3 +290,111 @@ export const DEFAULT_EQUIPMENT: Equipment = {
   accessory: { item: null, quantity: 0 },
   mainHand: { item: null, quantity: 0 },
 };
+
+// Quest types
+export type QuestStatus = 'locked' | 'available' | 'active' | 'completed';
+export type QuestObjectiveType = 'kill' | 'gather' | 'craft' | 'explore';
+
+export interface QuestObjective {
+  type: QuestObjectiveType;
+  targetId: string;
+  targetName: string;
+  quantity: number;
+  current: number;
+}
+
+export interface QuestReward {
+  items?: { itemId: string; quantity: number }[];
+  xp?: number;
+  hp?: number;
+}
+
+export interface QuestDef {
+  id: string;
+  title: string;
+  description: string;
+  objectives: QuestObjective[];
+  reward: QuestReward;
+  prerequisites?: string[];
+}
+
+export interface QuestState {
+  id: string;
+  status: QuestStatus;
+  objectives: QuestObjective[];
+}
+
+export const QUESTS: QuestDef[] = [
+  {
+    id: 'first_hunt',
+    title: 'Primeira Caça',
+    description: 'As galinhas estão por toda parte. Mostre quem manda no pedaço!',
+    objectives: [{ type: 'kill', targetId: 'chicken', targetName: 'Galinhas', quantity: 3, current: 0 }],
+    reward: { items: [{ itemId: 'cooked_chicken', quantity: 2 }], xp: 50 },
+  },
+  {
+    id: 'wood_gatherer',
+    title: 'Coletor de Madeira',
+    description: 'Madeira é essencial para construir ferramentas e fogueiras.',
+    objectives: [{ type: 'gather', targetId: 'wood', targetName: 'Madeira', quantity: 15, current: 0 }],
+    reward: { items: [{ itemId: 'axe', quantity: 1 }], xp: 30 },
+  },
+  {
+    id: 'fiber_collector',
+    title: 'Fibra Natural',
+    description: 'Arbustos contêm fibras úteis para artesanato.',
+    objectives: [{ type: 'gather', targetId: 'fiber', targetName: 'Fibra', quantity: 10, current: 0 }],
+    reward: { items: [{ itemId: 'boots_rustic', quantity: 1 }], xp: 25 },
+  },
+  {
+    id: 'stone_age',
+    title: 'Era da Pedra',
+    description: 'Minere pedras para forjar ferramentas superiores.',
+    objectives: [{ type: 'gather', targetId: 'stone', targetName: 'Pedra', quantity: 10, current: 0 }],
+    reward: { items: [{ itemId: 'pickaxe', quantity: 1 }], xp: 40 },
+  },
+  {
+    id: 'crab_hunter',
+    title: 'Caçador de Caranguejos',
+    description: 'Os caranguejos da praia têm carne deliciosa.',
+    objectives: [{ type: 'kill', targetId: 'crab', targetName: 'Caranguejos', quantity: 5, current: 0 }],
+    reward: { items: [{ itemId: 'cooked_crab', quantity: 3 }], xp: 60 },
+  },
+  {
+    id: 'chef',
+    title: 'Chef de Cozinha',
+    description: 'Use a fogueira para cozinhar 3 carnes diferentes.',
+    objectives: [{ type: 'craft', targetId: 'cook_chicken', targetName: 'Frango Assado', quantity: 1, current: 0 }, { type: 'craft', targetId: 'cook_rabbit', targetName: 'Coelho Assado', quantity: 1, current: 0 }, { type: 'craft', targetId: 'cook_crab', targetName: 'Siri Cozido', quantity: 1, current: 0 }],
+    reward: { items: [{ itemId: 'food', quantity: 5 }, { itemId: 'campfire', quantity: 1 }], xp: 80 },
+  },
+  {
+    id: 'iron_age',
+    title: 'Era do Ferro',
+    description: 'Minério de ferro é raro e valioso. Colete-o para forjar armaduras.',
+    objectives: [{ type: 'gather', targetId: 'iron_ore', targetName: 'Minério de Ferro', quantity: 5, current: 0 }],
+    reward: { items: [{ itemId: 'iron_sword', quantity: 1 }], xp: 100 },
+  },
+  {
+    id: 'bear_slayer',
+    title: 'Urso Assassino',
+    description: 'Um urso feroz ameaça a região. Prove sua coragem!',
+    objectives: [{ type: 'kill', targetId: 'bear', targetName: 'Ursos', quantity: 2, current: 0 }],
+    reward: { items: [{ itemId: 'bronze_helmet', quantity: 1 }], xp: 200 },
+    prerequisites: ['first_hunt'],
+  },
+  {
+    id: 'rabbit_hunt',
+    title: 'Pegando Coelhos',
+    description: 'Coelhos são rápidos, mas suas peles são valiosas.',
+    objectives: [{ type: 'kill', targetId: 'rabbit', targetName: 'Coelhos', quantity: 4, current: 0 }],
+    reward: { items: [{ itemId: 'gloves_rustic', quantity: 1 }], xp: 45 },
+  },
+  {
+    id: 'prospect_gold',
+    title: 'Febre do Ouro',
+    description: 'Dizem que há ouro escondido nas profundezas. Encontre-o!',
+    objectives: [{ type: 'gather', targetId: 'gold_ore', targetName: 'Minério de Ouro', quantity: 3, current: 0 }],
+    reward: { items: [{ itemId: 'gold_boots', quantity: 1 }], xp: 300 },
+    prerequisites: ['iron_age'],
+  },
+];

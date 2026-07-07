@@ -1,6 +1,6 @@
 // Reactive game store for shared state between Phaser & React
 import type Phaser from 'phaser';
-import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL, TOOL_DAMAGE, BASE_DAMAGE, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState, type CrabState, type BearState, type RabbitState, type Skill, type PlacedItem } from './types';
+import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL, TOOL_DAMAGE, BASE_DAMAGE, QUESTS, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState, type CrabState, type BearState, type RabbitState, type Skill, type PlacedItem, type QuestState, type QuestStatus, type QuestObjective } from './types';
 import { saveToIndexedDB, loadFromIndexedDB, deleteFromIndexedDB } from './persistence';
 import type { TimeCycleManager } from './TimeCycleManager';
 import type { WeatherManager } from './WeatherManager';
@@ -37,6 +37,10 @@ class GameStore {
   godMode = false;
   currentStation: 'workbench' | 'campfire' = 'workbench';
   respawnQueue: { x: number; y: number; type: string; hp: number; id: string; respawnAt: number }[] = [];
+  quests: Record<string, QuestState> = {};
+  showQuests = false;
+  questNotification: { message: string; type: 'progress' | 'complete' } | null = null;
+  questNotificationTimer: number | null = null;
   private saveInterval: number | null = null;
 
   // Exposed for minimap (read-only references managed by MainScene)
@@ -221,6 +225,7 @@ class GameStore {
     if (!this.canCraft(recipe)) return false;
     recipe.ingredients.forEach(ing => this.removeItem(ing.item.id, ing.quantity));
     this.addItem(recipe.result, recipe.resultQty);
+    this.updateQuestObjective('craft', recipe.id, 1);
     this.notify('inventory'); return true;
   }
 
@@ -315,7 +320,7 @@ class GameStore {
       hp: this.hp, maxHp: this.maxHp,
       timestamp: Date.now(),
       resourceStates: this.resourceStates, chickenStates: this.chickenStates, crabStates: this.crabStates, bearStates: this.bearStates, rabbitStates: this.rabbitStates,
-      placedItems: this.placedItems, quickBar: this.quickBar, selectedQuickBarIndex: this.selectedQuickBarIndex, skills: this.skills, respawnQueue: this.respawnQueue,
+      placedItems: this.placedItems, quickBar: this.quickBar, selectedQuickBarIndex: this.selectedQuickBarIndex, skills: this.skills, respawnQueue: this.respawnQueue, quests: this.quests,
     };
   }
 
@@ -326,6 +331,8 @@ class GameStore {
     this.bearStates = data.bearStates || {}; this.rabbitStates = data.rabbitStates || {}; this.placedItems = data.placedItems || [];
     this.quickBar = data.quickBar || [null, null, null, null, null]; this.selectedQuickBarIndex = data.selectedQuickBarIndex || 0;
     this.skills = data.skills || {}; this.respawnQueue = data.respawnQueue || [];
+    this.quests = data.quests || {};
+    this.initQuests();
     this.validateQuickBarReferences();
   }
 
@@ -362,11 +369,114 @@ class GameStore {
     this.inventory = Array.from({ length: 20 }, () => ({ item: null, quantity: 0 }));
     this.equipment = JSON.parse(JSON.stringify(DEFAULT_EQUIPMENT)); this.playerX = 800; this.playerY = 800; this.hp = 100;
     this.resourceStates = {}; this.chickenStates = {}; this.crabStates = {}; this.bearStates = {}; this.rabbitStates = {}; this.placedItems = [];
-    this.quickBar = [null, null, null, null, null]; this.selectedQuickBarIndex = 0; this.skills = {}; this.respawnQueue = [];
+    this.quickBar = [null, null, null, null, null]; this.selectedQuickBarIndex = 0; this.skills = {}; this.respawnQueue = []; this.quests = {};
+    this.initQuests();
     this.notify();
   }
 
   updatePlayerPos(x: number, y: number, dir: string = 'down') { this.playerX = x; this.playerY = y; this.playerDir = dir; this.notify('world'); }
+
+  toggleQuests() { this.showQuests = !this.showQuests; this.notify('ui'); }
+
+  private initQuests() {
+    if (Object.keys(this.quests).length > 0) return;
+    QUESTS.forEach(q => {
+      const prereqs = q.prerequisites || [];
+      const status: QuestStatus = prereqs.length === 0 ? 'available' : 'locked';
+      this.quests[q.id] = {
+        id: q.id,
+        status,
+        objectives: q.objectives.map(o => ({ ...o, current: 0 })),
+      };
+    });
+  }
+
+  acceptQuest(questId: string) {
+    const q = this.quests[questId];
+    if (!q || q.status !== 'available') return;
+    q.status = 'active';
+    this.notify('player');
+    this.save();
+  }
+
+  updateQuestObjective(type: string, targetId: string, amount = 1) {
+    this.initQuests();
+    let completedAny = false;
+    Object.values(this.quests).forEach(q => {
+      if (q.status !== 'active') return;
+      let updated = false;
+      q.objectives.forEach(obj => {
+        if (obj.type === type && (obj.targetId === targetId || type === 'craft')) {
+          const craftMatch = type === 'craft' && targetId === obj.targetId;
+          const killMatch = type === 'kill' && targetId === obj.targetId;
+          const gatherMatch = type === 'gather' && targetId === obj.targetId;
+          if (craftMatch || killMatch || gatherMatch) {
+            obj.current = Math.min(obj.quantity, obj.current + amount);
+            updated = true;
+          }
+        }
+      });
+      if (updated) {
+        this.showQuestNotification('progress', this.getQuestProgressText(q.id));
+        if (q.objectives.every(obj => obj.current >= obj.quantity)) {
+          this.completeQuest(q.id);
+          completedAny = true;
+        }
+      }
+    });
+    if (completedAny) this.notify('player');
+    else if (!completedAny) this.notify('player');
+    this.save();
+  }
+
+  private getQuestProgressText(questId: string): string {
+    const q = this.quests[questId];
+    if (!q) return '';
+    const def = QUESTS.find(d => d.id === questId);
+    const done = q.objectives.every(obj => obj.current >= obj.quantity);
+    if (done) return `✅ ${def?.title || questId} concluída!`;
+    const parts = q.objectives.map(obj => `${obj.current}/${obj.quantity} ${obj.targetName}`);
+    return `📋 ${def?.title || questId}: ${parts.join(', ')}`;
+  }
+
+  private completeQuest(questId: string) {
+    const q = this.quests[questId];
+    if (!q || q.status !== 'active') return;
+    q.status = 'completed';
+    const def = QUESTS.find(d => d.id === questId);
+    if (def) {
+      def.reward.items?.forEach(ri => {
+        const item = ITEMS[ri.itemId as keyof typeof ITEMS];
+        if (item) this.addItem(item, ri.quantity);
+      });
+      if (def.reward.xp) {
+        Object.keys(SKILLS_CONFIG).forEach(skillKey => {
+          this.useTool(skillKey, Math.floor(def.reward.xp! / Object.keys(SKILLS_CONFIG).length));
+        });
+      }
+    }
+
+    // Unlock next quests
+    QUESTS.forEach(d => {
+      if (d.prerequisites?.includes(questId)) {
+        const next = this.quests[d.id];
+        if (next && next.status === 'locked') next.status = 'available';
+      }
+    });
+
+    this.showQuestNotification('complete', `🏆 ${def?.title || questId} concluída! Recompensas recebidas.`);
+    this.save();
+  }
+
+  private showQuestNotification(type: 'progress' | 'complete', message: string) {
+    this.questNotification = { message, type };
+    if (this.questNotificationTimer) clearTimeout(this.questNotificationTimer);
+    this.questNotificationTimer = window.setTimeout(() => {
+      this.questNotification = null;
+      this.notify('player');
+    }, type === 'complete' ? 5000 : 3000);
+    this.notify('player');
+  }
 }
 
 export const gameStore = new GameStore();

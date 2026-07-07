@@ -20,6 +20,8 @@ function buildMainSnapshot() {
     playerY: gameStore.playerY,
     playerDir: gameStore.playerDir,
     worldTick: gameStore.worldTick,
+    quests: gameStore.quests,
+    questNotification: gameStore.questNotification,
   };
 }
 
@@ -30,6 +32,8 @@ function buildUISnapshot() {
     showEquipment: gameStore.showEquipment,
     showSkills: gameStore.showSkills,
     showCheatPanel: gameStore.showCheatPanel,
+    showQuests: gameStore.showQuests,
+    questNotification: gameStore.questNotification,
   };
 }
 

@@ -4,6 +4,7 @@ import InventoryModal from '../components/game/InventoryModal';
 import EquipmentModal from '../components/game/EquipmentModal';
 import CraftingModal from '../components/game/CraftingModal';
 import SkillsModal from '../components/game/SkillsModal';
+import QuestsModal from '../components/game/QuestsModal';
 import CheatPanel from '../components/game/CheatPanel';
 import Joystick from '../components/game/Joystick';
 import MobileControls from '../components/game/MobileControls';
@@ -61,6 +62,11 @@ const Index = () => {
       {ui.showSkills && (
         <ErrorBoundary label="SkillsModal">
           <SkillsModal onClose={() => gameStore.toggleSkills()} />
+        </ErrorBoundary>
+      )}
+      {ui.showQuests && (
+        <ErrorBoundary label="QuestsModal">
+          <QuestsModal onClose={() => gameStore.toggleQuests()} />
         </ErrorBoundary>
       )}
       {import.meta.env.DEV && ui.showCheatPanel && (

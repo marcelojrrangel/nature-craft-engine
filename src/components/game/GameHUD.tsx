@@ -3,7 +3,7 @@ import { gameStore } from '../../game/store';
 import { useGameStore } from '../../hooks/useGameStore';
 import { useIsMobile } from '../../hooks/use-mobile';
 import ItemIcon from './ItemIcon';
-import { ITEMS } from '../../game/types';
+import { ITEMS, QUESTS } from '../../game/types';
 
 const RESOURCE_IDS = ['wood', 'stone', 'fiber', 'iron_ore', 'bronze_ore', 'gold_ore'];
 const ICONS = [
@@ -51,6 +51,8 @@ export default function GameHUD() {
   }, {} as Record<string, number>);
 
   const currentTool = gameStore.getSelectedQuickBarItem();
+  const questNotification = gameStore.questNotification;
+  const activeQuests = Object.values(gameStore.quests).filter(q => q.status === 'active');
 
   return (
     <div className="fixed inset-0 pointer-events-none p-2 sm:p-4 z-40 flex flex-col justify-between select-none">
@@ -145,6 +147,38 @@ export default function GameHUD() {
         )}
       </div>
 
+      {/* Quest Notification Toast */}
+      {questNotification && (
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-lg border shadow-2xl animate-in fade-in slide-in-from-top-2 duration-300 pointer-events-auto ${
+          questNotification.type === 'complete'
+            ? 'bg-green-900/80 border-green-500/50 backdrop-blur-md'
+            : 'bg-primary/20 border-primary/30 backdrop-blur-md'
+        }`}>
+          <p className="text-[10px] font-bold text-white text-center" style={{ fontFamily: "'Press Start 2P', monospace" }}>
+            {questNotification.message}
+          </p>
+        </div>
+      )}
+
+      {/* Active Quest Tracker */}
+      {activeQuests.length > 0 && (
+        <div className="fixed top-4 right-4 z-40 flex flex-col gap-1 max-w-[200px] pointer-events-auto">
+          {activeQuests.map(q => {
+            const def = QUESTS.find(d => d.id === q.id);
+            if (!def) return null;
+            const done = q.objectives.filter(o => o.current >= o.quantity).length;
+            const total = q.objectives.length;
+            return (
+              <div key={q.id} className="bg-black/60 backdrop-blur-md px-2 py-1 rounded border border-primary/20 shadow-lg text-[7px]"
+                style={{ fontFamily: "'Press Start 2P', monospace" }}>
+                <span className="text-primary">{def.title}</span>
+                <span className="text-white/50 ml-1">({done}/{total})</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div className={`flex flex-col items-center gap-2 sm:gap-3 mb-0 sm:mb-1 ${isMobile ? 'mb-20' : ''}`}>
         <div className="flex gap-1.5 sm:gap-2 p-2 sm:p-2.5 bg-black/50 backdrop-blur-lg rounded-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] pointer-events-auto">
           {gameStore.quickBar.map((invIndex, i) => {
@@ -191,6 +225,7 @@ export default function GameHUD() {
               <span className="text-primary">Q</span> EQUIP
               <span className="text-primary">C</span> CRAFT
               <span className="text-primary">K</span> SKILLS
+              <span className="text-primary">J</span> QUESTS
               <span className="text-white/30">|</span>
               <span className="text-secondary">SPACE</span> ATK
             </p>

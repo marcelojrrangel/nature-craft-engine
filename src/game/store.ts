@@ -1,9 +1,10 @@
 // Reactive game store for shared state between Phaser & React
-import Phaser from 'phaser';
+import type Phaser from 'phaser';
 import { ITEMS, DEFAULT_EQUIPMENT, RECIPES, SKILLS_CONFIG, SKILL_XP_PER_LEVEL, MAX_SKILL_LEVEL, TOOL_DAMAGE, BASE_DAMAGE, type InventorySlot, type Equipment, type Item, type EquipSlot, type GameSaveData, type CraftingRecipe, type ChickenState, type CrabState, type BearState, type RabbitState, type Skill, type PlacedItem } from './types';
 import { saveToIndexedDB, loadFromIndexedDB, deleteFromIndexedDB } from './persistence';
 import type { TimeCycleManager } from './TimeCycleManager';
 import type { WeatherManager } from './WeatherManager';
+import { gameEvents } from './events';
 
 type Listener = () => void;
 type SliceKey = 'inventory' | 'equipment' | 'player' | 'ui' | 'world' | 'skills';
@@ -140,9 +141,14 @@ class GameStore {
       this.removeItem(slot.item.id, 1);
       this.notify('player');
     } else if (slot.item.id === 'campfire') {
-      import('./events').then(m => { m.gameEvents.emit('placeItem', { type: 'campfire', inventoryIndex: index }); });
+      gameEvents.emit('placeItem', { type: 'campfire', inventoryIndex: index });
     } else if (slot.item.type === 'armor') {
-      const slotMap: Record<string, EquipSlot> = { 'helmet_rustic': 'head', 'gloves_rustic': 'hands', 'boots_rustic': 'legs' };
+      const slotMap: Record<string, EquipSlot> = {
+        'helmet_rustic': 'head', 'gloves_rustic': 'hands', 'boots_rustic': 'legs',
+        'iron_helmet': 'head', 'iron_chestplate': 'mainHand', 'iron_boots': 'legs',
+        'bronze_helmet': 'head', 'bronze_chestplate': 'mainHand', 'bronze_boots': 'legs',
+        'gold_helmet': 'head', 'gold_chestplate': 'mainHand', 'gold_boots': 'legs',
+      };
       const equipSlot = slotMap[slot.item.id];
       if (equipSlot) this.equip(equipSlot, index);
     } 
@@ -305,7 +311,9 @@ class GameStore {
 
   private buildSaveData(): GameSaveData {
     return {
-      playerX: this.playerX, playerY: this.playerY, inventory: this.inventory, equipment: this.equipment, timestamp: Date.now(),
+      playerX: this.playerX, playerY: this.playerY, inventory: this.inventory, equipment: this.equipment,
+      hp: this.hp, maxHp: this.maxHp,
+      timestamp: Date.now(),
       resourceStates: this.resourceStates, chickenStates: this.chickenStates, crabStates: this.crabStates, bearStates: this.bearStates, rabbitStates: this.rabbitStates,
       placedItems: this.placedItems, quickBar: this.quickBar, selectedQuickBarIndex: this.selectedQuickBarIndex, skills: this.skills, respawnQueue: this.respawnQueue,
     };
@@ -313,6 +321,7 @@ class GameStore {
 
   private applySaveData(data: GameSaveData) {
     this.playerX = data.playerX; this.playerY = data.playerY; this.inventory = data.inventory; this.equipment = data.equipment;
+    this.hp = data.hp ?? 100; this.maxHp = data.maxHp ?? 100;
     this.resourceStates = data.resourceStates || {}; this.chickenStates = data.chickenStates || {}; this.crabStates = data.crabStates || {};
     this.bearStates = data.bearStates || {}; this.rabbitStates = data.rabbitStates || {}; this.placedItems = data.placedItems || [];
     this.quickBar = data.quickBar || [null, null, null, null, null]; this.selectedQuickBarIndex = data.selectedQuickBarIndex || 0;

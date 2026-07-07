@@ -54,8 +54,8 @@ export default function SkillsModal({ onClose }: Props) {
                   </div>
                   <button 
                     className="text-[10px] text-destructive hover:underline"
-                    onClick={() => handleUseFromMenu(toolType)}
-                    onDoubleClick={() => handleUnlearn(toolType)}
+                    onClick={() => handleUnlearn(toolType)}
+                    onDoubleClick={(e) => e.preventDefault()}
                     title="Clique duplo para resetar (Perda total de XP)"
                   >
                     {confirmUnlearn === toolType ? 'Confirmar?' : 'Reset'}
@@ -85,9 +85,4 @@ export default function SkillsModal({ onClose }: Props) {
       </div>
     </div>
   );
-}
-
-// Small helper to handle the reset confirmation timeout
-function handleUseFromMenu(toolType: string) {
-  // Logic already handled in component via state
 }

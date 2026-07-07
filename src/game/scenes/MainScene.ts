@@ -58,6 +58,10 @@ export class MainScene extends Phaser.Scene {
   private goldParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
   private whiteParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
   private dustParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private trailParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private sparkParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private deathParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private healParticles!: Phaser.GameObjects.Particles.ParticleEmitter;
 
   private isAttacking = false;
   private attackCooldown = 0;
@@ -69,6 +73,7 @@ export class MainScene extends Phaser.Scene {
   private joyVec = { x: 0, y: 0 };
   private respawnCounter = 0;
   private shoreSpawnPoints: { x: number; y: number }[] = [];
+  private prevPlayerHp = 100;
   private facingDir: 'up' | 'down' | 'left' | 'right' = 'down';
   private resourceHpGraphics!: Phaser.GameObjects.Graphics;
   private safeZoneVisual!: Phaser.GameObjects.Graphics;
@@ -190,6 +195,10 @@ export class MainScene extends Phaser.Scene {
     this.goldParticles = this.add.particles(0, 0, 'p_stone', { speed: { min: 80, max: 180 }, gravityY: 500, scale: { start: 1, end: 0 }, lifespan: 400, tint: 0xffd700, emitting: false }).setDepth(1500);
     this.whiteParticles = this.add.particles(0, 0, 'p_white', { speed: { min: 30, max: 100 }, scale: { start: 0.5, end: 0 }, lifespan: 600, emitting: false }).setDepth(1500);
     this.dustParticles = this.add.particles(0, 0, 'p_dust', { speed: { min: 10, max: 20 }, alpha: { start: 0.4, end: 0 }, scale: { start: 0.5, end: 0.2 }, lifespan: 400, emitting: false }).setDepth(5);
+    this.trailParticles = this.add.particles(0, 0, 'p_trail', { speed: { min: 5, max: 15 }, alpha: { start: 0.6, end: 0 }, scale: { start: 1, end: 0.3 }, lifespan: 150, emitting: false, quantity: 1 }).setDepth(10);
+    this.sparkParticles = this.add.particles(0, 0, 'p_spark', { speed: { min: 80, max: 200 }, gravityY: 300, scale: { start: 1.2, end: 0 }, lifespan: 300, tint: 0xffee44, emitting: false }).setDepth(1500);
+    this.deathParticles = this.add.particles(0, 0, 'p_white', { speed: { min: 50, max: 150 }, scale: { start: 0.8, end: 0 }, lifespan: 500, tint: [0xff6666, 0xffaa66, 0xffffff], emitting: false }).setDepth(1500);
+    this.healParticles = this.add.particles(0, 0, 'p_spark', { speed: { min: 20, max: 60 }, alpha: { start: 0.8, end: 0 }, scale: { start: 1.5, end: 0 }, lifespan: 600, tint: 0x44ff44, emitting: false }).setDepth(1500);
   }
 
   private restorePlacedItems() {
@@ -223,14 +232,14 @@ export class MainScene extends Phaser.Scene {
     this.physics.add.overlap(this.projectileGroup, this.resourceGroup, (arrow, res) => {
       if (!arrow.active) return;
       const resource = res as ResourceObj;
-      if (this.canDamageTarget(resource.resourceType, false)) { this.applyDamageToResource(resource, gameStore.getStats().attackDamage); arrow.destroy(); }
+      if (this.canDamageTarget(resource.resourceType, false)) { this.sparkParticles.emitParticleAt(arrow.x, arrow.y, 4); this.applyDamageToResource(resource, gameStore.getStats().attackDamage); arrow.destroy(); }
     });
     const configs = [{ g: this.chickenGroup, l: this.chickens, t: 'chicken' }, { g: this.crabGroup, l: this.crabs, t: 'crab' }, { g: this.bearGroup, l: this.bears, t: 'bear' }, { g: this.rabbitGroup, l: this.rabbits, t: 'rabbit' }];
     configs.forEach(cfg => {
       this.physics.add.overlap(this.projectileGroup, cfg.g, (arrow, sprite) => {
         if (!arrow.active) return;
         const npc = cfg.l.find((n: any) => n.sprite === sprite);
-        if (npc && this.canDamageTarget(cfg.t, false)) { (arrow as any).destroy(); this.applyDamageToNPC(npc, cfg.t, gameStore.getStats().attackDamage); }
+        if (npc && this.canDamageTarget(cfg.t, false)) { this.sparkParticles.emitParticleAt(arrow.x, arrow.y, 6); (arrow as any).destroy(); this.applyDamageToNPC(npc, cfg.t, gameStore.getStats().attackDamage); }
       });
     });
   }
@@ -447,11 +456,11 @@ export class MainScene extends Phaser.Scene {
 
   private canDamageTarget(type: string, show = true): boolean { const t = gameStore.getEquippedTool()?.type || 'hands', r = TOOL_REQUIREMENTS[type]; if (!r || r.includes(t as any)) return true; if (t === 'hands' && (type === 'small_rock' || type === 'dead_tree' || type === 'bush')) return true; if (show) { this.showFloatingText(this.player.x, this.player.y - 40, 'Ferramenta incorreta', '#ffcc66'); } return false; }
 
-  private fireArrow() { if (!gameStore.hasAmmo()) { this.showFloatingText(this.player.x, this.player.y - 40, 'Sem flechas! 🥢', '#ff4444'); return; } gameStore.consumeAmmo(); gameStore.useTool('bow'); playRandomSound(['sfx_bow_01', 'sfx_bow_02'], { volume: 0.5 }); let vx = 0, vy = 0, rot = 0; if (this.facingDir === 'up') { vy = -400; rot = -Math.PI / 2; } else if (this.facingDir === 'down') { vy = 400; rot = Math.PI / 2; } else if (this.facingDir === 'left') { vx = -400; rot = Math.PI; } else { vx = 400; rot = 0; } const arrow = this.physics.add.sprite(this.player.x, this.player.y, 'arrow_projectile').setDepth(15).setPipeline('Light2D'); arrow.setRotation(rot); this.projectileGroup.add(arrow); (arrow.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setVelocity(vx, vy); this.time.delayedCall(1500, () => { if (arrow && arrow.active) arrow.destroy(); }); }
+  private fireArrow() { if (!gameStore.hasAmmo()) { this.showFloatingText(this.player.x, this.player.y - 40, 'Sem flechas!', '#ff4444'); return; } gameStore.consumeAmmo(); gameStore.useTool('bow'); playRandomSound(['sfx_bow_01', 'sfx_bow_02'], { volume: 0.5 }); let vx = 0, vy = 0, rot = 0; if (this.facingDir === 'up') { vy = -400; rot = -Math.PI / 2; } else if (this.facingDir === 'down') { vy = 400; rot = Math.PI / 2; } else if (this.facingDir === 'left') { vx = -400; rot = Math.PI; } else { vx = 400; rot = 0; } const arrow = this.physics.add.sprite(this.player.x, this.player.y, 'arrow_projectile').setDepth(15).setPipeline('Light2D'); arrow.setRotation(rot); this.projectileGroup.add(arrow); (arrow.body as Phaser.Physics.Arcade.Body).setAllowGravity(false).setVelocity(vx, vy); const trailTimer = this.time.addEvent({ delay: 25, callback: () => { if (arrow && arrow.active) { this.trailParticles.emitParticleAt(arrow.x, arrow.y, 1); } else { trailTimer.destroy(); } }, loop: true }); this.time.delayedCall(1500, () => { if (arrow && arrow.active) { trailTimer.destroy(); arrow.destroy(); } }); }
 
-  private applyDamageToResource(res: ResourceObj, dmg: number) { if (!res || !res.active) return; res.resourceHp -= dmg; gameStore.resourceStates[res.resourceId] = res.resourceHp; res.setTint(0xffffff); this.time.delayedCall(100, () => { if (res && res.active) res.clearTint(); }); if (res.resourceType === 'rock' || res.resourceType === 'small_rock') { this.stoneParticles.emitParticleAt(res.x, res.y, 5); playRandomSound(['sfx_stone_hit_01', 'sfx_stone_hit_02', 'sfx_stone_hit_03'], { volume: 0.4 }); } else if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') { this.woodParticles.emitParticleAt(res.x, res.y, 5); playRandomSound(['sfx_wood_hit_01', 'sfx_wood_hit_02', 'sfx_wood_hit_03'], { volume: 0.4 }); } else if (res.resourceType === 'iron_ore') { this.ironParticles.emitParticleAt(res.x, res.y, 6); playRandomSound(['sfx_stone_hit_01', 'sfx_stone_hit_02'], { volume: 0.4 }); } else if (res.resourceType === 'bronze_ore') { this.bronzeParticles.emitParticleAt(res.x, res.y, 6); playRandomSound(['sfx_stone_hit_02', 'sfx_stone_hit_03'], { volume: 0.4 }); } else if (res.resourceType === 'gold_ore') { this.goldParticles.emitParticleAt(res.x, res.y, 6); playRandomSound(['sfx_stone_hit_01', 'sfx_stone_hit_03'], { volume: 0.4 }); } const t = this.add.text(res.x, res.y - 20, `-${dmg.toFixed(0)}`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: res.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (res.resourceHp <= 0) this.harvestResource(res); }
+  private applyDamageToResource(res: ResourceObj, dmg: number) { if (!res || !res.active) return; res.resourceHp -= dmg; gameStore.resourceStates[res.resourceId] = res.resourceHp; res.setTint(0xffffff); this.cameras.main.shake(40, 0.002); this.time.delayedCall(100, () => { if (res && res.active) res.clearTint(); }); if (res.resourceType === 'rock' || res.resourceType === 'small_rock') { this.stoneParticles.emitParticleAt(res.x, res.y, 5); playRandomSound(['sfx_stone_hit_01', 'sfx_stone_hit_02', 'sfx_stone_hit_03'], { volume: 0.4 }); } else if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') { this.woodParticles.emitParticleAt(res.x, res.y, 5); playRandomSound(['sfx_wood_hit_01', 'sfx_wood_hit_02', 'sfx_wood_hit_03'], { volume: 0.4 }); } else if (res.resourceType === 'iron_ore') { this.ironParticles.emitParticleAt(res.x, res.y, 6); playRandomSound(['sfx_stone_hit_01', 'sfx_stone_hit_02'], { volume: 0.4 }); } else if (res.resourceType === 'bronze_ore') { this.bronzeParticles.emitParticleAt(res.x, res.y, 6); playRandomSound(['sfx_stone_hit_02', 'sfx_stone_hit_03'], { volume: 0.4 }); } else if (res.resourceType === 'gold_ore') { this.goldParticles.emitParticleAt(res.x, res.y, 6); playRandomSound(['sfx_stone_hit_01', 'sfx_stone_hit_03'], { volume: 0.4 }); } const t = this.add.text(res.x, res.y - 20, `-${dmg.toFixed(0)}`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: res.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (res.resourceHp <= 0) this.harvestResource(res); }
 
-  private applyDamageToNPC(npc: any, type: string, dmg: number) { const sMap = type === 'chicken' ? gameStore.chickenStates : type === 'crab' ? gameStore.crabStates : type === 'bear' ? gameStore.bearStates : gameStore.rabbitStates; if (!sMap) return; const s = sMap[npc.id]; if (!s) return; const hp = npc.takeDamage(dmg); s.hp = hp; this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8); this.cameras.main.shake(80, 0.004); npc.sprite.setTint(0xffffff); this.time.delayedCall(80, () => { if (npc.sprite && npc.sprite.active) npc.sprite.clearTint(); }); playRandomSound(['sfx_npc_hurt_01', 'sfx_npc_hurt_02'], { volume: 0.5 }); const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (hp <= 0) { playSound('sfx_npc_die', { volume: 0.5 }); if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc); else if (type === 'bear') this.collectBear(npc); else if (type === 'rabbit') this.collectRabbit(npc); } }
+  private applyDamageToNPC(npc: any, type: string, dmg: number) { const sMap = type === 'chicken' ? gameStore.chickenStates : type === 'crab' ? gameStore.crabStates : type === 'bear' ? gameStore.bearStates : gameStore.rabbitStates; if (!sMap) return; const s = sMap[npc.id]; if (!s) return; const hp = npc.takeDamage(dmg); s.hp = hp; this.whiteParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 8); this.cameras.main.shake(80, 0.004); npc.sprite.setTint(0xffffff); this.time.delayedCall(80, () => { if (npc.sprite && npc.sprite.active) npc.sprite.clearTint(); }); const npcBody = npc.sprite.body as Phaser.Physics.Arcade.Body; if (npcBody) { const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, npc.sprite.x, npc.sprite.y); npcBody.setVelocity(Math.cos(angle) * 120, Math.sin(angle) * 120); this.time.delayedCall(150, () => { if (npcBody) { npcBody.setVelocity(0, 0); } }); } playRandomSound(['sfx_npc_hurt_01', 'sfx_npc_hurt_02'], { volume: 0.5 }); const t = this.add.text(npc.sprite.x, npc.sprite.y - 20, `-${dmg.toFixed(0)} HP`, { fontSize: '10px', color: '#ff4444', fontStyle: 'bold' }).setDepth(1000); this.tweens.add({ targets: t, y: npc.sprite.y - 40, alpha: 0, duration: 600, onComplete: () => t.destroy() }); if (hp <= 0) { this.deathParticles.emitParticleAt(npc.sprite.x, npc.sprite.y, 12); this.cameras.main.shake(120, 0.006); playSound('sfx_npc_die', { volume: 0.5 }); if (type === 'chicken') this.collectChicken(npc); else if (type === 'crab') this.collectCrab(npc); else if (type === 'bear') this.collectBear(npc); else if (type === 'rabbit') this.collectRabbit(npc); } }
 
   private collectChicken(c: ChickenNPC) { const s = gameStore.chickenStates[c.id]; if (!s) return; s.alive = false; s.respawnAt = Date.now() + Phaser.Math.Between(30000, 60000); gameStore.addItem(ITEMS.chicken_meat, 1); if (Math.random() < 0.7) gameStore.addItem(ITEMS.feather, 1); c.collect(); this.time.delayedCall(80, () => { if (c.sprite && c.sprite.active) c.destroy(); }); this.chickens = this.chickens.filter(chi => chi.id !== c.id); playRandomSound(['sfx_pickup_01', 'sfx_pickup_02'], { volume: 0.4 }); gameStore.save(); }
 
@@ -489,6 +498,7 @@ export class MainScene extends Phaser.Scene {
     playRandomSound(['sfx_swing_01', 'sfx_swing_02', 'sfx_swing_03'], { volume: 0.6 });
     const slash = this.add.image(this.player.x, this.player.y - 8, 'slash_effect').setDepth(2000).setAlpha(0.8);
     this.tweens.add({ targets: slash, alpha: 0, scale: 1.5, duration: 200, onComplete: () => slash.destroy() });
+    this.sparkParticles.emitParticleAt(this.player.x, this.player.y - 8, 5);
     this.cameras.main.shake(60, 0.003);
     const targets = [...this.chickens, ...this.crabs, ...this.bears, ...this.rabbits];
     targets.forEach((npc: any) => {
@@ -555,6 +565,14 @@ export class MainScene extends Phaser.Scene {
 
   update(_t: number, delta: number) {
     if (this.attackCooldown > 0) this.attackCooldown -= delta; this.processRespawns();
+    if (gameStore.hp < this.prevPlayerHp) {
+      this.cameras.main.flash(120, 180, 0, 0, false);
+      this.cameras.main.shake(100, 0.005);
+    } else if (gameStore.hp > this.prevPlayerHp) {
+      this.healParticles.emitParticleAt(this.player.x, this.player.y - 10, 6);
+      this.showFloatingText(this.player.x, this.player.y - 30, `+${gameStore.hp - this.prevPlayerHp} HP`, '#44ff44');
+    }
+    this.prevPlayerHp = gameStore.hp;
     this.chickens.forEach(c => c.update(delta)); this.crabs.forEach(c => c.update(delta)); this.rabbits.forEach(r => r.update(delta));
 
     this.timeCycle.update(delta);

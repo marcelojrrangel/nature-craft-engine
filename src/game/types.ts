@@ -142,6 +142,8 @@ export interface GameSaveData {
   playerY: number;
   inventory: InventorySlot[];
   equipment: Equipment;
+  hp: number;
+  maxHp: number;
   timestamp: number;
   resourceStates: Record<string, number>;
   chickenStates: Record<string, ChickenState>;

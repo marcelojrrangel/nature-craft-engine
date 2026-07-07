@@ -243,6 +243,18 @@ export class BootScene extends Phaser.Scene {
     g.fillRect(0, 0, 2, 6);
     g.generateTexture('p_rain', 2, 6);
 
+    // Spark (bright small particle for melee/impact)
+    g.clear();
+    g.fillStyle(0xffffaa);
+    g.fillCircle(2, 2, 2);
+    g.generateTexture('p_spark', 4, 4);
+
+    // Trail (tiny particle for arrow trail)
+    g.clear();
+    g.fillStyle(0xddddff);
+    g.fillRect(0, 0, 2, 2);
+    g.generateTexture('p_trail', 2, 2);
+
     // Light Mask Texture (Radial Gradient for torch)
     g.clear();
     const canvas = this.textures.createCanvas('light_mask', 256, 256);

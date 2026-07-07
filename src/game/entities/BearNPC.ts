@@ -170,7 +170,7 @@ export class BearNPC {
   private attackPlayer() {
     this.setState('attacking');
     this.attackCooldown = 1500;
-    gameStore.receiveDamage(25);
+    gameStore.receiveDamage(18);
     playSound('sfx_player_hurt', { volume: 0.6 });
     
     this.sprite.scene.cameras.main.flash(100, 255, 0, 0, false);

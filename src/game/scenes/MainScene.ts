@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Phaser from 'phaser';
 import { gameStore } from '../store';
-import { ITEMS, HARDNESS, TOOL_DAMAGE, BASE_DAMAGE, DROP_BONUS_CHANCE, TOOL_REQUIREMENTS, type ChickenState, type CrabState, type BearState, type RabbitState } from '../types';
+import { ITEMS, HARDNESS, TOOL_DAMAGE, BASE_DAMAGE, TOOL_REQUIREMENTS, type ChickenState, type CrabState, type BearState, type RabbitState } from '../types';
 import { gameEvents } from '../events';
 import { ChickenNPC } from '../entities/ChickenNPC';
 import { CrabNPC } from '../entities/CrabNPC';
@@ -511,9 +511,9 @@ export class MainScene extends Phaser.Scene {
     for (const res of this.resources) {
       if (res.active && Phaser.Math.Distance.Between(this.player.x, this.player.y, res.x, res.y) < 40 && this.canDamageTarget(res.resourceType)) {
         let dmg = stats.attackDamage;
-        if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') { dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.choppingSpeed; gameStore.useTool('axe'); }
-        else if (res.resourceType === 'rock' || res.resourceType === 'small_rock') { dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.miningSpeed; gameStore.useTool('pickaxe'); }
-        else if (res.resourceType === 'iron_ore' || res.resourceType === 'bronze_ore' || res.resourceType === 'gold_ore') { dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType] * stats.miningSpeed; gameStore.useTool('pickaxe'); }
+        if (res.resourceType === 'tree' || res.resourceType === 'dead_tree') { dmg = BASE_DAMAGE * stats.choppingSpeed; gameStore.useTool('axe'); }
+        else if (res.resourceType === 'rock' || res.resourceType === 'small_rock') { dmg = BASE_DAMAGE * stats.miningSpeed; gameStore.useTool('pickaxe'); }
+        else if (res.resourceType === 'iron_ore' || res.resourceType === 'bronze_ore' || res.resourceType === 'gold_ore') { dmg = BASE_DAMAGE * stats.miningSpeed; gameStore.useTool('pickaxe'); }
         else dmg = BASE_DAMAGE * TOOL_DAMAGE[stats.toolType];
         this.applyDamageToResource(res, dmg);
       }

@@ -90,9 +90,9 @@ export const HARDNESS: Record<string, number> = {
   bear: 30,
   small_rock: 2,
   rabbit: 3,
-  iron_ore: 40,
-  bronze_ore: 60,
-  gold_ore: 80,
+  iron_ore: 18,
+  bronze_ore: 25,
+  gold_ore: 35,
 };
 
 export const TOOL_DAMAGE: Record<string, number> = {
@@ -119,7 +119,6 @@ export const TOOL_DAMAGE: Record<string, number> = {
 };
 
 export const BASE_DAMAGE = 1;
-export const DROP_BONUS_CHANCE = 0.5;
 
 export const TOOL_REQUIREMENTS: Record<string, (ToolType | 'hands')[]> = {
   tree: ['axe', 'iron_axe', 'bronze_axe', 'gold_axe'],

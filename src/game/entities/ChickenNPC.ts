@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { HealthComponent } from '../components/HealthComponent';
 import { HealthBarRenderer } from '../components/HealthBarRenderer';
+import { createDeathStain } from '../effects/deathEffect';
 
 export type ChickenVisualState = 'idle' | 'walking' | 'eating' | 'dead';
 
@@ -144,51 +145,24 @@ export class ChickenNPC {
       this.sprite.disableBody(true, false);
     }
 
-    // Criar mancha irregular com a cor da galinha
     const colors: Record<string, number> = {
       'chicken_white': 0xffffff,
       'chicken_black': 0x222222,
       'chicken_brown': 0x8B4513
     };
-    const mainColor = colors[this.textureKey] || 0xffffff;
 
-    const g = this.sprite.scene.add.graphics();
-    g.setDepth(this.sprite.y - 5);
-    
-    // Desenhar mancha "rasgada" (múltiplos círculos aleatórios)
-    for (let i = 0; i < 6; i++) {
-      const offX = Phaser.Math.Between(-8, 8);
-      const offY = Phaser.Math.Between(-4, 4);
-      const radius = Phaser.Math.Between(4, 10);
-      const alpha = Phaser.Math.FloatBetween(0.2, 0.5);
-      
-      g.fillStyle(mainColor, alpha);
-      g.fillCircle(this.sprite.x + offX, this.sprite.y + 8 + offY, radius);
-    }
-    
-    // Pequenos "salpicos" extras
-    g.fillStyle(0x000000, 0.15);
-    g.fillCircle(this.sprite.x, this.sprite.y + 8, 12);
-
-    // Fade out do sprite original
-    this.sprite.scene.tweens.add({
-      targets: this.sprite,
-      alpha: 0,
-      duration: 400,
-      onComplete: () => {
-        this.sprite.setVisible(false);
-        
-        // Timer para sumir a mancha do chão após 5 segundos
-        if (this.sprite.scene) {
-          this.sprite.scene.tweens.add({
-            targets: g,
-            alpha: 0,
-            delay: 5000, // Tempo de espera no chão
-            duration: 2000, // Tempo de desaparecimento
-            onComplete: () => g.destroy()
-          });
-        }
-      }
+    createDeathStain(this.sprite.scene, this.sprite, {
+      color: colors[this.textureKey] || 0xffffff,
+      circleCount: 6,
+      offsetXRange: 8,
+      offsetYRange: 4,
+      radiusMin: 4,
+      radiusMax: 10,
+      alphaMin: 0.2,
+      alphaMax: 0.5,
+      baseColor: 0x000000,
+      baseRadius: 12,
+      baseAlpha: 0.15
     });
 
     this.hpBar.update();

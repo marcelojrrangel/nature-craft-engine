@@ -3,6 +3,7 @@ import { gameStore } from '../store';
 import { HealthComponent } from '../components/HealthComponent';
 import { HealthBarRenderer } from '../components/HealthBarRenderer';
 import { playSound, playRandomSound } from '../sound';
+import { createDeathStain } from '../effects/deathEffect';
 
 export type BearVisualState = 'idle' | 'chasing' | 'attacking' | 'dead';
 
@@ -199,32 +200,14 @@ export class BearNPC {
     this.sprite.play('bear_death_anim', true);
     this.sprite.setDepth(this.sprite.y - 10);
 
-    const g = this.sprite.scene.add.graphics();
-    g.setDepth(this.sprite.y - 5);
-    const mainColor = 0xcc3333;
-
-    for (let i = 0; i < 6; i++) {
-      const offX = Phaser.Math.Between(-14, 14);
-      const offY = Phaser.Math.Between(-8, 8);
-      const radius = Phaser.Math.Between(6, 14);
-      const alpha = Phaser.Math.FloatBetween(0.3, 0.6);
-      g.fillStyle(mainColor, alpha);
-      g.fillCircle(this.sprite.x + offX, this.sprite.y + 10 + offY, radius);
-    }
-
-    this.sprite.scene.tweens.add({
-      targets: this.sprite,
-      alpha: 0,
-      duration: 600,
-      onComplete: () => {
-        this.sprite.setVisible(false);
-        if (this.sprite.scene) {
-          this.sprite.scene.tweens.add({
-            targets: g, alpha: 0, delay: 5000, duration: 2000,
-            onComplete: () => g.destroy()
-          });
-        }
-      }
+    createDeathStain(this.sprite.scene, this.sprite, {
+      color: 0xcc3333,
+      circleCount: 6,
+      offsetXRange: 14,
+      offsetYRange: 8,
+      radiusMin: 6,
+      radiusMax: 14,
+      spriteFadeDuration: 600
     });
 
     this.hpBar.update();

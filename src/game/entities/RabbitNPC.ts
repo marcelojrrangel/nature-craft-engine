@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { HealthComponent } from '../components/HealthComponent';
 import { HealthBarRenderer } from '../components/HealthBarRenderer';
+import { createDeathStain } from '../effects/deathEffect';
 
 export type RabbitVisualState = 'idle' | 'moving' | 'dead';
 
@@ -140,30 +141,14 @@ export class RabbitNPC {
       this.sprite.disableBody(true, false);
     }
 
-    const g = this.sprite.scene.add.graphics();
-    g.setDepth(this.sprite.y - 5);
-    const mainColor = 0xeeeeee;
-
-    for (let i = 0; i < 5; i++) {
-      const offX = Phaser.Math.Between(-8, 8), offY = Phaser.Math.Between(-4, 4);
-      const radius = Phaser.Math.Between(4, 10), alpha = Phaser.Math.FloatBetween(0.2, 0.5);
-      g.fillStyle(mainColor, alpha);
-      g.fillCircle(this.sprite.x + offX, this.sprite.y + 8 + offY, radius);
-    }
-
-    this.sprite.scene.tweens.add({
-      targets: this.sprite,
-      alpha: 0,
-      duration: 400,
-      onComplete: () => {
-        this.sprite.setVisible(false);
-        if (this.sprite.scene) {
-          this.sprite.scene.tweens.add({
-            targets: g, alpha: 0, delay: 5000, duration: 2000,
-            onComplete: () => g.destroy()
-          });
-        }
-      }
+    createDeathStain(this.sprite.scene, this.sprite, {
+      color: 0xeeeeee,
+      offsetXRange: 8,
+      offsetYRange: 4,
+      radiusMin: 4,
+      radiusMax: 10,
+      alphaMin: 0.2,
+      alphaMax: 0.5
     });
 
     this.hpBar.update();

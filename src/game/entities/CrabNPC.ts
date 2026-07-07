@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { HealthComponent } from '../components/HealthComponent';
 import { HealthBarRenderer } from '../components/HealthBarRenderer';
+import { createDeathStain } from '../effects/deathEffect';
 
 export type CrabVisualState = 'idle' | 'scuttle' | 'dead';
 
@@ -135,36 +136,14 @@ export class CrabNPC {
       this.sprite.disableBody(true, false);
     }
 
-    // Criar mancha irregular (Cor de Caranguejo: Laranja/Vermelho)
-    const g = this.sprite.scene.add.graphics();
-    g.setDepth(this.sprite.y - 5);
-    const mainColor = 0xcd4f5f;
-
-    for (let i = 0; i < 5; i++) {
-      const offX = Phaser.Math.Between(-10, 10);
-      const offY = Phaser.Math.Between(-5, 5);
-      const radius = Phaser.Math.Between(5, 12);
-      const alpha = Phaser.Math.FloatBetween(0.3, 0.6);
-      g.fillStyle(mainColor, alpha);
-      g.fillCircle(this.sprite.x + offX, this.sprite.y + 10 + offY, radius);
-    }
-
-    this.sprite.scene.tweens.add({
-      targets: this.sprite,
-      alpha: 0,
-      duration: 400,
-      onComplete: () => {
-        this.sprite.setVisible(false);
-        if (this.sprite.scene) {
-          this.sprite.scene.tweens.add({
-            targets: g,
-            alpha: 0,
-            delay: 5000,
-            duration: 2000,
-            onComplete: () => g.destroy()
-          });
-        }
-      }
+    createDeathStain(this.sprite.scene, this.sprite, {
+      color: 0xcd4f5f,
+      offsetXRange: 10,
+      offsetYRange: 5,
+      radiusMin: 5,
+      radiusMax: 12,
+      alphaMin: 0.3,
+      alphaMax: 0.6
     });
 
     this.hpBar.update();

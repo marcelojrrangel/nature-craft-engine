@@ -65,7 +65,8 @@ function createMockScene() {
   mockScene = {
     physics: {
       add: {
-        sprite: vi.fn(() => {
+        sprite: vi.fn((x: number, y: number) => {
+          mockSprite.x = x; mockSprite.y = y;
           mockSprite.scene = mockScene;
           return mockSprite;
         }),

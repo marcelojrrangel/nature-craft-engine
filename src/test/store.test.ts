@@ -120,8 +120,96 @@ describe('GameStore - Logica Central', () => {
     it('deve resetar o save ao morrer (HP <= 0)', () => {
       gameStore.receiveDamage(100);
       expect(window.alert).toHaveBeenCalled();
-      // Verificando se os itens foram limpos
       expect(gameStore.inventory.every(s => s.item === null)).toBe(true);
+    });
+  });
+
+  describe('Sistema de Quests', () => {
+    beforeEach(() => {
+      gameStore.resetSave();
+    });
+
+    it('deve inicializar quests disponíveis e bloqueadas', () => {
+      gameStore.initQuests();
+      const firstHunt = gameStore.quests['first_hunt'];
+      expect(firstHunt).toBeDefined();
+      expect(firstHunt.status).toBe('available');
+      const bearSlayer = gameStore.quests['bear_slayer'];
+      expect(bearSlayer).toBeDefined();
+      expect(bearSlayer.status).toBe('locked');
+    });
+
+    it('deve aceitar quests disponíveis', () => {
+      gameStore.initQuests();
+      gameStore.acceptQuest('first_hunt');
+      expect(gameStore.quests['first_hunt'].status).toBe('active');
+    });
+
+    it('não deve aceitar quests bloqueadas', () => {
+      gameStore.initQuests();
+      gameStore.acceptQuest('bear_slayer');
+      expect(gameStore.quests['bear_slayer'].status).toBe('locked');
+    });
+
+    it('deve atualizar progresso de kill objective', () => {
+      gameStore.initQuests();
+      gameStore.acceptQuest('first_hunt');
+      gameStore.updateQuestObjective('kill', 'chicken', 1);
+      gameStore.updateQuestObjective('kill', 'chicken', 1);
+      expect(gameStore.quests['first_hunt'].objectives[0].current).toBe(2);
+    });
+
+    it('deve atualizar progresso de gather objective', () => {
+      gameStore.initQuests();
+      gameStore.acceptQuest('wood_gatherer');
+      gameStore.updateQuestObjective('gather', 'wood', 5);
+      expect(gameStore.quests['wood_gatherer'].objectives[0].current).toBe(5);
+    });
+
+    it('deve completar quest quando todos objetivos forem atingidos', () => {
+      gameStore.initQuests();
+      gameStore.acceptQuest('first_hunt');
+      gameStore.updateQuestObjective('kill', 'chicken', 3);
+      expect(gameStore.quests['first_hunt'].status).toBe('completed');
+    });
+
+    it('deve distribuir recompensas ao completar quest', () => {
+      gameStore.initQuests();
+      gameStore.acceptQuest('first_hunt');
+      const countBefore = gameStore.countItem('cooked_chicken');
+      gameStore.updateQuestObjective('kill', 'chicken', 3);
+      expect(gameStore.countItem('cooked_chicken')).toBe(countBefore + 2);
+    });
+
+    it('deve desbloquear quests com pré-requisitos', () => {
+      gameStore.initQuests();
+      gameStore.acceptQuest('first_hunt');
+      expect(gameStore.quests['bear_slayer'].status).toBe('locked');
+      gameStore.updateQuestObjective('kill', 'chicken', 3);
+      gameStore.updateQuestObjective('kill', 'chicken', 3);
+      expect(gameStore.quests['bear_slayer'].status).toBe('available');
+    });
+
+    it('deve atualizar progresso de craft objective via craft()', () => {
+      gameStore.initQuests();
+      gameStore.acceptQuest('chef');
+      gameStore.addItem(ITEMS.chicken_meat, 1);
+      const cookRecipe = RECIPES.find(r => r.id === 'cook_chicken')!;
+      gameStore.addItem(ITEMS.chicken_meat, 1);
+      gameStore.craft(cookRecipe);
+      expect(gameStore.quests['chef'].objectives[0].current).toBe(1);
+    });
+
+    it('deve salvar e carregar estado de quests', () => {
+      gameStore.initQuests();
+      gameStore.acceptQuest('first_hunt');
+      gameStore.updateQuestObjective('kill', 'chicken', 1);
+      gameStore.save();
+      const raw = localStorage.getItem('naturequest_save');
+      expect(raw).toBeTruthy();
+      const parsed = JSON.parse(raw!);
+      expect(parsed.quests).toBeDefined();
+      expect(parsed.quests['first_hunt'].status).toBe('active');
     });
   });
 });
